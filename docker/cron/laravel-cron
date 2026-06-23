@@ -1,0 +1,4 @@
+# Laravel Scheduler — runs every minute
+* * * * * cd /var/www/html && php artisan schedule:run >> /var/log/cron.log 2>&1
+
+# Required: empty line at end of crontab

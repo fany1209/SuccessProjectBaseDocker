@@ -1,0 +1,52 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# IDE / Editor
+.idea
+.vscode
+.fleet
+.nova
+.zed
+.phpactor.json
+.editorconfig
+
+# Node modules (installed inside container)
+node_modules
+
+# Docker files (avoid recursive context)
+docker-compose.yml
+docker-compose.override.yml
+
+# Environment files
+.env
+.env.backup
+.env.production
+.env.docker
+
+# Documentation
+README.md
+CHANGELOG.md
+*.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Tests
+tests
+phpunit.xml
+.phpunit.cache
+.phpunit.result.cache
+
+# CI/CD
+.styleci.yml
+.github
+
+# Logs
+*.log
+storage/logs/*
+
+# Database dump (large file)
+*.sql

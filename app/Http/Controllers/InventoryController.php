@@ -1,0 +1,278 @@
+<?php
+/*
+Inventario
+Inventario Controlador
+Fecha de creación: 13-08-2025
+Creado por: Jacob
+Actualizado por: Stefany
+Fecha de actualización: 15-01-2026
+*/
+namespace App\Http\Controllers;
+
+use App\Helpers\DatabaseErrors;
+use App\Http\Controllers\Controller;
+use App\Models\Cli;
+use App\Models\Concept;
+use App\Models\Input;
+use App\Models\Inventory;
+use App\Models\Operator;
+use App\Models\Output;
+use App\Models\Product;
+use App\Models\ProductInputs;
+use App\Models\ProductOutputs;
+use App\Models\Quarantine;
+use App\Models\Trailer;
+use App\Models\TransportLine;
+use Carbon\Carbon;
+use Illuminate\Database\QueryException;
+use App\Models\Vehicle;
+use App\Models\Warehouse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class InventoryController extends Controller
+{
+    public function index(){
+        $available_locations = DB::table('inventory')
+        ->join('cli', 'inventory.inventory_id', '=', 'cli.inventory_id')
+        ->join('locations', 'locations.location_id', '=', 'cli.location_id')
+        ->join('concepts', 'concepts.concept_id', '=', 'cli.concept_id')
+        ->join('products', 'products.product_id', '=', 'inventory.product_id')
+        ->select(
+            'locations.name'
+        )->get();
+        $quarantine = Quarantine::all();
+        $transport_lines = TransportLine::all();
+        $products_all = DB::table('products')->select('product_id','name')->get();
+        $products = DB::table('inventory')->leftJoin('products','products.product_id','=','inventory.product_id')->select('products.product_id','products.name')->orderBy('products.product_id')->distinct()->get();
+        $suppliers = DB::table('suppliers')->select('supplier_id','name')->get();
+        $customers = DB::table('customers')->select('customer_id','name')->get();
+        $products_warehouse = Inventory::select('inventory.product_id','products.name')->join('products','products.product_id','=','inventory.product_id')->distinct()->get();
+        $batchs = Inventory::select('inventory_id','batch','stock','inventory.product_id','products.name','products.unit','products.batch_code')->join('products','products.product_id','=','inventory.product_id')->get();
+        $inputs_years = DB::table('inputs')->selectRaw('year(updated_at) as year')->orderByDesc('year')->distinct()->get();
+        $inputs_months = DB::table('inputs')->selectRaw('year(updated_at) as year, month(updated_at) as month')->groupByRaw('year(updated_at), month(updated_at)')->orderByDesc('year')->orderByDesc('month')->get();
+        $inputs_dates = DB::table('inputs')->selectRaw("input_id,year(updated_at) as year, month(updated_at) as month,day(updated_at) as day, DATE_FORMAT(updated_at, '%W, %e %M %H:%i') as date")->groupByRaw('input_id, year(updated_at), month(updated_at), day(updated_at), date')->orderByDesc('input_id')->orderByDesc('year')->orderByDesc('month')->orderByDesc('day')->orderByDesc('date')->get();
+        $inputs_products = DB::table('product_inputs')->select('inputs.input_id','products.name','product_inputs.quantity','products.unit')->join('products', 'products.product_id', '=', 'product_inputs.product_id')->join('inputs', 'inputs.input_id', '=', 'product_inputs.input_id')->get();
+        $outputs_years = DB::table('outputs')->selectRaw('year(updated_at) as year')->orderByDesc('year')->distinct()->get();
+        $outputs_months = DB::table('outputs')->selectRaw('year(updated_at) as year, month(updated_at) as month')->groupByRaw('year(updated_at), month(updated_at)')->orderByDesc('year')->orderByDesc('month')->get();
+        $outputs_dates = DB::table('outputs')->selectRaw("output_id,year(updated_at) as year, month(updated_at) as month,day(updated_at) as day, DATE_FORMAT(updated_at, '%W, %e %M %H:%i') as date")->groupByRaw('output_id, year(updated_at), month(updated_at), day(updated_at), date')->orderByDesc('output_id')->orderByDesc('year')->orderByDesc('month')->orderByDesc('day')->orderByDesc('date')->get();
+        $outputs_products = DB::table('product_outputs')->select('outputs.output_id','products.name','product_outputs.quantity','products.unit')->join('products', 'products.product_id', '=', 'product_outputs.product_id')->join('outputs', 'outputs.output_id', '=', 'product_outputs.output_id')->get();
+        $operators = Operator::select('operator_id','name','license')->get();
+        $vehicles = Vehicle::select('plate','type')->get();
+        $trailers = Trailer::select('plate','type')->get();
+        $concepts = Concept::select('concept_id','name')->get();
+        $warehouses = Warehouse::select('warehouse_id','name')->get();
+        return view('inventory',compact('warehouses','available_locations','concepts','trailers','vehicles','operators','batchs','outputs_products','inputs_products','outputs_dates','inputs_dates','outputs_months','outputs_years','inputs_months','inputs_years','transport_lines','suppliers','customers','products','products_all','quarantine','products_warehouse'));
+    }
+
+    //Pal inicio de Inventario
+    public function getInventoryAvailable(Request $request)
+    {
+        $search = $request->input('search');
+        $query = DB::table('products')
+            ->leftJoin('inventory', 'inventory.product_id', '=', 'products.product_id')
+            ->select(
+                'products.product_id',
+                'products.name',
+                DB::raw('COALESCE(SUM(inventory.stock), 0) as stock'),
+                'products.unit'
+            )
+            ->groupBy('products.product_id', 'products.name', 'products.unit');
+
+        if (!empty($search)) {
+            $query->where('products.name', 'like', '%' . $search . '%');
+        }
+
+        $products = $query->get();
+        $quarantine = DB::table('quarantine')
+            ->join('inventory', 'inventory.inventory_id', '=', 'quarantine.inventory_id')
+            ->join('products', 'products.product_id', '=', 'inventory.product_id')
+            ->select(
+                'quarantine.quarantine_id',
+                'products.name',
+                'inventory.batch',
+                'quarantine.quantity',
+                'products.unit',
+                'quarantine.notes',
+                'inventory.inventory_id'
+            )
+            ->get();
+
+       $productsHigh = Product::leftJoin('inventory', 'products.product_id', '=', 'inventory.product_id')
+            ->select(
+                'products.product_id',
+                'products.name',
+                'products.unit',
+                'products.stock_max',
+                DB::raw('COALESCE(SUM(inventory.stock), 0) as stock')
+            )
+            ->where('products.category_id', '=', 17) 
+            ->groupBy('products.product_id', 'products.name', 'products.unit', 'products.stock_max')
+            ->orderBy('stock', 'desc')
+            ->get();
+
+        $productsLow = Product::leftJoin('inventory', 'products.product_id', '=', 'inventory.product_id')
+            ->select(
+                'products.product_id',
+                'products.name',
+                'products.unit',
+                'products.stock_min',
+                DB::raw('COALESCE(SUM(inventory.stock), 0) as stock')
+            )
+            ->havingRaw('COALESCE(SUM(inventory.stock), 0) <= products.stock_min')
+            ->groupBy('products.product_id', 'products.name', 'products.unit', 'products.stock_min')
+            ->orderBy('stock')
+            ->get();
+
+        return response()->json([
+            'products' => $products,
+            'productsLow' => $productsLow,
+            'productsHight' => $productsHigh,
+            'quarantine' => $quarantine
+        ]);
+    }
+
+    //Pa' lo de Quarantine
+    public function addQuarantine(Request $request){
+        $request -> validate([
+            'inventory_id' => 'required|integer',
+            'quantity' => 'required|numeric|min:0',
+            'notes' => 'required|string|max:350',
+        ]);
+        Quarantine::create($request->only(['quantity','inventory_id','notes']));
+        Inventory::where('inventory_id',$request->inventory_id)->update(['stock' => DB::raw("stock-$request->quantity")]);
+        return response()->json(['message' => 'Operation successfuly make it'], 201);
+    }
+
+    public function updateQuarantine(Request $request){
+        $request -> validate([
+            'quarantine_id' => 'required|integer',
+            'quantity' => 'required|numeric|min:0'
+        ]);
+        $query = Quarantine::where('quarantine_id',$request->quarantine_id)->first();
+        if(($query->quantity-$request->quantity)<=0){
+            $quarantine = Quarantine::find($request->quarantine_id);
+            $quarantine->delete();
+        }
+        Quarantine::where('quarantine_id',$request->quarantine_id)->update(['quantity'=>DB::raw("quantity-$request->quantity")]);
+        Inventory::where('inventory_id',$query->inventory_id)->update(['stock' => DB::raw("stock+$request->quantity")]);
+        return response()->json(['message' => 'Operation successfuly make it'], 201);
+    }
+
+    //Pa' Transaction
+    public function makeTransaction(Request $request)
+    {
+        try {
+            if ($request->has('quantity') && is_array($request->quantity)) {
+                $cleanedQuantities = array_map(function ($q) {
+                    return is_string($q) ? str_replace(',', '.', trim($q)) : $q;
+                }, $request->quantity);
+                $request->merge(['quantity' => $cleanedQuantities]);
+            }
+
+            $request->validate([
+                'type'                 => 'required|string|in:Input,Output',
+                'transport_line'       => 'nullable|integer',
+                'operator'             => 'nullable|string|max:200',
+                'license_number'       => 'nullable|string|max:50',
+                'security_seal'        => 'required|integer',
+                'security_seal_number' => 'nullable|required_if:security_seal,1|string|max:50',
+                'unit_plates'          => 'nullable|string|max:20',
+                'trailer_plates'       => 'nullable|string|max:20',
+                'comments'             => 'nullable|string|max:300',
+                'supplier'             => 'nullable|required_if:type,Input|integer',
+                'customer'             => 'nullable|required_if:type,Output|integer',
+                'vendedor'             => 'nullable|required_if:type,Output|string|max:200',
+                'product_id'           => 'required|array|min:1',
+                'product_id.*'         => 'required|integer',
+                'quantity'             => 'required|array|min:1',
+                'quantity.*'           => 'required|numeric|min:0.001',
+                'warehouse_batch'      => 'required|array|min:1',
+                'warehouse_batch.*'    => 'required|string|max:50',
+            ]);
+
+            return DB::transaction(function () use ($request) {
+                $data = $request->only([
+                    'operator', 'license_number', 'security_seal', 
+                    'security_seal_number', 'unit_plates', 'trailer_plates', 'comments'
+                ]);
+                $data['transport_line_id'] = $request->transport_line;
+
+                if ($request->type === 'Input') {
+                    $data['supplier_id'] = $request->supplier;
+                    $movement = Input::create($data);
+                    $fkField  = 'input_id';
+                    $fkValue  = $movement->input_id;
+                } else {
+                    $data['customer_id'] = $request->customer;
+                    $data['vendedor'] = $request->vendedor;
+                    $movement = Output::create($data);
+                    $fkField  = 'output_id';
+                    $fkValue  = $movement->output_id;
+                }
+
+                $details = [];
+                foreach ($request->product_id as $index => $productId) {
+                    $qty = (float) $request->quantity[$index];
+                    
+                    $row = [
+                        'product_id' => $productId,
+                        'quantity'   => $qty,
+                        $fkField     => $fkValue,
+                    ];
+
+                    if ($request->type === 'Output') {
+                        $inventory = Inventory::where('inventory_id', $request->warehouse_batch[$index])->firstOrFail();
+                        $row['warehouse_batch'] = $inventory->batch;
+                        $row['label_batch']     = $request->label_batch[$index] ?? null;
+                        $inventory->decrement('stock', $qty);
+                    } else {
+                        $row['warehouse_batch'] = $request->warehouse_batch[$index];
+                        Inventory::create([
+                            'product_id' => $productId,
+                            'stock'      => $qty,
+                            'batch'      => $row['warehouse_batch'],
+                        ]);
+                    }
+                    $details[] = $row;
+                }
+
+                if ($request->type === 'Input') {
+                    ProductInputs::insert($details);
+                } else {
+                    ProductOutputs::insert($details);
+                }
+
+                return response()->json(['message' => 'Success'], 201);
+            });
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['error' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function updateDate(Request $request){
+        try{
+            DB::transaction(function () use ($request){
+                $type = $request->input('type');
+                $id = $request->input('id');
+                $new_date = $request->input('updated_at');
+                $new_date = Carbon::parse($new_date)->setTimeFrom(Carbon::now());
+                if($type == 'input'){
+                    Input::where('input_id',$id)->update([
+                        'updated_at' => $new_date
+                    ]);
+                }else{
+                    Output::where('output_id',$id)->update([
+                        'updated_at' => $new_date
+                    ]);
+                }
+                return response()->json(['message' => 'Operation successfuly make it'], 201);
+            });
+        }catch(QueryException $e){
+            return DatabaseErrors::handle($e);
+        }
+    }
+}
