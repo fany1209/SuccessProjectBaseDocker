@@ -484,6 +484,133 @@ class FinanceController extends Controller
             ->groupBy('customers.customer_id', 'customers.name', 'customers.vendedor', 'customers.phone')
             ->havingRaw('MAX(sales.date) IS NOT NULL AND DATEDIFF(CURDATE(), MAX(sales.date)) > 100')
             ->orderByDesc('days_without_purchase')
+            ->limit(10)
+            ->get();
+
+        // 3. RANKING DE MEJORES CLIENTES (Top 10 por monto)
+        $bestCustomers = DB::table('sales')
+            ->join('customers', 'customers.customer_id', '=', 'sales.customer_id')
+            ->join('sale_detail', 'sales.sale_id', '=', 'sale_detail.sale_id')
+            ->where('sales.is_customer', 1)
+            ->whereNotNull('sales.customer_id')
+            ->when(!empty($cancelledIds), fn($q) => $q->whereNotIn('sales.sales_status_id', $cancelledIds))
+            ->select(
+                'customers.customer_id',
+                'customers.name',
+                DB::raw('COUNT(DISTINCT sales.sale_id) as total_purchases'),
+                DB::raw('SUM(CASE WHEN sale_detail.has_tax = 1 THEN sale_detail.quantity * sale_detail.cost * 1.16 ELSE sale_detail.quantity * sale_detail.cost END) as total_amount'),
+                DB::raw('MAX(sales.date) as last_purchase')
+            )
+            ->groupBy('customers.customer_id', 'customers.name')
+            ->orderByDesc('total_amount')
+            ->limit(10)
+            ->get();
+
+        $maxAmount = $bestCustomers->isNotEmpty() ? $bestCustomers->first()->total_amount : 1;
+
+        // 4. PRODUCTOS MÁS VENDIDOS (Top 10)
+        $topProducts = DB::table('sale_detail')
+            ->join('sales', 'sales.sale_id', '=', 'sale_detail.sale_id')
+            ->where('sales.is_customer', 1)
+            ->when(!empty($cancelledIds), fn($q) => $q->whereNotIn('sales.sales_status_id', $cancelledIds))
+            ->whereNotNull('sale_detail.public_product_name')
+            ->where('sale_detail.public_product_name', '!=', '')
+            ->select(
+                'sale_detail.public_product_name',
+                DB::raw('SUM(sale_detail.quantity) as total_qty'),
+                DB::raw('SUM(CASE WHEN sale_detail.has_tax = 1 THEN sale_detail.quantity * sale_detail.cost * 1.16 ELSE sale_detail.quantity * sale_detail.cost END) as total_revenue'),
+                DB::raw('COUNT(DISTINCT sales.customer_id) as unique_customers')
+            )
+            ->groupBy('sale_detail.public_product_name')
+            ->orderByDesc('total_qty')
+            ->limit(10)
+            ->get();
+
+        $maxQty = $topProducts->isNotEmpty() ? $topProducts->first()->total_qty : 1;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'frequent_customers'  => $frequentCustomers,
+                'inactive_customers'  => $inactiveCustomers,
+                'best_customers'      => $bestCustomers,
+                'max_amount'          => $maxAmount,
+                'top_products'        => $topProducts,
+                'max_qty'             => $maxQty,
+            ]
+        ]);
+    }
+
+    public function getDashboardData()
+    {
+        // IDs de estatus cancelados
+        $cancelledIds = DB::table('sales_status')
+            ->whereIn(DB::raw('LOWER(name)'), ['cancelado', 'cancelada'])
+            ->pluck('sales_status_id')
+            ->toArray();
+
+        $cancelFilter = function ($q) use ($cancelledIds) {
+            if (!empty($cancelledIds)) {
+                $q->whereNotIn('sales.sales_status_id', $cancelledIds);
+            }
+        };
+
+        // 1. CLIENTES FRECUENTES (Top 10 por número de compras)
+        $frequentCustomers = DB::table('sales')
+            ->join('customers', 'customers.customer_id', '=', 'sales.customer_id')
+            ->where('sales.is_customer', 1)
+            ->whereNotNull('sales.customer_id')
+            ->when(!empty($cancelledIds), fn($q) => $q->whereNotIn('sales.sales_status_id', $cancelledIds))
+            ->select(
+                'customers.customer_id',
+                'customers.name',
+                DB::raw('COUNT(DISTINCT sales.sale_id) as total_purchases'),
+                DB::raw('MAX(sales.date) as last_purchase')
+            )
+            ->groupBy('customers.customer_id', 'customers.name')
+            ->orderByDesc('total_purchases')
+            ->limit(10)
+            ->get();
+
+        // Agregar monto total para cada cliente frecuente
+        foreach ($frequentCustomers as $fc) {
+            $saleIds = DB::table('sales')
+                ->where('customer_id', $fc->customer_id)
+                ->where('is_customer', 1)
+                ->when(!empty($cancelledIds), fn($q) => $q->whereNotIn('sales_status_id', $cancelledIds))
+                ->pluck('sale_id');
+
+            $total = DB::table('sale_detail')
+                ->whereIn('sale_id', $saleIds)
+                ->get()
+                ->sum(function ($d) {
+                    $subtotal = (float) $d->quantity * (float) $d->cost;
+                    return $d->has_tax == 1 ? $subtotal * 1.16 : $subtotal;
+                });
+
+            $fc->total_amount = round($total, 2);
+        }
+
+        // 2. CLIENTES INACTIVOS (100+ días sin comprar)
+        $inactiveCustomers = DB::table('customers')
+            ->leftJoin('sales', function ($join) use ($cancelledIds) {
+                $join->on('customers.customer_id', '=', 'sales.customer_id')
+                     ->where('sales.is_customer', 1);
+                if (!empty($cancelledIds)) {
+                    $join->whereNotIn('sales.sales_status_id', $cancelledIds);
+                }
+            })
+            ->select(
+                'customers.customer_id',
+                'customers.name',
+                'customers.vendedor',
+                'customers.phone',
+                DB::raw('MAX(sales.date) as last_purchase'),
+                DB::raw('DATEDIFF(CURDATE(), MAX(sales.date)) as days_without_purchase')
+            )
+            ->groupBy('customers.customer_id', 'customers.name', 'customers.vendedor', 'customers.phone')
+            ->havingRaw('MAX(sales.date) IS NOT NULL AND DATEDIFF(CURDATE(), MAX(sales.date)) > 100')
+            ->orderByDesc('days_without_purchase')
             ->limit(15)
             ->get();
 
