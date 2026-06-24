@@ -216,6 +216,8 @@ class FinanceController extends Controller
             ->pluck('sales_status_id')
             ->toArray();
 
+        $year = request()->query('year');
+
         // Ventas válidas del cliente
         $salesQuery = DB::table('sales')
             ->where('customer_id', $customerId)
@@ -223,6 +225,10 @@ class FinanceController extends Controller
 
         if (!empty($cancelledIds)) {
             $salesQuery->whereNotIn('sales_status_id', $cancelledIds);
+        }
+
+        if (!empty($year)) {
+            $salesQuery->whereYear('date', $year);
         }
 
         $saleIds = (clone $salesQuery)->pluck('sale_id');
@@ -291,7 +297,7 @@ class FinanceController extends Controller
             ->orderByDesc('total_qty')
             ->first();
 
-        // 5. Días sin comprar
+        // 5. Días sin comprar (desde la última compra en el filtro)
         $daysSinceLastPurchase = $lastPurchaseDate
             ? floor(\Carbon\Carbon::parse($lastPurchaseDate)->diffInDays(\Carbon\Carbon::now()))
             : null;
@@ -304,14 +310,20 @@ class FinanceController extends Controller
 
         // === DATOS PARA GRÁFICAS ===
 
-        // A. Compras mensuales (últimos 12 meses)
-        $monthlyData = DB::table('sales')
+        // A. Compras mensuales
+        $monthlyQuery = DB::table('sales')
             ->join('sale_detail', 'sales.sale_id', '=', 'sale_detail.sale_id')
             ->where('sales.customer_id', $customerId)
             ->where('sales.is_customer', 1)
-            ->where('sales.date', '>=', \Carbon\Carbon::now()->subMonths(12)->startOfMonth())
-            ->when(!empty($cancelledIds), fn($q) => $q->whereNotIn('sales.sales_status_id', $cancelledIds))
-            ->select(
+            ->when(!empty($cancelledIds), fn($q) => $q->whereNotIn('sales.sales_status_id', $cancelledIds));
+
+        if (!empty($year)) {
+            $monthlyQuery->whereYear('sales.date', $year);
+        } else {
+            $monthlyQuery->where('sales.date', '>=', \Carbon\Carbon::now()->subMonths(12)->startOfMonth());
+        }
+
+        $monthlyData = $monthlyQuery->select(
                 DB::raw('YEAR(sales.date) as year'),
                 DB::raw('MONTH(sales.date) as month'),
                 DB::raw('SUM(CASE WHEN sale_detail.has_tax = 1 THEN sale_detail.quantity * sale_detail.cost * 1.16 ELSE sale_detail.quantity * sale_detail.cost END) as total')
@@ -331,13 +343,19 @@ class FinanceController extends Controller
             ->get();
 
         // C. Ticket promedio mensual
-        $avgTicket = DB::table('sales')
+        $ticketQuery = DB::table('sales')
             ->join('sale_detail', 'sales.sale_id', '=', 'sale_detail.sale_id')
             ->where('sales.customer_id', $customerId)
             ->where('sales.is_customer', 1)
-            ->where('sales.date', '>=', \Carbon\Carbon::now()->subMonths(12)->startOfMonth())
-            ->when(!empty($cancelledIds), fn($q) => $q->whereNotIn('sales.sales_status_id', $cancelledIds))
-            ->select(
+            ->when(!empty($cancelledIds), fn($q) => $q->whereNotIn('sales.sales_status_id', $cancelledIds));
+
+        if (!empty($year)) {
+            $ticketQuery->whereYear('sales.date', $year);
+        } else {
+            $ticketQuery->where('sales.date', '>=', \Carbon\Carbon::now()->subMonths(12)->startOfMonth());
+        }
+
+        $avgTicket = $ticketQuery->select(
                 DB::raw('YEAR(sales.date) as year'),
                 DB::raw('MONTH(sales.date) as month'),
                 DB::raw('COUNT(DISTINCT sales.sale_id) as num_sales'),
@@ -353,14 +371,19 @@ class FinanceController extends Controller
             });
 
         // D. Distribución por vendedor
-        $sellerDistribution = DB::table('sales')
+        $sellerQuery = DB::table('sales')
             ->join('sale_detail', 'sales.sale_id', '=', 'sale_detail.sale_id')
             ->where('sales.customer_id', $customerId)
             ->where('sales.is_customer', 1)
             ->when(!empty($cancelledIds), fn($q) => $q->whereNotIn('sales.sales_status_id', $cancelledIds))
             ->whereNotNull('sales.seller')
-            ->where('sales.seller', '!=', '')
-            ->select(
+            ->where('sales.seller', '!=', '');
+
+        if (!empty($year)) {
+            $sellerQuery->whereYear('sales.date', $year);
+        }
+
+        $sellerDistribution = $sellerQuery->select(
                 'sales.seller',
                 DB::raw('SUM(CASE WHEN sale_detail.has_tax = 1 THEN sale_detail.quantity * sale_detail.cost * 1.16 ELSE sale_detail.quantity * sale_detail.cost END) as total')
             )
@@ -387,6 +410,133 @@ class FinanceController extends Controller
                     'avg_ticket' => $avgTicket,
                     'seller_distribution' => $sellerDistribution,
                 ]
+            ]
+        ]);
+    }
+
+    public function getDashboardData()
+    {
+        // IDs de estatus cancelados
+        $cancelledIds = DB::table('sales_status')
+            ->whereIn(DB::raw('LOWER(name)'), ['cancelado', 'cancelada'])
+            ->pluck('sales_status_id')
+            ->toArray();
+
+        $cancelFilter = function ($q) use ($cancelledIds) {
+            if (!empty($cancelledIds)) {
+                $q->whereNotIn('sales.sales_status_id', $cancelledIds);
+            }
+        };
+
+        // 1. CLIENTES FRECUENTES (Top 10 por número de compras)
+        $frequentCustomers = DB::table('sales')
+            ->join('customers', 'customers.customer_id', '=', 'sales.customer_id')
+            ->where('sales.is_customer', 1)
+            ->whereNotNull('sales.customer_id')
+            ->when(!empty($cancelledIds), fn($q) => $q->whereNotIn('sales.sales_status_id', $cancelledIds))
+            ->select(
+                'customers.customer_id',
+                'customers.name',
+                DB::raw('COUNT(DISTINCT sales.sale_id) as total_purchases'),
+                DB::raw('MAX(sales.date) as last_purchase')
+            )
+            ->groupBy('customers.customer_id', 'customers.name')
+            ->orderByDesc('total_purchases')
+            ->limit(10)
+            ->get();
+
+        // Agregar monto total para cada cliente frecuente
+        foreach ($frequentCustomers as $fc) {
+            $saleIds = DB::table('sales')
+                ->where('customer_id', $fc->customer_id)
+                ->where('is_customer', 1)
+                ->when(!empty($cancelledIds), fn($q) => $q->whereNotIn('sales_status_id', $cancelledIds))
+                ->pluck('sale_id');
+
+            $total = DB::table('sale_detail')
+                ->whereIn('sale_id', $saleIds)
+                ->get()
+                ->sum(function ($d) {
+                    $subtotal = (float) $d->quantity * (float) $d->cost;
+                    return $d->has_tax == 1 ? $subtotal * 1.16 : $subtotal;
+                });
+
+            $fc->total_amount = round($total, 2);
+        }
+
+        // 2. CLIENTES INACTIVOS (100+ días sin comprar)
+        $inactiveCustomers = DB::table('customers')
+            ->leftJoin('sales', function ($join) use ($cancelledIds) {
+                $join->on('customers.customer_id', '=', 'sales.customer_id')
+                     ->where('sales.is_customer', 1);
+                if (!empty($cancelledIds)) {
+                    $join->whereNotIn('sales.sales_status_id', $cancelledIds);
+                }
+            })
+            ->select(
+                'customers.customer_id',
+                'customers.name',
+                'customers.vendedor',
+                'customers.phone',
+                DB::raw('MAX(sales.date) as last_purchase'),
+                DB::raw('DATEDIFF(CURDATE(), MAX(sales.date)) as days_without_purchase')
+            )
+            ->groupBy('customers.customer_id', 'customers.name', 'customers.vendedor', 'customers.phone')
+            ->havingRaw('MAX(sales.date) IS NOT NULL AND DATEDIFF(CURDATE(), MAX(sales.date)) > 100')
+            ->orderByDesc('days_without_purchase')
+            ->limit(15)
+            ->get();
+
+        // 3. RANKING DE MEJORES CLIENTES (Top 10 por monto)
+        $bestCustomers = DB::table('sales')
+            ->join('customers', 'customers.customer_id', '=', 'sales.customer_id')
+            ->join('sale_detail', 'sales.sale_id', '=', 'sale_detail.sale_id')
+            ->where('sales.is_customer', 1)
+            ->whereNotNull('sales.customer_id')
+            ->when(!empty($cancelledIds), fn($q) => $q->whereNotIn('sales.sales_status_id', $cancelledIds))
+            ->select(
+                'customers.customer_id',
+                'customers.name',
+                DB::raw('COUNT(DISTINCT sales.sale_id) as total_purchases'),
+                DB::raw('SUM(CASE WHEN sale_detail.has_tax = 1 THEN sale_detail.quantity * sale_detail.cost * 1.16 ELSE sale_detail.quantity * sale_detail.cost END) as total_amount'),
+                DB::raw('MAX(sales.date) as last_purchase')
+            )
+            ->groupBy('customers.customer_id', 'customers.name')
+            ->orderByDesc('total_amount')
+            ->limit(10)
+            ->get();
+
+        $maxAmount = $bestCustomers->isNotEmpty() ? $bestCustomers->first()->total_amount : 1;
+
+        // 4. PRODUCTOS MÁS VENDIDOS (Top 10)
+        $topProducts = DB::table('sale_detail')
+            ->join('sales', 'sales.sale_id', '=', 'sale_detail.sale_id')
+            ->where('sales.is_customer', 1)
+            ->when(!empty($cancelledIds), fn($q) => $q->whereNotIn('sales.sales_status_id', $cancelledIds))
+            ->whereNotNull('sale_detail.public_product_name')
+            ->where('sale_detail.public_product_name', '!=', '')
+            ->select(
+                'sale_detail.public_product_name',
+                DB::raw('SUM(sale_detail.quantity) as total_qty'),
+                DB::raw('SUM(CASE WHEN sale_detail.has_tax = 1 THEN sale_detail.quantity * sale_detail.cost * 1.16 ELSE sale_detail.quantity * sale_detail.cost END) as total_revenue'),
+                DB::raw('COUNT(DISTINCT sales.customer_id) as unique_customers')
+            )
+            ->groupBy('sale_detail.public_product_name')
+            ->orderByDesc('total_qty')
+            ->limit(10)
+            ->get();
+
+        $maxQty = $topProducts->isNotEmpty() ? $topProducts->first()->total_qty : 1;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'frequent_customers'  => $frequentCustomers,
+                'inactive_customers'  => $inactiveCustomers,
+                'best_customers'      => $bestCustomers,
+                'max_amount'          => $maxAmount,
+                'top_products'        => $topProducts,
+                'max_qty'             => $maxQty,
             ]
         ]);
     }
