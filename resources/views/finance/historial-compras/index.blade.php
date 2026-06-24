@@ -123,9 +123,9 @@ Fecha de actualización: 23-06-2026
                   <i class="ri-pie-chart-fill"></i> Graficar
                 </button>
               </div>
-              <div class="p-4 overflow-x-auto" style="max-height: 420px; overflow-y: auto;">
+              <div class="p-4 overflow-x-auto">
                 <table class="w-full text-sm" id="tbl-inactive">
-                  <thead class="sticky top-0 bg-white">
+                  <thead>
                     <tr class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-100">
                       <th class="pb-2.5 pr-2">Cliente</th>
                       <th class="pb-2.5 pr-2 text-center">Días</th>

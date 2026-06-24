@@ -484,7 +484,7 @@ class FinanceController extends Controller
             ->groupBy('customers.customer_id', 'customers.name', 'customers.vendedor', 'customers.phone')
             ->havingRaw('MAX(sales.date) IS NOT NULL AND DATEDIFF(CURDATE(), MAX(sales.date)) > 100')
             ->orderByDesc('days_without_purchase')
-            ->limit(15)
+            ->limit(10)
             ->get();
 
         // 3. RANKING DE MEJORES CLIENTES (Top 10 por monto)
