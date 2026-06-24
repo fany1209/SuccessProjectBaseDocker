@@ -7,7 +7,6 @@ set -e
 echo "=============================================="
 echo "  Starting Success Project Container..."
 echo "=============================================="
-────────────────────────────────────────────
 echo "Waiting for MariaDB..."
 MAX_RETRIES=60
 RETRY_COUNT=0

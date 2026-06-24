@@ -403,6 +403,7 @@ Route::prefix('laboratory/materials')->group(function () {
     Route::post('/finance', [FinanceController::class, 'store'])->name('finance.store');
 
     // Historial de Compras (antes de finance/{id} para evitar conflicto de rutas)
+    Route::get('/finance/historial-compras/dashboard', [FinanceController::class, 'getDashboardData'])->middleware('can:finance.show')->name('historial-compras.dashboard');
     Route::get('/finance/historial-compras', [FinanceController::class, 'purchaseHistory'])->middleware('can:finance.show')->name('historial-compras.index');
     Route::get('/finance/historial-compras/{customerId}', [FinanceController::class, 'getPurchaseHistoryData'])->middleware('can:finance.show')->name('historial-compras.data');
 
