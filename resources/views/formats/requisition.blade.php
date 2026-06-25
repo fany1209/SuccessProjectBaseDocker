@@ -316,7 +316,24 @@
                             </td>
 
                             <td>
-                                <img src="{{ htmlspecialchars($product->image_url, ENT_QUOTES, 'UTF-8') }}" width="80" alt="Error Image" style="padding-top: 5px; padding-bottom: 5px;">
+                                @php
+                                    $imgSrc = '';
+                                    if (!empty($product->image_url)) {
+                                        $imgData = @file_get_contents($product->image_url);
+                                        if ($imgData !== false) {
+                                            $imgInfo = @getimagesizefromstring($imgData);
+                                            if ($imgInfo !== false) {
+                                                $mime = $imgInfo['mime'];
+                                                $imgSrc = 'data:' . $mime . ';base64,' . base64_encode($imgData);
+                                            }
+                                        }
+                                    }
+                                @endphp
+                                @if($imgSrc)
+                                    <img src="{{ $imgSrc }}" width="80" style="padding-top: 5px; padding-bottom: 5px;">
+                                @else
+                                    <span style="font-size: 10px;">Sin imagen</span>
+                                @endif
                             </td>
                         </tr>
                     @endforeach

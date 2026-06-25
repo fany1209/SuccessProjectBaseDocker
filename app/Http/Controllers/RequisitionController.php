@@ -366,4 +366,21 @@ class RequisitionController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    public function getComparativeProducts($id)
+    {
+        try {
+            $comparative = DB::table('comparative')->where('id', $id)->first();
+            if (!$comparative) {
+                return response()->json([]);
+            }
+            $products = DB::table('comparative')
+                        ->where('folio', $comparative->folio)
+                        ->get();
+
+            return response()->json($products);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }

@@ -27,7 +27,7 @@ class StoreRequisitionRequest extends FormRequest
             'data_sheet' => 'required|integer',
             'safety_sheet' => 'required|integer',
             'description' => 'array',
-            'description.*' => 'required|string|max:300',
+            'description.*' => 'required|string|max:1000',
             'url' => 'array',
             'url.*' => 'required|string|max:1024',
             'use' => 'array',
