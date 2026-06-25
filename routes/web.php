@@ -190,6 +190,7 @@ Route::middleware([
 
     Route::get('/get-comparative-folios', [RequisitionController::class, 'getComparativeFolios']);
     Route::get('/get-comparative-products/{folio}', [RequisitionController::class, 'getComparativeProducts']);
+    
     // purchases comparative
     Route::post('/comparative/store', [ComparativeController::class, 'store'])->name('comparative.store');
     Route::get('/comparative', [ComparativeController::class, 'index'])->name('comparative.index');
