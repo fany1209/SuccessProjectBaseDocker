@@ -376,6 +376,8 @@ class RequisitionController extends Controller
             }
             $products = DB::table('comparative')
                         ->where('folio', $comparative->folio)
+                        ->whereNotNull('comentarios')
+                        ->where('comentarios', '!=', '')
                         ->get();
 
             return response()->json($products);
