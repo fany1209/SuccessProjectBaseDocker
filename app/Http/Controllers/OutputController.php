@@ -73,7 +73,7 @@ public function update(Request $request)
             'transport_line_id' => 'required|integer',
             'vendedor' => 'required|string|max:200',
             'product_id' => 'required|array|min:1',
-            'product_id.*' => 'required|integer|distinct',
+            'product_id.*' => 'required|integer',
             'quantity' => 'required|array|min:1',
             'quantity.*' => 'required|numeric|min:0.001',
             'label_batch' => 'required|array|min:1',

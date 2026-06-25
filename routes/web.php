@@ -55,6 +55,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReagentController;
 use App\Http\Controllers\MaterialController;
     use App\Http\Controllers\RhController;
+    use App\Http\Controllers\RecursosHumanosController;
 
 
 Route::get('/', function () {
@@ -444,8 +445,6 @@ Route::prefix('laboratory/materials')->group(function () {
     Route::post('/fumigaciones/update/{id}', [FumigacionController::class, 'update'])->name('fumigaciones.update');
     Route::post('/fumigaciones/delete/{id}', [FumigacionController::class, 'destroy'])->name('fumigaciones.destroy');
 
-   
-
     // Minutas
     Route::get('/minutas', [MinutaController::class, 'index'])->name('minutas.index');
     Route::get('/get-minutas', [MinutaController::class, 'getMinutas'])->name('minutas.getSuppliers');
@@ -487,6 +486,20 @@ Route::prefix('laboratory/materials')->group(function () {
 
     Route::get('/rh/asistencia', [RhController::class, 'index'])->name('attendance.index');
     Route::post('/rh/asistencia/upload', [RhController::class, 'uploadCsv'])->name('attendance.upload');
+
+       // Cambiamos ExpedienteController por RecursosHumanosController
+
+    // La ruta de la vista principal
+    Route::get('/recursos-humanos', [RecursosHumanosController::class, 'index'])->name('expediente.index');
+
+    // La ruta para guardar la información del modal
+    Route::post('/recursos-humanos/expediente', [RecursosHumanosController::class, 'store'])->name('rh.expediente.store');
+    Route::post('/recursos-humanos/expediente/pdf', [RecursosHumanosController::class, 'generarPdfExpediente'])->name('rh.expediente.pdf');
+    // Ruta para generar el PDF de la Descripción de Puesto
+    Route::post('/rh/descripcion-puesto/pdf', [App\Http\Controllers\RecursosHumanosController::class, 'descripcionPuestoPdf'])->name('rh.descripcion_puesto.pdf');
+    // Ruta para generar el PDF de la Entrevista de Terminación-
+    Route::post('/rh/entrevista-terminacion/pdf', [App\Http\Controllers\RecursosHumanosController::class, 'entrevistaTerminacionPdf'])->name('rh.entrevista_terminacion.pdf');
+
 
     //documents
     Route::get('/delivery-note/{sale_id}', [PdfController::class, 'makeDeliveryNotePDF'])
