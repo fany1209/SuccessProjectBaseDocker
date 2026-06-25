@@ -300,6 +300,48 @@ $(document).ready(function(){
 
     $(document).ready(function() {
         loadComparativeFolios();
+
+        $('#consecutive').on('change', function() {
+            const folio = $(this).val();
+            if (!folio) return;
+
+            $.ajax({
+                url: '/get-comparative-products/' + folio,
+                type: 'GET',
+                dataType: 'json',
+                success: function(products) {
+                    const father = $('#add-requisition');
+                    father.find('.clear-products').click(); // Limpiar productos existentes
+
+                    $.each(products, function(index, product) {
+                        let wrapper;
+                        if (index === 0) {
+                            wrapper = father.find('#products .wrapper').first();
+                        } else {
+                            father.find('#add_product').click();
+                            wrapper = father.find('#products .wrapper').last();
+                        }
+
+                        wrapper.find('input[name="description[]"]').val(product.descripcion || '');
+                        wrapper.find('input[name="url[]"]').val(product.link || '');
+                        wrapper.find('input[name="supplier[]"]').val(product.proveedor || '');
+                        wrapper.find('input[name="use[]"]').val(product.comentarios || '');
+                        
+                        // Seleccionar insumo basado en el valor
+                        let insumoVal = (product.insumo || '').toLowerCase();
+                        if (insumoVal.includes('directo')) insumoVal = 'directo';
+                        else if (insumoVal.includes('indirecto')) insumoVal = 'indirecto';
+                        wrapper.find('select[name="insumo[]"]').val(insumoVal);
+                        
+                        wrapper.find('input[name="quantity[]"]').val(product.cantidad || '');
+                        wrapper.find('textarea[name="image_url[]"]').val(product.imagen || '').trigger('input');
+                    });
+                },
+                error: function(xhr) {
+                    console.error("Error al obtener productos:", xhr.responseText);
+                }
+            });
+        });
     });
         function addRequisition(){
             $("#add-requisition-form").submit(function(event) {
