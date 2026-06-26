@@ -501,6 +501,15 @@ Route::prefix('laboratory/materials')->group(function () {
     Route::post('/rh/dnc/generar-pdf', [RecursosHumanosController::class, 'generarPdfDnc'])->name('rh.dnc.pdf');
     Route::post('/rh/practicantes/generar-pdf', [RecursosHumanosController::class, 'generarExpedientePracticantePdf'])->name('rh.practicantes.pdf');
 
+    // Ruta para generar el PDF de la Evaluación del Desempeño
+    Route::post('/rh/evaluacion-desempeno/pdf', [App\Http\Controllers\RecursosHumanosController::class, 'evaluacionDesempenoPdf'])->name('rh.evaluacion_desempeno.pdf');
+
+    // Ruta para generar el PDF de Solicitud de Personal
+    Route::post('/rh/solicitud-personal/pdf', [App\Http\Controllers\RecursosHumanosController::class, 'solicitudPersonalPdf'])->name('rh.solicitud_personal.pdf');
+
+    // Ruta para generar el PDF de Convenio con Instituciones
+    Route::post('/rh/convenio-instituciones/pdf', [App\Http\Controllers\RecursosHumanosController::class, 'convenioInstitucionesPdf'])->name('rh.convenio_instituciones.pdf');
+
     //documents
     Route::get('/delivery-note/{sale_id}', [PdfController::class, 'makeDeliveryNotePDF'])
         ->name('delivery-note');

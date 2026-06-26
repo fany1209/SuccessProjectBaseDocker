@@ -78,4 +78,12 @@ class ContactController extends Controller
 
         return redirect()->route('admin.contacts.index')->with('success', 'Contact deleted successfully.');
     }
+
+    public function markAsRead($id)
+    {
+        $contact = Contact::findOrFail($id);
+        $contact->update(['read_at' => now()]);
+
+        return response()->json(['success' => true]);
+    }
 }
