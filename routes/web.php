@@ -55,6 +55,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReagentController;
 use App\Http\Controllers\MaterialController;
     use App\Http\Controllers\RhController;
+    use App\Http\Controllers\RecursosHumanosController;
 
 
 Route::get('/', function () {
@@ -445,8 +446,6 @@ Route::prefix('laboratory/materials')->group(function () {
     Route::post('/fumigaciones/store', [FumigacionController::class, 'store'])->name('fumigaciones.store');
     Route::post('/fumigaciones/update/{id}', [FumigacionController::class, 'update'])->name('fumigaciones.update');
     Route::post('/fumigaciones/delete/{id}', [FumigacionController::class, 'destroy'])->name('fumigaciones.destroy');
-
-   
 
     // Minutas
     Route::get('/minutas', [MinutaController::class, 'index'])->name('minutas.index');
