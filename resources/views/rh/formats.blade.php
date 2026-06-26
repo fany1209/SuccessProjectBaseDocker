@@ -22,4 +22,43 @@
         </a>
     </div>
 
+<<<<<<< Updated upstream
+=======
+          <button type="button" class="open-modal {{ $btnBase }} {{ $btnCard }}" data-target="modal-expediente">
+              <img src="{{ asset('images/rh/exp-01.png') }}" alt="Expediente de Personal" class="{{ $imgCls ?? 'w-12 h-12 mx-auto mb-2' }}"> 
+        <span class="text-sm font-bold uppercase tracking-wider">Expediente</span>
+        </button>
+        @include('rh.modals.expediente')
+
+          <button type="button" class="open-modal {{ $btnBase }} {{ $btnCard }}" data-target="modal-descripcion">
+              <img src="{{ asset('images/rh/des-02.png') }}" alt="Descripción de Puesto" class="{{ $imgCls ?? 'w-12 h-12 mx-auto mb-2' }}"> 
+        <span class="text-sm font-bold uppercase tracking-wider">Descripción de puesto </span>
+        </button>
+        @include('rh.modals.descripcion_puesto')
+
+        <button type="button" class="open-modal {{ $btnBase }} {{ $btnCard }}" data-target="modal-entrevista-terminacion">
+            <img src="{{ asset('images/rh/exit-03.png') }}" alt="Entrevista de Terminación" class="{{ $imgCls ?? 'w-12 h-12 mx-auto mb-2' }}"> 
+            <span class="text-sm font-bold uppercase tracking-wider">Entrevista de <br> Terminación</span>
+        </button>
+        @include('rh.modals.entrevista_terminacion')
+
+        <button type="button" class="open-modal {{ $btnBase }} {{ $btnCard }}" data-target="modal-evaluacion-desempeno">
+            <img src="{{ asset('images/rh/img-04.png') }}" alt="Evaluación de Desempeño" class="{{ $imgCls ?? 'w-12 h-12 mx-auto mb-2' }}">
+            <span class="text-sm font-bold uppercase tracking-wider">Evaluación de <br> Desempeño</span>
+        </button>
+        @include('rh.modals.evaluacion_desempeno')
+
+        <button type="button" class="open-modal {{ $btnBase }} {{ $btnCard }}" data-target="modal-solicitud-personal">
+            <img src="{{ asset('images/rh/img-05.png') }}" alt="Solicitud de Personal" class="{{ $imgCls ?? 'w-12 h-12 mx-auto mb-2' }}">
+            <span class="text-sm font-bold uppercase tracking-wider">Solicitud de <br> Personal</span>
+        </button>
+        @include('rh.modals.solicitud_personal')
+
+        <button type="button" class="open-modal {{ $btnBase }} {{ $btnCard }}" data-target="modal-convenio-instituciones">
+            <img src="{{ asset('images/rh/img-06.png') }}" alt="Convenio con Instituciones" class="{{ $imgCls ?? 'w-12 h-12 mx-auto mb-2' }}">
+            <span class="text-sm font-bold uppercase tracking-wider">Convenio con <br> Instituciones</span>
+        </button>
+        @include('rh.modals.convenio_instituciones')
+
+>>>>>>> Stashed changes
 </section>
