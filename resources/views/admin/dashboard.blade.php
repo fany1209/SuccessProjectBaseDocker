@@ -490,31 +490,3 @@ stefany
     </div>
 </div>
 @stop
-
-@section('js')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-    $(document).ready(function() {
-        @php
-            $unreadContactsCount = \App\Models\Contact::whereNull('read_at')->count();
-        @endphp
-        
-        @if($unreadContactsCount > 0)
-            Swal.fire({
-                title: 'Nuevos Mensajes de Contacto',
-                text: 'Tienes {{ $unreadContactsCount }} mensaje(s) sin leer de la página web.',
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fas fa-eye"></i> Ver mensajes',
-                cancelButtonText: 'Cerrar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = "{{ route('admin.contacts.index') }}";
-                }
-            });
-        @endif
-    });
-</script>
-@stop
