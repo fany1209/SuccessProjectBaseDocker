@@ -489,19 +489,17 @@ Route::prefix('laboratory/materials')->group(function () {
     Route::get('/rh/asistencia', [RhController::class, 'index'])->name('attendance.index');
     Route::post('/rh/asistencia/upload', [RhController::class, 'uploadCsv'])->name('attendance.upload');
 
-       // Cambiamos ExpedienteController por RecursosHumanosController
 
     // La ruta de la vista principal
     Route::get('/recursos-humanos', [RecursosHumanosController::class, 'index'])->name('expediente.index');
 
-    // La ruta para guardar la información del modal
     Route::post('/recursos-humanos/expediente', [RecursosHumanosController::class, 'store'])->name('rh.expediente.store');
     Route::post('/recursos-humanos/expediente/pdf', [RecursosHumanosController::class, 'generarPdfExpediente'])->name('rh.expediente.pdf');
-    // Ruta para generar el PDF de la Descripción de Puesto
-    Route::post('/rh/descripcion-puesto/pdf', [App\Http\Controllers\RecursosHumanosController::class, 'descripcionPuestoPdf'])->name('rh.descripcion_puesto.pdf');
-    // Ruta para generar el PDF de la Entrevista de Terminación-
-    Route::post('/rh/entrevista-terminacion/pdf', [App\Http\Controllers\RecursosHumanosController::class, 'entrevistaTerminacionPdf'])->name('rh.entrevista_terminacion.pdf');
-
+    Route::post('/rh/descripcion-puesto/pdf', [RecursosHumanosController::class, 'descripcionPuestoPdf'])->name('rh.descripcion_puesto.pdf');
+    Route::post('/rh/entrevista-terminacion/pdf', [RecursosHumanosController::class, 'entrevistaTerminacionPdf'])->name('rh.entrevista_terminacion.pdf');
+    Route::post('/rh/vacaciones/generar-pdf', [RecursosHumanosController::class, 'generarPdfVacaciones'])->name('rh.vacaciones.pdf');
+    Route::post('/rh/dnc/generar-pdf', [RecursosHumanosController::class, 'generarPdfDnc'])->name('rh.dnc.pdf');
+    Route::post('/rh/practicantes/generar-pdf', [RecursosHumanosController::class, 'generarExpedientePracticantePdf'])->name('rh.practicantes.pdf');
 
     //documents
     Route::get('/delivery-note/{sale_id}', [PdfController::class, 'makeDeliveryNotePDF'])
