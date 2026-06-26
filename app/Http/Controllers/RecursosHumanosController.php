@@ -172,4 +172,70 @@ class RecursosHumanosController extends Controller
             return back()->withErrors(['pdf' => 'No se pudo generar la entrevista. Verifica los campos.']);
         }
     }
+
+    public function evaluacionDesempenoPdf(Request $req)
+    {
+        $viewData = $req->all();
+
+        try {
+            $pdf = Pdf::loadView('formats.rh.evaluacion_desempeno', $viewData)
+                      ->setPaper('letter');
+
+            $dompdf = $pdf->getDomPDF();
+            $dompdf->set_option('isHtml5ParserEnabled', true);
+            $dompdf->set_option('isRemoteEnabled', true);
+            $dompdf->render();
+            
+            $slug = Str::slug('evaluacion_desempeno_' . ($viewData['nombre_evaluado'] ?? 'empleado'), '_');
+            return $pdf->stream($slug . '_' . now()->format('Ymd_His') . '.pdf');
+
+        } catch (\Throwable $e) {
+            report($e);
+            return back()->withErrors(['pdf' => 'No se pudo generar la evaluación del desempeño. Verifica los campos.']);
+        }
+    }
+
+    public function solicitudPersonalPdf(Request $req)
+    {
+        $viewData = $req->all();
+
+        try {
+            $pdf = Pdf::loadView('formats.rh.solicitud_personal', $viewData)
+                      ->setPaper('letter');
+
+            $dompdf = $pdf->getDomPDF();
+            $dompdf->set_option('isHtml5ParserEnabled', true);
+            $dompdf->set_option('isRemoteEnabled', true);
+            $dompdf->render();
+            
+            $slug = Str::slug('solicitud_personal_' . ($viewData['nombre_puesto'] ?? 'puesto'), '_');
+            return $pdf->stream($slug . '_' . now()->format('Ymd_His') . '.pdf');
+
+        } catch (\Throwable $e) {
+            report($e);
+            return back()->withErrors(['pdf' => 'No se pudo generar la solicitud de personal. Verifica los campos.']);
+        }
+    }
+
+    public function convenioInstitucionesPdf(Request $req)
+    {
+        $viewData = $req->all();
+
+        try {
+            $pdf = Pdf::loadView('formats.rh.convenio_instituciones', $viewData)
+                      ->setPaper('letter');
+
+            $dompdf = $pdf->getDomPDF();
+            $dompdf->set_option('isHtml5ParserEnabled', true);
+            $dompdf->set_option('isRemoteEnabled', true);
+            $dompdf->render();
+            
+            $slug = Str::slug('convenio_instituciones_' . ($viewData['escuela'] ?? 'escuela'), '_');
+            return $pdf->stream($slug . '_' . now()->format('Ymd_His') . '.pdf');
+
+        } catch (\Throwable $e) {
+            report($e);
+            return back()->withErrors(['pdf' => 'No se pudo generar el convenio con instituciones. Verifica los campos.']);
+        }
+    }
 }
