@@ -90,4 +90,7 @@ Route::middleware([
 
     Route::get('complaints', [ComplaintAdminController::class, 'index'])->name('complaints.index');
     Route::delete('complaints/{complaint}', [ComplaintAdminController::class, 'destroy'])->name('complaints.destroy');
+
+    // Marcar mensaje de contacto como leído
+    Route::post('contacts/{contact}/mark-read', [ContactController::class, 'markAsRead'])->name('contacts.markRead');
 });
