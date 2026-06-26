@@ -67,16 +67,27 @@ stefany
                     <th>Phone</th>
                     <th>Message</th>
                     <th>Since</th>
+                    <th style="width: 100px;">Status</th>
                     <th style="width: 120px;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($contacts as $c)
-                <tr>
+                <tr class="{{ $c->read_at ? '' : 'table-warning' }}">
                     <td>{{ $c->name }}</td>
                     <td>{{ $c->phone }}</td>
                     <td>{{ $c->message }}</td>
                     <td>{{ $c->created_at ?? '-' }}</td>
+                    <td>
+                        @if($c->read_at)
+                            <span class="badge badge-success"><i class="fas fa-check"></i> Leído</span>
+                        @else
+                            <label class="d-flex align-items-center gap-1 mb-0" style="cursor:pointer;">
+                                <input type="checkbox" class="mark-read-table" data-id="{{ $c->contact_id }}">
+                                <span class="text-muted" style="font-size:11px;">Marcar leído</span>
+                            </label>
+                        @endif
+                    </td>
                     <td>
                         <a href="{{ route('admin.contacts.edit', $c->contact_id) }}" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i></a>
                         <form action="{{ route('admin.contacts.destroy', $c->contact_id) }}" method="POST" class="d-inline delete-contact-form">
@@ -126,6 +137,26 @@ $(document).ready(function() {
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) { form.submit(); }
+        });
+    });
+
+    // Marcar contacto como leído desde la tabla
+    $('.mark-read-table').on('change', function() {
+        if (!this.checked) return;
+        const checkbox = $(this);
+        const contactId = checkbox.data('id');
+        checkbox.prop('disabled', true);
+        
+        $.ajax({
+            url: '/admin/contacts/' + contactId + '/mark-read',
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            success: function() {
+                const row = checkbox.closest('tr');
+                row.removeClass('table-warning');
+                checkbox.closest('td').html('<span class="badge badge-success"><i class="fas fa-check"></i> Leído</span>');
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Marcado como leído', showConfirmButton: false, timer: 1500 });
+            }
         });
     });
 });
