@@ -6,9 +6,17 @@
                     
     $count = $currentUser->unreadNotifications->count();
     $notificationsList = $currentUser->notifications()->take(10)->get();
+
+    // Contador de mensajes de contacto no leídos (solo para Admin)
+    $unreadContactsCount = 0;
+    $unreadContacts = collect();
+    if ($currentUser->hasRole('Admin')) {
+        $unreadContacts = \App\Models\Contact::whereNull('read_at')->orderBy('created_at', 'desc')->take(10)->get();
+        $unreadContactsCount = \App\Models\Contact::whereNull('read_at')->count();
+    }
 @endphp
 
-<nav x-data="{ open: false, showNotifications: false }" class="bg-white border-b border-gray-100 shadow-sm">
+<nav x-data="{ open: false, showNotifications: false, showContactAlerts: false }" class="bg-white border-b border-gray-100 shadow-sm">
     <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex">
@@ -147,6 +155,55 @@
                         @endforeach
                     </div>
                 </div>
+
+                {{-- Alerta de mensajes de contacto (solo para Admin) --}}
+                @if($currentUser->hasRole('Admin'))
+                <div class="relative">
+                    <button @click="showContactAlerts = !showContactAlerts" class="relative p-2 text-gray-400 hover:text-green-600 focus:outline-none transition">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                        <span id="contact-alert-count" class="{{ $unreadContactsCount > 0 ? '' : 'hidden' }} absolute top-1 right-1 inline-flex items-center justify-center px-2 py-1 text-[10px] font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-green-600 rounded-full shadow-sm">
+                            {{ $unreadContactsCount }}
+                        </span>
+                    </button>
+
+                    <div x-show="showContactAlerts" 
+                         @click.away="showContactAlerts = false" 
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden" 
+                         style="display: none;">
+                        <div class="p-3 border-b bg-gray-50 flex justify-between items-center font-bold text-xs text-gray-700 uppercase">
+                            <span>Mensajes de Contacto</span>
+                            <a href="{{ route('admin.contacts.index') }}" class="text-green-600 hover:underline normal-case font-normal text-[10px]">Ver todos</a>
+                        </div>
+                        @forelse ($unreadContacts as $uc)
+                            <div class="p-3 bg-white border-l-4 border-green-500 border-b border-gray-100 contact-alert-item" data-contact-id="{{ $uc->contact_id }}">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <span class="text-sm font-bold text-gray-800">{{ $uc->name }}</span>
+                                        <small class="text-gray-400 ml-2">{{ $uc->created_at->diffForHumans() }}</small>
+                                    </div>
+                                    <label class="flex items-center gap-1 cursor-pointer contact-read-checkbox">
+                                        <input type="checkbox" class="mark-contact-read rounded border-gray-300 text-green-600 focus:ring-green-500" data-id="{{ $uc->contact_id }}">
+                                        <span class="text-[10px] text-gray-500">Leído</span>
+                                    </label>
+                                </div>
+                                <p class="text-xs text-gray-600 mt-1 line-clamp-2">{{ Str::limit($uc->message, 100) }}</p>
+                                @if($uc->phone)
+                                    <span class="text-[10px] text-gray-400">📞 {{ $uc->phone }}</span>
+                                @endif
+                            </div>
+                        @empty
+                            <div class="p-4 text-center text-sm text-gray-400">
+                                No hay mensajes sin leer
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+                @endif
 
                 <div class="ms-3 relative">
                     <x-dropdown align="right" width="48">
@@ -315,4 +372,39 @@
             window.location.reload();
         });
     }
+
+    // Marcar mensajes de contacto como leídos
+    document.querySelectorAll('.mark-contact-read').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            if (!this.checked) return;
+            const contactId = this.dataset.id;
+            const item = this.closest('.contact-alert-item');
+            
+            this.disabled = true;
+            this.closest('.contact-read-checkbox').querySelector('span').textContent = 'Marcado';
+            this.closest('.contact-read-checkbox').querySelector('span').classList.add('text-green-600', 'font-bold');
+            
+            item.classList.remove('border-green-500');
+            item.classList.add('border-gray-300', 'opacity-60');
+
+            fetch('/admin/contacts/' + contactId + '/mark-read', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                    let badge = document.getElementById('contact-alert-count');
+                    if (badge) {
+                        let current = parseInt(badge.textContent) || 0;
+                        let newCount = Math.max(0, current - 1);
+                        badge.textContent = newCount;
+                        if (newCount === 0) badge.classList.add('hidden');
+                    }
+                }
+            });
+        });
+    });
 </script>
