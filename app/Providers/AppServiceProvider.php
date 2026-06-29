@@ -4,7 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
-use Illuminate\Support\Facades\Schema; // <-- ¡Asegúrate de agregar esta línea arriba!   
+use Illuminate\Support\Facades\Schema;  
 use App\Models\LotRequest;
 
 class AppServiceProvider extends ServiceProvider
