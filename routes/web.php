@@ -56,6 +56,7 @@ use App\Http\Controllers\ReagentController;
 use App\Http\Controllers\MaterialController;
     use App\Http\Controllers\RhController;
     use App\Http\Controllers\RecursosHumanosController;
+    use App\Http\Controllers\CuentasPorCobrarController;
 
 
 Route::get('/', function () {
@@ -428,6 +429,10 @@ Route::prefix('laboratory/materials')->group(function () {
     Route::get('/{id}', [FacturaController::class, 'show'])->name('facturas.show');
     Route::patch('/{id}', [FacturaController::class, 'update'])->name('facturas.update');
     Route::delete('/{id}', [FacturaController::class, 'destroy'])->name('facturas.destroy');
+    });
+
+    Route::prefix('cuentas-por-cobrar')->group(function () {
+        Route::get('/', [CuentasPorCobrarController::class, 'index'])->name('cuentas-por-cobrar.index');
     });
 
     //production y i+d
