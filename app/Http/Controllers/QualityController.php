@@ -810,7 +810,7 @@ class QualityController extends Controller
 
             return response()->json(['inspections' => $payload], 200);
         }
-
+        //en produccion la ruta de imagenes cambia
         public function pdf6(Request $request)
         {
             $coalesce = function (Request $r, array $keys) {
@@ -820,6 +820,7 @@ class QualityController extends Controller
                 }
                 return null;
             };
+            
             $digits = function ($v) {
                 if (!is_string($v) && !is_numeric($v)) return null;
                 if (preg_match('/\d+/', (string)$v, $m)) return (int)$m[0];
@@ -911,13 +912,15 @@ class QualityController extends Controller
                 'remitidos'        => 'required|string|max:50',
                 'fecha_incidencia' => 'nullable|date',
                 'incidencia'       => 'nullable|string|max:100',
-                'descripcion'              => 'nullable',
+                'descripcion'      => 'nullable',
                 'descripcion.*.texto'      => 'nullable|string|max:1000',
                 'descripcion.*.imagen'     => 'nullable|file|mimes:jpg,jpeg,png,webp|max:5120',
                 'imagenes'         => 'nullable|array',
                 'imagenes.*'       => 'file|mimes:jpg,jpeg,png,webp|max:5120',
                 'firma_nombre'     => 'nullable|string|max:150',
+                'comentarios'      => 'nullable|string', // ← SE MANTIENE EL FIX DEL COMENTARIO
             ]);
+
             if ($v->fails()) {
                 return response(
                     "Errores de validación:\n".json_encode($v->errors()->toArray(), JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE),
@@ -973,7 +976,10 @@ class QualityController extends Controller
                             $name   = uniqid('inc_', true).'.'.$file->getClientOriginalExtension();
                             $stored = $file->storeAs('incidencias/'.$folio, $name, 'public'); 
                             $imgRel = 'storage/'.$stored;
-                            $imgAbs = public_path($imgRel);
+                            
+                            // ← FIX APLICADO: Ruta física del servidor para el PDF
+                            $imgAbs = storage_path('app/public/'.$stored); 
+                            
                             $relativePublicPaths[] = $imgRel;
                         }
 
@@ -1008,7 +1014,8 @@ class QualityController extends Controller
                         $imgRel= $relativePublicPaths[$i] ?? null;
                         $descItemsForView[] = [
                             'texto' => $texto,
-                            'img'   => $imgRel ? public_path($imgRel) : null,
+                            // ← FIX APLICADO: Ruta física del servidor para el array compatible
+                            'img'   => $imgRel ? storage_path('app/public/' . str_replace('storage/', '', $imgRel)) : null,
                         ];
                     }
                 }
@@ -1022,14 +1029,14 @@ class QualityController extends Controller
                     'fecha_recepcion'  => $toNull($data['fecha_recepcion'] ?? null),
                     'fecha_reporte'    => $toNull($data['fecha_reporte'] ?? null),
                     'categoria'        => $categoria,
-                    'lote'             => $toNull($data['lote'] ?? null),             // ← nuevo nombre
-                    'lote_tipo'        => $toNull($request->input('lote_tipo','interno')), // ← nuevo tipo
+                    'lote'             => $toNull($data['lote'] ?? null),            
+                    'lote_tipo'        => $toNull($request->input('lote_tipo','interno')),
                     'remitidos'        => $toNull($data['remitidos'] ?? null),
                     'fecha_incidencia' => $toNull($data['fecha_incidencia'] ?? null),
                     'incidencia'       => $toNull($data['incidencia'] ?? null),
-                    'descripcion'      => json_encode($descArr, JSON_UNESCAPED_UNICODE), // textos
-                    'comentarios'      => $toNull($data['comentarios'] ?? null),
-                    'imagenes'         => json_encode($relativePublicPaths, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE), // paths relativos
+                    'descripcion'      => json_encode($descArr, JSON_UNESCAPED_UNICODE), 
+                    'comentarios'      => $toNull($data['comentarios'] ?? null), 
+                    'imagenes'         => json_encode($relativePublicPaths, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE), 
                     'firma_nombre'     => $toNull($request->input('firma_nombre') ?? null),
                     'created_at'       => now(),
                     'updated_at'       => now(),
@@ -1037,6 +1044,7 @@ class QualityController extends Controller
 
                 $incidenciaId = DB::table('incidencias')->insertGetId($insertData);
                 DB::commit();
+                
                 $viewData = [
                     'pagina_actual'       => 1,
                     'paginas_total'       => 1,
@@ -1055,12 +1063,16 @@ class QualityController extends Controller
                     'fecha_incidencia' => $insertData['fecha_incidencia'],
                     'incidencia'       => $insertData['incidencia'],
                     'descripcion'      => $descItemsForView, 
-                    'imagenes'         => array_map(fn($rel) => public_path($rel), $relativePublicPaths),
+                    
+                    // ← FIX APLICADO: Asegurándonos de que todas las imágenes procesadas sean rutas storage_path
+                    'imagenes'         => array_map(fn($rel) => storage_path('app/public/' . str_replace('storage/', '', $rel)), $relativePublicPaths),
+                    
                     'comentarios'      => $insertData['comentarios'],
                     'firma_nombre'     => $insertData['firma_nombre'] ?? ($request->input('firma_nombre') ?? ''),
                 ];
 
                 $pdf = \PDF::loadView('formats.quality.incidencias06', $viewData)->setPaper('a4','landscape');
+                
                 if (app()->bound('debugbar')) {
                     try { app('debugbar')->disable(); } catch (\Throwable $e) {}
                 }
