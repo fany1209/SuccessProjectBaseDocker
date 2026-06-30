@@ -32,10 +32,9 @@ Fecha de actualización: 15-06-2026
                 </div>
             </div>
             <div class="flex justify-between items-center w-full gap-2 border-b-2 border-gray-500 pb-4">
-                <div class="flex flex-col items-start gap-1 w-full">
+               <div class="flex flex-col items-start gap-1 w-full">
                     <label for="folio" class="mb-1 block font-medium text-md text-gray-700">Folio</label>
-                    <input readonly type="text" id="folio" name="folio" maxlength="150"
-                        class="w-full rounded-lg border border-gray-300 text-gray-400 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2 bg-gray-100 cursor-not-allowed">
+                    <input type="text" id="folio" name="folio" maxlength="150" readonly class="w-full rounded-lg border border-gray-300 bg-gray-200 text-gray-500 cursor-not-allowed focus:outline-none px-2 py-2">
                 </div>
                 <div class="flex flex-col items-start gap-1 w-full">
                     <label for="seller" class="mb-1 block font-medium text-md text-gray-700">Seller</label>
