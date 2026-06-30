@@ -13,7 +13,7 @@
         $btnCard = 'w-full sm:w-64 !h-auto min-h-[100px] py-3 flex flex-col items-center justify-center gap-2 text-center';
     @endphp
 
-    <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 flex-wrap justify-items-center gap-4 w-full max-w-6xl px-4 max-w-5xl">
+    <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 flex-wrap justify-items-center w-full px-4 max-w-6xl">
         
         
         <a href="{{ route('attendance.index') }}" class="{{ $btnBase }} {{ $btnCard }}">
@@ -53,16 +53,6 @@
             <span class="text-sm font-bold uppercase tracking-wider">Expediente <br> Practicantes</span>
         </button>
 
-    </div>
-
-    @include('rh.modals.expediente')
-    @include('rh.modals.descripcion_puesto')
-    @include('rh.modals.entrevista_terminacion')
-    @include('rh.modals.vacation')
-    @include('rh.modals.dnc')
-    
-    @include('rh.modals.practicantes') 
-
         <button type="button" class="open-modal {{ $btnBase }} {{ $btnCard }}" data-target="modal-evaluacion-desempeno">
             <img src="{{ asset('images/rh/img-04.png') }}" alt="Evaluación de Desempeño" class="{{ $imgCls ?? 'w-12 h-12 mx-auto mb-2' }}">
             <span class="text-sm font-bold uppercase tracking-wider">Evaluación de <br> Desempeño</span>
@@ -83,6 +73,9 @@
     @include('rh.modals.expediente')
     @include('rh.modals.descripcion_puesto')
     @include('rh.modals.entrevista_terminacion')
+    @include('rh.modals.vacation')
+    @include('rh.modals.dnc')
+    @include('rh.modals.practicantes') 
     @include('rh.modals.evaluacion_desempeno')
     @include('rh.modals.solicitud_personal')
     @include('rh.modals.convenio_instituciones')
