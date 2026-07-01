@@ -3,11 +3,299 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Models\CxcDetail;
+use App\Models\CxcPayment;
 
 class CuentasPorCobrarController extends Controller
 {
     public function index()
     {
-        return view('finance.cuentas_por_cobrar.index');
+        // Calculate overdue invoices for the alert
+        $sales = DB::table('cxc_details as cxc')
+            ->join('sales as s', 's.sale_id', '=', 'cxc.sale_id')
+            ->leftJoin('sale_detail as sd', 'sd.sale_id', '=', 's.sale_id')
+            ->select(
+                'cxc.id as cxc_id',
+                's.date as fecha_emision',
+                's.term',
+                'cxc.estatus',
+                'cxc.is_canceled',
+                DB::raw("SUM(sd.quantity * sd.cost * IF(sd.has_tax = 1, 1.16, 1)) as total_venta")
+            )
+            ->groupBy('cxc.id', 's.date', 's.term', 'cxc.estatus', 'cxc.is_canceled')
+            ->get();
+
+        $payments = DB::table('cxc_payments')
+            ->select('cxc_detail_id', DB::raw("SUM(amount) as total_pagado"))
+            ->groupBy('cxc_detail_id')
+            ->get()
+            ->keyBy('cxc_detail_id');
+
+        $pendingPaymentsCount = 0;
+        $today = now()->startOfDay();
+
+        foreach ($sales as $sale) {
+            $pagado = isset($payments[$sale->cxc_id]) ? $payments[$sale->cxc_id]->total_pagado : 0;
+            $saldo = round($sale->total_venta - $pagado, 2);
+
+            if (!$sale->is_canceled && $sale->estatus !== 'Pagado' && $saldo > 0) {
+                $daysToAdd = 0;
+                if (!empty($sale->term)) {
+                    preg_match('/\d+/', $sale->term, $matches);
+                    if (isset($matches[0])) {
+                        $daysToAdd = (int) $matches[0];
+                    }
+                }
+                
+                $dueDate = \Carbon\Carbon::parse($sale->fecha_emision)->addDays($daysToAdd)->startOfDay();
+                if ($today->gt($dueDate)) {
+                    $pendingPaymentsCount++;
+                }
+            }
+        }
+
+        return view('finance.cuentas_por_cobrar.index', compact('pendingPaymentsCount'));
+    }
+
+    public function dashboard()
+    {
+        // Fetch all sales in finance
+        $sales = DB::table('cxc_details as cxc')
+            ->join('sales as s', 's.sale_id', '=', 'cxc.sale_id')
+            ->leftJoin('sale_detail as sd', 'sd.sale_id', '=', 's.sale_id')
+            ->select(
+                'cxc.id as cxc_id',
+                's.sale_id',
+                's.customer_id',
+                's.prospect_id',
+                's.date as fecha_emision',
+                's.term',
+                'cxc.estatus',
+                'cxc.is_canceled',
+                DB::raw("SUM(sd.quantity * sd.cost * IF(sd.has_tax = 1, 1.16, 1)) as total_venta")
+            )
+            ->groupBy(
+                'cxc.id', 's.sale_id', 's.customer_id', 's.prospect_id', 's.date', 's.term', 'cxc.estatus', 'cxc.is_canceled'
+            )
+            ->get();
+
+        // Fetch all payments
+        $payments = DB::table('cxc_payments')
+            ->select('cxc_detail_id', DB::raw("SUM(amount) as total_pagado"))
+            ->groupBy('cxc_detail_id')
+            ->get()
+            ->keyBy('cxc_detail_id');
+
+        $facturasVencidas = 0;
+        $clientesAdeudoSet = [];
+        $today = now()->startOfDay();
+        
+        // Structure for chart: last 6 months
+        $monthsArray = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $key = $date->format('Y-m'); // e.g. "2026-05"
+            $monthsArray[$key] = [
+                'label' => $date->translatedFormat('F Y'),
+                'total_facturado' => 0,
+                'total_cobrado' => 0
+            ];
+        }
+
+        foreach ($sales as $sale) {
+            $pagado = isset($payments[$sale->cxc_id]) ? $payments[$sale->cxc_id]->total_pagado : 0;
+            $saldo = round($sale->total_venta - $pagado, 2);
+
+            // Metrics 1 & 2: Vencidas y Adeudo
+            if (!$sale->is_canceled && $sale->estatus !== 'Pagado') {
+                if ($saldo > 0) {
+                    $clientId = 'c_' . $sale->customer_id . '_p_' . $sale->prospect_id;
+                    $clientesAdeudoSet[$clientId] = true;
+                }
+
+                // Check vencida
+                $daysToAdd = 0;
+                if (!empty($sale->term)) {
+                    preg_match('/\d+/', $sale->term, $matches);
+                    if (isset($matches[0])) {
+                        $daysToAdd = (int) $matches[0];
+                    }
+                }
+                
+                $dueDate = \Carbon\Carbon::parse($sale->fecha_emision)->addDays($daysToAdd)->startOfDay();
+                if ($today->gt($dueDate)) {
+                    $facturasVencidas++;
+                }
+            }
+
+            // Metric 3: Chart Data
+            if (!$sale->is_canceled) {
+                $saleMonth = \Carbon\Carbon::parse($sale->fecha_emision)->format('Y-m');
+                if (isset($monthsArray[$saleMonth])) {
+                    $monthsArray[$saleMonth]['total_facturado'] += $sale->total_venta;
+                    $monthsArray[$saleMonth]['total_cobrado'] += $pagado;
+                }
+            }
+        }
+
+        $clientesAdeudo = count($clientesAdeudoSet);
+
+        // Compute percentages for chart
+        $chartLabels = [];
+        $chartData = [];
+        foreach ($monthsArray as $key => $data) {
+            $chartLabels[] = ucfirst($data['label']);
+            if ($data['total_facturado'] > 0) {
+                $pct = ($data['total_cobrado'] / $data['total_facturado']) * 100;
+                $chartData[] = round($pct, 2);
+            } else {
+                $chartData[] = 0; // Or null if you don't want to show
+            }
+        }
+
+        // Global percentage for this month
+        $currentMonthKey = now()->format('Y-m');
+        $currentMonthPct = 0;
+        if ($monthsArray[$currentMonthKey]['total_facturado'] > 0) {
+            $currentMonthPct = round(($monthsArray[$currentMonthKey]['total_cobrado'] / $monthsArray[$currentMonthKey]['total_facturado']) * 100, 2);
+        }
+
+        return view('finance.cuentas_por_cobrar.dashboard', compact(
+            'facturasVencidas', 
+            'clientesAdeudo', 
+            'currentMonthPct', 
+            'chartLabels', 
+            'chartData'
+        ));
+    }
+
+    public function clientes()
+    {
+        return view('finance.cuentas_por_cobrar.clientes');
+    }
+
+    public function datatable()
+    {
+        // Query only sales that have a corresponding CxcDetail record
+        $sales = DB::table('cxc_details as cxc')
+            ->join('sales as s', 's.sale_id', '=', 'cxc.sale_id')
+            ->leftJoin('customers as c', 's.customer_id', '=', 'c.customer_id')
+            ->leftJoin('prospects as p', 's.prospect_id', '=', 'p.prospect_id')
+            ->leftJoin('users as u', 's.user_id', '=', 'u.id')
+            ->leftJoin('sale_detail as sd', 'sd.sale_id', '=', 's.sale_id')
+            ->select(
+                'cxc.id as cxc_id',
+                's.sale_id',
+                's.folio',
+                DB::raw("COALESCE(c.name, p.name, 'Sin Cliente') as cliente_name"),
+                DB::raw("'Factura' as documento"),
+                'cxc.metodo_pago',
+                'cxc.descripcion',
+                'cxc.estatus',
+                DB::raw("COALESCE(s.seller, u.name) as asesor"),
+                's.date as fecha_emision',
+                'cxc.fecha_conclusion',
+                'cxc.is_canceled',
+                DB::raw("SUM(sd.quantity * sd.cost * IF(sd.has_tax = 1, 1.16, 1)) as total_venta")
+            )
+            ->groupBy(
+                'cxc.id', 's.sale_id', 's.folio', 'cliente_name', 'cxc.metodo_pago', 
+                'cxc.descripcion', 'cxc.estatus', 'asesor', 's.date', 'cxc.fecha_conclusion', 'cxc.is_canceled'
+            )
+            ->orderByDesc('s.sale_id')
+            ->get();
+
+        // Subquery for payments
+        $payments = DB::table('cxc_payments')
+            ->select('cxc_detail_id', DB::raw("SUM(amount) as total_pagado"))
+            ->groupBy('cxc_detail_id')
+            ->get()
+            ->keyBy('cxc_detail_id');
+
+        foreach ($sales as $sale) {
+            $pagado = isset($payments[$sale->cxc_id]) ? $payments[$sale->cxc_id]->total_pagado : 0;
+            $sale->total_venta = round($sale->total_venta, 2);
+            $sale->saldo = round($sale->total_venta - $pagado, 2);
+            $sale->pagado = round($pagado, 2);
+        }
+
+        return response()->json(['data' => $sales]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'metodo_pago' => 'required|in:N/A,PUE,PPD',
+            'fecha_conclusion' => 'nullable|date',
+            'descripcion' => 'nullable|string'
+        ]);
+
+        $cxc = CxcDetail::findOrFail($id);
+        
+        if ($cxc->is_canceled) {
+            return response()->json(['success' => false, 'message' => 'No se puede editar una cuenta cancelada.'], 403);
+        }
+
+        $cxc->update([
+            'metodo_pago' => $request->metodo_pago,
+            'fecha_conclusion' => $request->fecha_conclusion,
+            'descripcion' => $request->descripcion
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Actualizado correctamente']);
+    }
+
+    public function cancel($id)
+    {
+        $cxc = CxcDetail::findOrFail($id);
+        $cxc->update(['is_canceled' => true]);
+
+        return response()->json(['success' => true, 'message' => 'Cuenta cancelada correctamente']);
+    }
+
+    public function getPayments($id)
+    {
+        $cxc = CxcDetail::findOrFail($id);
+        $payments = $cxc->payments()->orderByDesc('date')->get();
+        return response()->json(['success' => true, 'payments' => $payments]);
+    }
+
+    public function addPayment(Request $request, $id)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'date' => 'required|date'
+        ]);
+
+        $cxc = CxcDetail::findOrFail($id);
+
+        if ($cxc->is_canceled) {
+            return response()->json(['success' => false, 'message' => 'No se pueden añadir pagos a una cuenta cancelada.'], 403);
+        }
+
+        $cxc->payments()->create([
+            'amount' => $request->amount,
+            'date' => $request->date
+        ]);
+
+        // Calculate new balance and estatus
+        $totalVenta = DB::table('sale_detail')
+            ->where('sale_id', $cxc->sale_id)
+            ->sum(DB::raw("quantity * cost * IF(has_tax = 1, 1.16, 1)"));
+        
+        $pagado = $cxc->payments()->sum('amount');
+        $saldo = round($totalVenta - $pagado, 2);
+
+        $newEstatus = 'Pendiente';
+        if ($saldo <= 0) {
+            $newEstatus = 'Pagado';
+        } elseif ($pagado > 0) {
+            $newEstatus = 'Parcial';
+        }
+
+        $cxc->update(['estatus' => $newEstatus]);
+
+        return response()->json(['success' => true, 'message' => 'Pago añadido correctamente']);
     }
 }

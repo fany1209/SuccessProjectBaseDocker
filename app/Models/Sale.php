@@ -17,6 +17,16 @@ class Sale extends Model
         'sector_id', 'payment_status'
     ];
 
+    protected static function booted()
+    {
+        static::created(function ($sale) {
+            // Automatically create a CxcDetail record for new sales
+            \App\Models\CxcDetail::create([
+                'sale_id' => $sale->sale_id,
+            ]);
+        });
+    }
+
     public function customer()
     {
         return $this->belongsTo('App\Models\Customer', 'customer_id');
@@ -45,5 +55,10 @@ class Sale extends Model
     public function sector()
     {
         return $this->belongsTo('App\Models\Sector', 'sector_id');
+    }
+
+    public function cxcDetail()
+    {
+        return $this->hasOne(CxcDetail::class, 'sale_id', 'sale_id');
     }
 }

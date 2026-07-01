@@ -11,4 +11,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('fumigacion:remind')->everyMinute();
 Schedule::command('sales:check-retention')->twiceMonthly(1, 16, '08:00');
-Schedule::command('alerts:check-pending-payments')->dailyAt('08:00');
+// Schedule::command('alerts:check-pending-payments')->dailyAt('08:00');
