@@ -58,8 +58,12 @@ class CuentasPorCobrarController extends Controller
         return view('finance.cuentas_por_cobrar.index', compact('pendingPaymentsCount'));
     }
 
-    public function dashboard()
+    public function dashboard(Request $request)
     {
+        $selectedMonth = $request->input('month', now()->month);
+        $selectedYear = $request->input('year', now()->year);
+        $targetDate = \Carbon\Carbon::create($selectedYear, $selectedMonth, 1)->endOfMonth();
+
         // Fetch all sales in finance
         $sales = DB::table('cxc_details as cxc')
             ->join('sales as s', 's.sale_id', '=', 'cxc.sale_id')
@@ -91,10 +95,10 @@ class CuentasPorCobrarController extends Controller
         $clientesAdeudoSet = [];
         $today = now()->startOfDay();
         
-        // Structure for chart: last 6 months
+        // Structure for chart: last 6 months ending in targetDate
         $monthsArray = [];
         for ($i = 5; $i >= 0; $i--) {
-            $date = now()->subMonths($i);
+            $date = $targetDate->copy()->startOfMonth()->subMonths($i);
             $key = $date->format('Y-m'); // e.g. "2026-05"
             $monthsArray[$key] = [
                 'label' => $date->translatedFormat('F Y'),
@@ -107,8 +111,12 @@ class CuentasPorCobrarController extends Controller
             $pagado = isset($payments[$sale->cxc_id]) ? $payments[$sale->cxc_id]->total_pagado : 0;
             $saldo = round($sale->total_venta - $pagado, 2);
 
-            // Metrics 1 & 2: Vencidas y Adeudo
-            if (!$sale->is_canceled && $sale->estatus !== 'Pagado') {
+            $saleMonthStr = \Carbon\Carbon::parse($sale->fecha_emision)->format('Y-m');
+
+            // Metrics 1 & 2: Vencidas y Adeudo (Only for the selected month/year)
+            $isSelectedMonth = (\Carbon\Carbon::parse($sale->fecha_emision)->month == $selectedMonth && \Carbon\Carbon::parse($sale->fecha_emision)->year == $selectedYear);
+
+            if ($isSelectedMonth && !$sale->is_canceled && $sale->estatus !== 'Pagado') {
                 if ($saldo > 0) {
                     $clientId = 'c_' . $sale->customer_id . '_p_' . $sale->prospect_id;
                     $clientesAdeudoSet[$clientId] = true;
@@ -131,10 +139,9 @@ class CuentasPorCobrarController extends Controller
 
             // Metric 3: Chart Data
             if (!$sale->is_canceled) {
-                $saleMonth = \Carbon\Carbon::parse($sale->fecha_emision)->format('Y-m');
-                if (isset($monthsArray[$saleMonth])) {
-                    $monthsArray[$saleMonth]['total_facturado'] += $sale->total_venta;
-                    $monthsArray[$saleMonth]['total_cobrado'] += $pagado;
+                if (isset($monthsArray[$saleMonthStr])) {
+                    $monthsArray[$saleMonthStr]['total_facturado'] += $sale->total_venta;
+                    $monthsArray[$saleMonthStr]['total_cobrado'] += $pagado;
                 }
             }
         }
@@ -154,8 +161,8 @@ class CuentasPorCobrarController extends Controller
             }
         }
 
-        // Global percentage for this month
-        $currentMonthKey = now()->format('Y-m');
+        // Global percentage for the selected month
+        $currentMonthKey = $targetDate->format('Y-m');
         $currentMonthPct = 0;
         if ($monthsArray[$currentMonthKey]['total_facturado'] > 0) {
             $currentMonthPct = round(($monthsArray[$currentMonthKey]['total_cobrado'] / $monthsArray[$currentMonthKey]['total_facturado']) * 100, 2);
@@ -166,7 +173,9 @@ class CuentasPorCobrarController extends Controller
             'clientesAdeudo', 
             'currentMonthPct', 
             'chartLabels', 
-            'chartData'
+            'chartData',
+            'selectedMonth',
+            'selectedYear'
         ));
     }
 
@@ -175,12 +184,23 @@ class CuentasPorCobrarController extends Controller
         return view('finance.cuentas_por_cobrar.clientes');
     }
 
-    public function datatable()
+    public function datatable(Request $request)
     {
+        $month = $request->input('month');
+        $year = $request->input('year');
+
         // Query only sales that have a corresponding CxcDetail record
-        $sales = DB::table('cxc_details as cxc')
-            ->join('sales as s', 's.sale_id', '=', 'cxc.sale_id')
-            ->leftJoin('customers as c', 's.customer_id', '=', 'c.customer_id')
+        $query = DB::table('cxc_details as cxc')
+            ->join('sales as s', 's.sale_id', '=', 'cxc.sale_id');
+
+        if ($month) {
+            $query->whereMonth('s.date', $month);
+        }
+        if ($year) {
+            $query->whereYear('s.date', $year);
+        }
+
+        $sales = $query->leftJoin('customers as c', 's.customer_id', '=', 'c.customer_id')
             ->leftJoin('prospects as p', 's.prospect_id', '=', 'p.prospect_id')
             ->leftJoin('users as u', 's.user_id', '=', 'u.id')
             ->leftJoin('sale_detail as sd', 'sd.sale_id', '=', 's.sale_id')

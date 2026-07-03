@@ -22,6 +22,35 @@
     <button id="btn-open-edit-cxc" type="button" class="open-modal hidden" data-target="edit-cxc"></button>
     <button id="btn-open-payments" type="button" class="open-modal hidden" data-target="payments-cxc"></button>
 
+    <!-- Filtros -->
+    <div class="mb-2 mt-6 flex justify-end w-full">
+      <div class="bg-white/80 backdrop-blur-md border border-gray-200 rounded-xl p-3 shadow-sm flex items-center gap-3">
+        <div class="flex items-center gap-2">
+          <label for="filter-month" class="text-sm font-medium text-gray-600">Mes:</label>
+          <select id="filter-month" class="text-sm border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
+            <option value="">Todos</option>
+            @for ($i = 1; $i <= 12; $i++)
+              <option value="{{ $i }}">
+                {{ ucfirst(\Carbon\Carbon::create()->month($i)->translatedFormat('F')) }}
+              </option>
+            @endfor
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <label for="filter-year" class="text-sm font-medium text-gray-600">Año:</label>
+          <select id="filter-year" class="text-sm border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
+            <option value="">Todos</option>
+            @for ($i = now()->year; $i >= 2020; $i--)
+              <option value="{{ $i }}">{{ $i }}</option>
+            @endfor
+          </select>
+        </div>
+        <button type="button" id="btn-filter" class="bg-[#198754] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#157347] transition flex items-center gap-1">
+          <i class="ri-filter-3-line"></i> Filtrar
+        </button>
+      </div>
+    </div>
+
     <!-- Tabla de clientes -->
     <div class="w-full mt-8">
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -80,7 +109,11 @@ $(function(){
   const table = $('#cxc-table').DataTable({
     ajax: {
       url: "{{ route('cuentas-por-cobrar.datatable') }}",
-      dataSrc: 'data'
+      dataSrc: 'data',
+      data: function(d) {
+        d.month = $('#filter-month').val();
+        d.year = $('#filter-year').val();
+      }
     },
     createdRow: function(row, data, dataIndex) {
       if (data.is_canceled) {
@@ -153,6 +186,11 @@ $(function(){
          .replace(/"/g, "&quot;")
          .replace(/'/g, "&#039;");
   }
+
+  // Filtro
+  $('#btn-filter').on('click', function() {
+    table.ajax.reload();
+  });
 
   // --- ACTIONS ---
 

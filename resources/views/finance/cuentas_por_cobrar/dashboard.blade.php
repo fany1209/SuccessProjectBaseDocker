@@ -18,6 +18,33 @@
       <div class="mt-2 h-px mx-auto bg-gradient-to-r from-transparent via-[#198754]/50 to-transparent max-w-sm"></div>
     </div>
 
+    <!-- Filtros -->
+    <div class="mb-6 flex justify-end">
+      <form method="GET" action="{{ route('cuentas-por-cobrar.dashboard') }}" class="bg-white/80 backdrop-blur-md border border-gray-200 rounded-xl p-3 shadow-sm flex items-center gap-3">
+        <div class="flex items-center gap-2">
+          <label for="month" class="text-sm font-medium text-gray-600">Mes:</label>
+          <select name="month" id="month" class="text-sm border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
+            @for ($i = 1; $i <= 12; $i++)
+              <option value="{{ $i }}" {{ $selectedMonth == $i ? 'selected' : '' }}>
+                {{ ucfirst(\Carbon\Carbon::create()->month($i)->translatedFormat('F')) }}
+              </option>
+            @endfor
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <label for="year" class="text-sm font-medium text-gray-600">Año:</label>
+          <select name="year" id="year" class="text-sm border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
+            @for ($i = now()->year; $i >= 2020; $i--)
+              <option value="{{ $i }}" {{ $selectedYear == $i ? 'selected' : '' }}>{{ $i }}</option>
+            @endfor
+          </select>
+        </div>
+        <button type="submit" class="bg-[#198754] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#157347] transition flex items-center gap-1">
+          <i class="ri-filter-3-line"></i> Filtrar
+        </button>
+      </form>
+    </div>
+
     <!-- KPIs -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
       
