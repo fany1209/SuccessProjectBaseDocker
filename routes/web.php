@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\TrailerController;
 use App\Http\Controllers\TransportLineController;
-
 use App\Http\Controllers\CliController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PdfController;
@@ -54,8 +53,9 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReagentController;
 use App\Http\Controllers\MaterialController;
-    use App\Http\Controllers\RhController;
-    use App\Http\Controllers\RecursosHumanosController;
+use App\Http\Controllers\RhController;
+use App\Http\Controllers\RecursosHumanosController;
+use App\Http\Controllers\CuentasPorCobrarController;
 
 
 Route::get('/', function () {
@@ -428,6 +428,19 @@ Route::prefix('laboratory/materials')->group(function () {
     Route::get('/{id}', [FacturaController::class, 'show'])->name('facturas.show');
     Route::patch('/{id}', [FacturaController::class, 'update'])->name('facturas.update');
     Route::delete('/{id}', [FacturaController::class, 'destroy'])->name('facturas.destroy');
+    });
+
+    Route::prefix('cuentas-por-cobrar')->group(function () {
+        Route::get('/', [CuentasPorCobrarController::class, 'index'])->name('cuentas-por-cobrar.index');
+        Route::get('/dashboard', [CuentasPorCobrarController::class, 'dashboard'])->name('cuentas-por-cobrar.dashboard');
+        Route::get('/clientes', [CuentasPorCobrarController::class, 'clientes'])->name('cuentas-por-cobrar.clientes');
+        
+        Route::get('/datatable', [CuentasPorCobrarController::class, 'datatable'])->name('cuentas-por-cobrar.datatable');
+        Route::post('/{id}/update', [CuentasPorCobrarController::class, 'update'])->name('cuentas-por-cobrar.update');
+        Route::post('/{id}/cancel', [CuentasPorCobrarController::class, 'cancel'])->name('cuentas-por-cobrar.cancel');
+        
+        Route::get('/{id}/payments', [CuentasPorCobrarController::class, 'getPayments'])->name('cuentas-por-cobrar.payments.list');
+        Route::post('/{id}/payments', [CuentasPorCobrarController::class, 'addPayment'])->name('cuentas-por-cobrar.payments.add');
     });
 
     //production y i+d
