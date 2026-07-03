@@ -47,5 +47,13 @@
             class="{{ $imgCls }}">
         <span>Historial de Compras</span>
     </a>
+
+    <a href="{{ route('cuentas-por-cobrar.index') }}" 
+      class="inline-flex items-center  {{ $btnBase }} {{ $btnCard }}">
+        <img src="{{ asset('images/finance/xcobrar.png') }}" 
+            alt="01" 
+            class="{{ $imgCls }}">
+        <span>Cuentas por cobrar</span>
+    </a>
 </div>
 </section>
