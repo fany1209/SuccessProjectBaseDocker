@@ -48,6 +48,9 @@
         <button type="button" id="btn-filter" class="bg-[#198754] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#157347] transition flex items-center gap-1">
           <i class="ri-filter-3-line"></i> Filtrar
         </button>
+        <button type="button" id="btn-export-excel" class="bg-[#217346] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#1e6b40] transition flex items-center gap-1">
+          <i class="ri-file-excel-2-line"></i> Exportar a Excel
+        </button>
       </div>
     </div>
 
@@ -192,6 +195,16 @@ $(function(){
     table.ajax.reload();
   });
 
+  // Exportar Excel
+  $('#btn-export-excel').on('click', function() {
+    const month = $('#filter-month').val();
+    const year = $('#filter-year').val();
+    let url = "{{ route('cuentas-por-cobrar.export-excel') }}?";
+    if (month) url += "month=" + month + "&";
+    if (year) url += "year=" + year;
+    window.location.href = url;
+  });
+
   // --- ACTIONS ---
 
   // Más información (Eye icon)
@@ -240,6 +253,7 @@ $(function(){
   $(document).on('click', '.btn-edit-cxc', function() {
     const row = $(this).data('row');
     $('#edit-cxc-id').val(row.cxc_id);
+    $('#edit-documento').val(row.documento || 'Factura');
     $('#edit-metodo-pago').val(row.metodo_pago);
     $('#edit-fecha-conclusion').val(toInputDate(row.fecha_conclusion));
     $('#edit-descripcion').val(row.descripcion);
@@ -252,6 +266,7 @@ $(function(){
     e.preventDefault();
     const id = $('#edit-cxc-id').val();
     const payload = {
+      documento: $('#edit-documento').val(),
       metodo_pago: $('#edit-metodo-pago').val(),
       fecha_conclusion: $('#edit-fecha-conclusion').val(),
       descripcion: $('#edit-descripcion').val(),
