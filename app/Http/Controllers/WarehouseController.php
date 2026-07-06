@@ -13,7 +13,8 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 
 class WarehouseController extends Controller{
-    public function index(Request $request){
+ public function index(Request $request) 
+    {
         $summary = DB::table('inventory')
             ->join('cli', 'inventory.inventory_id', '=', 'cli.inventory_id')
             ->join('locations', 'locations.location_id', '=', 'cli.location_id')
@@ -21,18 +22,19 @@ class WarehouseController extends Controller{
             ->select('products.name','products.unit',DB::raw('SUM(cli.net_weight) as net_weight'),'locations.warehouse_id')
             ->groupBy('products.name','locations.warehouse_id','products.unit')
             ->get();
+
         $available_locations = DB::table('inventory')
-        ->join('cli', 'inventory.inventory_id', '=', 'cli.inventory_id')
-        ->join('locations', 'locations.location_id', '=', 'cli.location_id')
-        ->join('concepts', 'concepts.concept_id', '=', 'cli.concept_id')
-        ->join('products', 'products.product_id', '=', 'inventory.product_id')
-        ->select(
-            'locations.name'
-        )->get();
+            ->join('cli', 'inventory.inventory_id', '=', 'cli.inventory_id')
+            ->join('locations', 'locations.location_id', '=', 'cli.location_id')
+            ->join('concepts', 'concepts.concept_id', '=', 'cli.concept_id')
+            ->join('products', 'products.product_id', '=', 'inventory.product_id')
+            ->select('locations.name')->get();
+
         $concepts = Concept::all();
         $warehouses = Warehouse::all();
         $locations = Location::all();
         $products_inventory = Inventory::select('products.product_id','products.name','products.unit')->join('products','products.product_id','=','inventory.product_id')->distinct()->get();
+
         $inventory = DB::table('inventory')
             ->leftJoin('cli', 'inventory.inventory_id', '=', 'cli.inventory_id')
             ->leftJoin('products', 'products.product_id', '=', 'inventory.product_id')
@@ -54,44 +56,41 @@ class WarehouseController extends Controller{
             ->get();
 
         $hours = ['09:00', '10:00', '16:00'];
+        $selectedWarehouse = $request->input('warehouse_id'); 
+        $feedback = [false, false, false]; 
 
-        $selectedWarehouse = $request->query('warehouse_id');
-
-        $feedback = [];
+        $timezone = config('app.timezone');
 
         if ($selectedWarehouse) {
             $controls = Control::where('warehouse_id', $selectedWarehouse)
-                ->whereDate('created_at', now()->toDateString())
+                ->whereDate('created_at', Carbon::today($timezone))
                 ->get();
+
             foreach ($hours as $index => $hour) {
                 $hourInt = (int) explode(':', $hour)[0];
-                $feedback[$index] = $controls->contains(function($c) use ($hourInt) {
-                    return (int)$c->created_at->format('H') === $hourInt;
+                
+                $feedback[$index] = $controls->contains(function($c) use ($hourInt, $timezone) {
+                    $controlDate = Carbon::parse($c->created_at)->timezone($timezone);
+                    return (int)$controlDate->format('H') === $hourInt;
                 });
             }
         }
 
-        $now = Carbon::now();
-        $activeHour = null;
-
-        foreach ($hours as $hour) {
-            $time = Carbon::createFromTimeString($hour);
-
-            $start = $time;
-            $end = $time->copy()->addMinutes(5); 
-
-            if ($now->between($start, $end)) {
-                $activeHour = $hour;
-                break;
-            }
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'feedback' => array_values($feedback) 
+            ]);
         }
+
+        $isFormActive = !empty($selectedWarehouse);
+
         return view('warehouse', compact(
             'concepts',
             'warehouses',
             'hours',
             'feedback',
             'selectedWarehouse',
-            'activeHour',
+            'isFormActive',
             'locations',
             'products_inventory',
             'inventory',
@@ -100,26 +99,39 @@ class WarehouseController extends Controller{
         ));
     }
 
-    public function temperature(Request $request){
+    public function temperature(Request $request) 
+    {
         $request->validate([
-            'temperature' => 'required|numeric',
-            'humidity' => 'required|numeric',
-            'warehouse_id' => 'required|exists:warehouses,warehouse_id'
+            'warehouse_id' => 'required|exists:warehouses,warehouse_id',
+            'measurements' => 'required|array',
+            'measurements.*.hour' => 'required|string',
+            'measurements.*.temperature' => 'required|numeric',
+            'measurements.*.humidity' => 'required|numeric',
         ]);
 
-        Control::create([
-            'temperature' => $request->temperature,
-            'humidity' => $request->humidity,
-            'warehouse_id' => $request->warehouse_id,
-            'user_id' => auth()->id(),
-            'host_ip' => $request->ip(),
-            'host_user' => gethostname(),
-            'host_name' => gethostbyaddr($request->ip()),
-        ]);
+        $timezone = config('app.timezone');
+
+        foreach ($request->measurements as $measure) {
+            
+            $targetDateTime = Carbon::parse(Carbon::today($timezone)->toDateString() . ' ' . $measure['hour'], $timezone);
+
+            $control = new Control();
+            $control->temperature  = $measure['temperature'];
+            $control->humidity     = $measure['humidity'];
+            $control->warehouse_id = $request->warehouse_id;
+            $control->user_id      = auth()->id();
+            $control->host_ip      = $request->ip();
+            $control->host_user    = gethostname();
+            $control->host_name    = gethostbyaddr($request->ip());
+            $control->created_at   = $targetDateTime;
+            $control->updated_at   = now();
+            
+            $control->save(); 
+        }
 
         return response()->json(['success' => true]);
     }
-
+    
     public function getInfoLocation(Request $request){
         $location = $request->input('location');
         $products = DB::table('inventory')
