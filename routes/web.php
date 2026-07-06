@@ -436,6 +436,7 @@ Route::prefix('laboratory/materials')->group(function () {
         Route::get('/clientes', [CuentasPorCobrarController::class, 'clientes'])->name('cuentas-por-cobrar.clientes');
         
         Route::get('/datatable', [CuentasPorCobrarController::class, 'datatable'])->name('cuentas-por-cobrar.datatable');
+        Route::get('/export-excel', [CuentasPorCobrarController::class, 'exportExcel'])->name('cuentas-por-cobrar.export-excel');
         Route::post('/{id}/update', [CuentasPorCobrarController::class, 'update'])->name('cuentas-por-cobrar.update');
         Route::post('/{id}/cancel', [CuentasPorCobrarController::class, 'cancel'])->name('cuentas-por-cobrar.cancel');
         

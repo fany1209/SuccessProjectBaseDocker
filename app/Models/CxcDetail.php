@@ -11,6 +11,7 @@ class CxcDetail extends Model
 
     protected $fillable = [
         'sale_id',
+        'documento',
         'metodo_pago',
         'descripcion',
         'estatus',
