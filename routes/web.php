@@ -444,6 +444,18 @@ Route::prefix('laboratory/materials')->group(function () {
         Route::post('/{id}/payments', [CuentasPorCobrarController::class, 'addPayment'])->name('cuentas-por-cobrar.payments.add');
     });
 
+    Route::prefix('cuentas-por-pagar')->group(function () {
+        Route::get('/', [\App\Http\Controllers\CuentasPorPagarController::class, 'index'])->name('cuentas-por-pagar.index');
+        Route::get('/dashboard', [\App\Http\Controllers\CuentasPorPagarController::class, 'dashboard'])->name('cuentas-por-pagar.dashboard');
+        Route::get('/facturas', [\App\Http\Controllers\CuentasPorPagarController::class, 'facturas'])->name('cuentas-por-pagar.facturas');
+        Route::get('/datatable', [\App\Http\Controllers\CuentasPorPagarController::class, 'datatable'])->name('cuentas-por-pagar.datatable');
+        Route::get('/export-excel', [\App\Http\Controllers\CuentasPorPagarController::class, 'exportExcel'])->name('cuentas-por-pagar.export-excel');
+        Route::post('/{id}/update', [\App\Http\Controllers\CuentasPorPagarController::class, 'update'])->name('cuentas-por-pagar.update');
+        Route::post('/{id}/cancel', [\App\Http\Controllers\CuentasPorPagarController::class, 'cancel'])->name('cuentas-por-pagar.cancel');
+        Route::get('/{id}/payments', [\App\Http\Controllers\CuentasPorPagarController::class, 'getPayments'])->name('cuentas-por-pagar.payments.list');
+        Route::post('/{id}/payments', [\App\Http\Controllers\CuentasPorPagarController::class, 'addPayment'])->name('cuentas-por-pagar.payments.add');
+    });
+
     //production y i+d
     Route::get('/production', [ProductionController::class, 'index'])->name('production.index');
     Route::get('/i+d', [idController::class, 'index'])->name('i+d.index');

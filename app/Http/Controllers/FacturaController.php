@@ -141,6 +141,18 @@ class FacturaController extends Controller
             }
             DB::table('factura_detalles')->insert($detallesAInsertar);
 
+            // Crear registro automático en Cuentas por Pagar (cxp_details)
+            DB::table('cxp_details')->insert([
+                'factura_id'  => $facturaId,
+                'fecha_pago'  => null,
+                'semana'      => \Carbon\Carbon::parse($request->fecha_factura)->weekOfYear ?? \Carbon\Carbon::now()->weekOfYear,
+                'anio'        => \Carbon\Carbon::parse($request->fecha_factura)->year ?? \Carbon\Carbon::now()->year,
+                'estatus'     => 'PENDIENTE',
+                'is_canceled' => false,
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ]);
+
             DB::commit();
 
             return response()->json([
