@@ -24,12 +24,22 @@ class RecursosHumanosController extends Controller
     {
         $validated = $req->validate([
             'nombre' => 'required|string|max:255',
+            'foto'   => 'nullable|image|mimes:jpeg,png,jpg|max:2048', 
         ]);
 
         $fmt = fn($d) => $d ? Carbon::parse($d)->format('d/m/Y') : null;
 
+        $fotoBase64 = null;
+        if ($req->hasFile('foto')) {
+            $path = $req->file('foto')->getRealPath();
+            $imagen = base64_encode(file_get_contents($path));
+            $tipo = $req->file('foto')->getClientMimeType();
+            $fotoBase64 = 'data:' . $tipo . ';base64,' . $imagen;
+        }
+
         $viewData = [
             'nombre'              => $req->input('nombre'),
+            'foto'                => $fotoBase64, 
             'sexo'                => $req->input('sexo'),
             'estado_civil'        => $req->input('estado_civil'),
             'anios_empresa'       => $req->input('anios_empresa'),
@@ -56,6 +66,7 @@ class RecursosHumanosController extends Controller
             'tipo_sangre'         => $req->input('tipo_sangre'),
         ];
 
+        
         try {
             $pdf = Pdf::loadView('formats.rh.expediente', $viewData)
                       ->setPaper('letter');
@@ -64,20 +75,19 @@ class RecursosHumanosController extends Controller
             $dompdf->set_option('isHtml5ParserEnabled', true);
             $dompdf->set_option('isRemoteEnabled', true);
             $dompdf->render();
-            
             $canvas = $dompdf->get_canvas();
             $w      = $canvas->get_width();
             $fm     = $dompdf->getFontMetrics();
             $font   = $fm->getFont('DejaVu Sans', 'normal');
-            $size   = 7;
+            $size   = 9;
             $text   = 'Pág. {PAGE_NUM} de {PAGE_COUNT}';
             
             $ml = 24 * 0.75; $mr = 24 * 0.75; $innerW = $w - $ml - $mr;
             $colStart = $ml + ($innerW * 0.80); $colWidth = $innerW * 0.20;
             $pad = 10 * 0.75; $colStart += $pad; $colWidth -= $pad * 2;
             $textWidth = $fm->getTextWidth($text, $font, $size);
-            $x = $colStart + max(0, ($colWidth - $textWidth) / 2) + 29;
-            $y = 63;
+            $x = $colStart + max(0, ($colWidth - $textWidth) / 2) + 25;
+            $y = 60;
             
             $canvas->page_text($x, $y, $text, $font, $size, [0,0,0]);
 
@@ -326,10 +336,20 @@ class RecursosHumanosController extends Controller
     {
         $practicante = (object) $request->all();
         
+        $practicante->foto_base64 = null; 
+
+        if ($request->hasFile('foto_infantil') && $request->file('foto_infantil')->isValid()) {
+            $image = $request->file('foto_infantil');
+            $imageData = file_get_contents($image->getRealPath());
+            $mimeType = $image->getMimeType(); 
+            $practicante->foto_base64 = 'data:' . $mimeType . ';base64,' . base64_encode($imageData);
+        }
+
         $reqData = [];
         $nombresRequisitos = ['Fotografía infantil', 'Solicitud de empleo o CV', 'Copia de acta de nacimiento', 'Copia de comprobante de domicilio', 'Copia de INE', 'Copia de CURP', 'Copia de RFC', 'Número de Seguro Social', 'Copia del último grado de estudios', 'Constancias de cursos tomados', 'Copia de licencia de manejo', 'Solicitud de Residencias', 'Liberación de servicio social', 'Carta de Presentación', 'Carta de Aceptación', 'Convenio de Colaboración', 'Carta de Terminación'];
         
-        foreach ($request->req as $index => $data) {
+        $requisitosInput = $request->req ?? [];
+        foreach ($requisitosInput as $index => $data) {
             $reqData[] = [
                 'nombre' => $nombresRequisitos[$index] ?? 'N/A',
                 'ok'     => $data['ok'] ?? null,
@@ -338,7 +358,7 @@ class RecursosHumanosController extends Controller
         }
         $practicante->req = $reqData;
 
-        $pdf = Pdf::loadView('formats.rh.practicante', compact('practicante'))->setPaper('letter');
+        $pdf = \Pdf::loadView('formats.rh.practicante', compact('practicante'))->setPaper('letter');
 
         $dompdf = $pdf->getDomPDF();
         $dompdf->render();

@@ -3,6 +3,11 @@
     <form method="POST" action="{{ route('rh.practicantes.pdf') }}" class="space-y-6" enctype="multipart/form-data">
         @csrf
 
+        <div class="form-group">
+            <label for="foto_infantil">Fotografía Infantil:</label>
+            <input type="file" name="foto_infantil" id="foto_infantil" accept="image/*">
+        </div>
+
         {{-- ================= DATOS GENERALES Y ACADÉMICOS ================= --}}
         <div>
             <h3 class="text-base font-semibold mb-3 border-b pb-1 text-gray-800">Datos Generales y Académicos</h3>

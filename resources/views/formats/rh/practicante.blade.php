@@ -62,11 +62,17 @@
 
 <main>
     
-  <div style="float: right; width: 100px; margin-bottom: 10px;">
-    <div style="border: 1px dashed #000; width: 80px; height: 100px; display: flex; align-items: center; justify-content: center; text-align: center; color: #777; font-size: 8px; padding: 5px;">
-        PEGAR FOTO<br>TAMAÑO<br>INFANTIL
+    <div style="float: right; width: 100px; margin-bottom: 10px;">
+        <div style="border: 1px dashed #000; width: 80px; height: 100px; text-align: center; color: #777; font-size: 8px; overflow: hidden;">
+            @if(!empty($practicante->foto_base64))
+                <img src="{{ $practicante->foto_base64 }}" style="width: 100%; height: 100%; object-fit: cover;">
+            @else
+                <div style="padding-top: 35px; line-height: 11px;">
+                    PEGAR FOTO<br>TAMAÑO<br>INFANTIL
+                </div>
+            @endif
+        </div>
     </div>
-  </div>
 
   <div class="section" style="clear: both;">
     <table class="tbl b1">
