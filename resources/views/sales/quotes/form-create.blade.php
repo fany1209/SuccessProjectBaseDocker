@@ -119,6 +119,7 @@
     </div>
 </form>
 
+@push('js')
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
@@ -130,7 +131,8 @@
         $(row).find('.product-select').select2({
             placeholder: "-- Buscar Producto --",
             allowClear: true,
-            width: '100%'
+            width: '100%',
+            dropdownParent: $('#createQuoteForm')
         }).on('change', function() {
             const selectedText = this.options[this.selectedIndex].text;
             $(this).closest('.product-row').find('.hidden-product-name').val(selectedText);
@@ -200,11 +202,6 @@
 
     document.getElementById('calculateBtn').addEventListener('click', calculateTotals);
 
-    document.addEventListener('DOMContentLoaded', () => {
-        if (productsContainer.children.length === 0) { addProductBtn.click(); }
-        calculateTotals();
-    });
-
     $('#quoteForm').submit(function(e) {
         e.preventDefault();
         Swal.fire({ title: 'Guardando...', didOpen: () => Swal.showLoading() });
@@ -215,3 +212,4 @@
         });
     });
 </script>
+@endpush
