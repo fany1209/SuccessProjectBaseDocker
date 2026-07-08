@@ -40,7 +40,15 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        'client' => [
+            'driver' => 'session',
+            'provider' => 'portal_users',
+        ],
     ],
+
+
+    
 
     /*
     |--------------------------------------------------------------------------
@@ -69,7 +77,13 @@ return [
         //     'driver' => 'database',
         //     'table' => 'users',
         // ],
+        'portal_users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\PortalUser::class,
+        ],
     ],
+
+    
 
     /*
     |--------------------------------------------------------------------------

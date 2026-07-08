@@ -56,7 +56,7 @@ use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\RhController;
 use App\Http\Controllers\RecursosHumanosController;
 use App\Http\Controllers\CuentasPorCobrarController;
-
+use App\Http\Controllers\PortalAuthController;
 
 Route::get('/', function () {
     return view('home');
@@ -517,6 +517,17 @@ Route::prefix('laboratory/materials')->group(function () {
     Route::post('/rh/evaluacion-desempeno/pdf', [RecursosHumanosController::class, 'evaluacionDesempenoPdf'])->name('rh.evaluacion_desempeno.pdf');
     Route::post('/rh/solicitud-personal/pdf', [RecursosHumanosController::class, 'solicitudPersonalPdf'])->name('rh.solicitud_personal.pdf');
     Route::post('/rh/convenio-instituciones/pdf', [RecursosHumanosController::class, 'convenioInstitucionesPdf'])->name('rh.convenio_instituciones.pdf');
+
+    // Rutas Públicas del Portal de Clientes
+Route::get('/portal-clientes', [\App\Http\Controllers\PortalAuthController::class, 'showLoginForm'])->name('portal.login');
+Route::post('/portal-clientes', [\App\Http\Controllers\PortalAuthController::class, 'login'])->name('portal.login.submit');
+Route::post('/portal-logout', [\App\Http\Controllers\PortalAuthController::class, 'logout'])->name('portal.logout');
+
+
+Route::middleware('auth:client')->get('/portal/venta/{id}', [PortalAuthController::class, 'verDetalle'])->name('portal.ver-detalle');
+
+Route::middleware('auth:client')->get('/portal/dashboard', [PortalAuthController::class, 'dashboard'])->name('portal.dashboard');
+Route::middleware('auth:client')->get('/portal/descargar-pdf/{id}', [PortalAuthController::class, 'descargarPdf'])->name('portal.descargar-pdf');
 
     //documents
     Route::get('/delivery-note/{sale_id}', [PdfController::class, 'makeDeliveryNotePDF'])
