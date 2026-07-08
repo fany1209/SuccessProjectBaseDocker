@@ -3,7 +3,7 @@
 @section('content')
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
-<div class="container mx-auto px-4 pb-12">
+<div class="w-full px-4 sm:px-6 lg:px-8 pb-12">
   <section class="col-span-12 w-full flex flex-col items-center px-1">
     
     <div class="mt-6 text-center w-full relative">
@@ -58,20 +58,20 @@
     <div class="w-full mt-8">
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="overflow-x-auto w-full p-4">
-          <table id="cxc-table" class="display w-full divide-y divide-gray-200 text-sm text-left whitespace-nowrap">
+          <table id="cxc-table" class="display w-full divide-y divide-gray-200 text-sm text-left">
             <thead class="bg-gray-50 text-gray-700 uppercase font-semibold text-xs tracking-wider">
               <tr>
-                <th class="px-4 py-3">Folio</th>
-                <th class="px-4 py-3">Fecha Emisión</th>
-                <th class="px-4 py-3">Cliente</th>
-                <th class="px-4 py-3">Asesor</th>
-                <th class="px-4 py-3">Documento</th>
-                <th class="px-4 py-3">Método Pago</th>
-                <th class="px-4 py-3">Estatus</th>
-                <th class="px-4 py-3">Fecha Conclusión</th>
-                <th class="px-4 py-3 text-right">Total</th>
-                <th class="px-4 py-3 text-right">Saldo Restante</th>
-                <th class="px-4 py-3 text-center">Acciones</th>
+                <th class="px-2 py-2">Folio</th>
+                <th class="px-2 py-2">Fecha Emisión</th>
+                <th class="px-2 py-2">Cliente</th>
+                <th class="px-2 py-2">Asesor</th>
+                <th class="px-2 py-2">Documento</th>
+                <th class="px-2 py-2">Método Pago</th>
+                <th class="px-2 py-2">Estatus</th>
+                <th class="px-2 py-2">Fecha Conclusión</th>
+                <th class="px-2 py-2 text-right">Total</th>
+                <th class="px-2 py-2 text-right">Saldo Restante</th>
+                <th class="px-2 py-2 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 text-gray-800">
