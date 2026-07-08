@@ -177,6 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const createQuoteForm = document.getElementById('createQuoteForm');
 
     if (viewStatus && createQuoteForm) {
+        let formInitialized = false;
         viewStatus.addEventListener('click', function() {
             createQuoteForm.classList.toggle('hidden');
             const p = viewStatus.querySelector('p');
@@ -184,6 +185,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 p.innerText = "✕ CLOSE";
                 viewStatus.classList.replace('bg-blue-500', 'bg-gray-500');
                 createQuoteForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if (!formInitialized) {
+                    formInitialized = true;
+                    const container = document.getElementById('productsContainer');
+                    if (container && container.children.length === 0) {
+                        document.getElementById('addProductBtn').click();
+                    } else if (container) {
+                        // Re-init Select2 on any existing rows
+                        $(container).find('.product-row').each(function() {
+                            if (typeof initSelect2 === 'function') initSelect2(this);
+                        });
+                    }
+                }
             } else {
                 p.innerText = "ADD QUOTE";
                 viewStatus.classList.replace('bg-gray-500', 'bg-blue-500');
