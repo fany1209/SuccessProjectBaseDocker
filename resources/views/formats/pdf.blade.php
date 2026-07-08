@@ -141,7 +141,7 @@
                             <p class="text-sm-black" style="font-weight: bold;">
                                 {{ $type == 'inputs' ? 'Proveedor:' : 'Cliente:' }}</p>
                             <p class="text-sm-black">
-                                {{ $type == 'inputs' ? $movement->supplier->name : $movement->customer->name }}</p>
+                                {{ $type == 'inputs' ? ($movement->supplier->name ?? 'N/A') : ($movement->customer->name ?? 'N/A') }}</p>
                         </td>
                     </tr>
 
@@ -150,7 +150,7 @@
                             <p class="text-sm-black" style="font-weight: bold;">
                                 {{ $type == 'inputs' ? 'Código de Proveedor:' : 'Código de cliente:' }}</p>
                             <p class="text-sm-black">
-                                {{ $type == 'inputs' ? $movement->supplier->supplier_code : $movement->customer->customer_code }}
+                                {{ $type == 'inputs' ? ($movement->supplier->supplier_code ?? 'N/A') : ($movement->customer->customer_code ?? 'N/A') }}
                             </p>
                         </td>
                         <td class="table2Cells inline-p">
@@ -315,7 +315,7 @@
                                 Línea de transporte:
                             </p>
                             <p class="text-sm-black">
-                                {{ $movement->transportLine->name }}
+                                {{ $movement->transportLine->name ?? 'N/A' }}
                             </p>
                         </td>
                     </tr>
@@ -388,6 +388,28 @@
             </table>
         </div>
     </div>
+
+    <br>
+
+    {{-- SECCION DE COMENTARIOS --}}
+    @if (!empty($movement->comments))
+        <div style="width: 100%;">
+            <div class="fullDiv">
+                <p class="subTitle">Comentarios</p>
+            </div>
+            <div style="width: 100%;">
+                <table class="table1">
+                    <tbody>
+                        <tr>
+                            <td class="table2Cells inline-p" style="padding: 10px;">
+                                <p class="text-sm-black">{{ $movement->comments }}</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
 
     <br>
     <br>

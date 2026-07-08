@@ -51,11 +51,11 @@ class InventoryController extends Controller
         $batchs = Inventory::select('inventory_id','batch','stock','inventory.product_id','products.name','products.unit','products.batch_code')->join('products','products.product_id','=','inventory.product_id')->get();
         $inputs_years = DB::table('inputs')->selectRaw('year(updated_at) as year')->orderByDesc('year')->distinct()->get();
         $inputs_months = DB::table('inputs')->selectRaw('year(updated_at) as year, month(updated_at) as month')->groupByRaw('year(updated_at), month(updated_at)')->orderByDesc('year')->orderByDesc('month')->get();
-        $inputs_dates = DB::table('inputs')->selectRaw("input_id,year(updated_at) as year, month(updated_at) as month,day(updated_at) as day, DATE_FORMAT(updated_at, '%W, %e %M %H:%i') as date")->groupByRaw('input_id, year(updated_at), month(updated_at), day(updated_at), date')->orderByDesc('input_id')->orderByDesc('year')->orderByDesc('month')->orderByDesc('day')->orderByDesc('date')->get();
+        $inputs_dates = DB::table('inputs')->selectRaw("input_id, comments, year(updated_at) as year, month(updated_at) as month,day(updated_at) as day, DATE_FORMAT(updated_at, '%W, %e %M %H:%i') as date")->groupByRaw('input_id, comments, year(updated_at), month(updated_at), day(updated_at), date')->orderByDesc('input_id')->orderByDesc('year')->orderByDesc('month')->orderByDesc('day')->orderByDesc('date')->get();
         $inputs_products = DB::table('product_inputs')->select('inputs.input_id','products.name','product_inputs.quantity','products.unit')->join('products', 'products.product_id', '=', 'product_inputs.product_id')->join('inputs', 'inputs.input_id', '=', 'product_inputs.input_id')->get();
         $outputs_years = DB::table('outputs')->selectRaw('year(updated_at) as year')->orderByDesc('year')->distinct()->get();
         $outputs_months = DB::table('outputs')->selectRaw('year(updated_at) as year, month(updated_at) as month')->groupByRaw('year(updated_at), month(updated_at)')->orderByDesc('year')->orderByDesc('month')->get();
-        $outputs_dates = DB::table('outputs')->selectRaw("output_id,year(updated_at) as year, month(updated_at) as month,day(updated_at) as day, DATE_FORMAT(updated_at, '%W, %e %M %H:%i') as date")->groupByRaw('output_id, year(updated_at), month(updated_at), day(updated_at), date')->orderByDesc('output_id')->orderByDesc('year')->orderByDesc('month')->orderByDesc('day')->orderByDesc('date')->get();
+        $outputs_dates = DB::table('outputs')->selectRaw("output_id, comments, year(updated_at) as year, month(updated_at) as month,day(updated_at) as day, DATE_FORMAT(updated_at, '%W, %e %M %H:%i') as date")->groupByRaw('output_id, comments, year(updated_at), month(updated_at), day(updated_at), date')->orderByDesc('output_id')->orderByDesc('year')->orderByDesc('month')->orderByDesc('day')->orderByDesc('date')->get();
         $outputs_products = DB::table('product_outputs')->select('outputs.output_id','products.name','product_outputs.quantity','products.unit')->join('products', 'products.product_id', '=', 'product_outputs.product_id')->join('outputs', 'outputs.output_id', '=', 'product_outputs.output_id')->get();
         $operators = Operator::select('operator_id','name','license')->get();
         $vehicles = Vehicle::select('plate','type')->get();
@@ -274,5 +274,15 @@ class InventoryController extends Controller
         }catch(QueryException $e){
             return DatabaseErrors::handle($e);
         }
+    }
+
+    public function updateComment(Request $request, $type, $id) {
+        $request->validate(['comments' => 'nullable|string|max:1000']);
+        if ($type === 'input') {
+            DB::table('inputs')->where('input_id', $id)->update(['comments' => $request->comments]);
+        } else {
+            DB::table('outputs')->where('output_id', $id)->update(['comments' => $request->comments]);
+        }
+        return response()->json(['message' => 'Updated']);
     }
 }

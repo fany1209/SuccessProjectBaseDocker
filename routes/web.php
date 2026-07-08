@@ -121,6 +121,7 @@ Route::middleware([
     Route::put('/updateQuarantine', [InventoryController::class, 'updateQuarantine'])->middleware('can:inventory.show')->name('inventory.updateQuarantine');
     Route::post('/makeTransaction', [InventoryController::class, 'makeTransaction'])->middleware('can:inventory.show')->name('inventory.makeTransaction');
     Route::post('/addQuarantine', [InventoryController::class, 'addQuarantine'])->middleware('can:inventory.show')->name('inventory.addQuarantine');
+    Route::put('/updateComment/{type}/{id}', [InventoryController::class, 'updateComment'])->middleware('can:inventory.show')->name('inventory.updateComment');
 
     //Inputs
     Route::resource('inputs',InputController::class)->middleware('can:inventory.show');
