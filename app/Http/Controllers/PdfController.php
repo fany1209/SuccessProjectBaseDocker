@@ -28,6 +28,10 @@ class PdfController extends Controller
             $name = "Salida de Producto - " . $movement->created_at->format('d-m-Y');
         }
 
+        if (request()->query('include_comment') === '0') {
+            $movement->comments = null;
+        }
+
         $data = [
             'type' => $movType,
             'title' => $movType == 'inputs' ? "RECEPCIÓN DE PRODUCTO" : "SALIDA DE PRODUCTO",

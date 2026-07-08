@@ -121,6 +121,7 @@ Route::middleware([
     Route::put('/updateQuarantine', [InventoryController::class, 'updateQuarantine'])->middleware('can:inventory.show')->name('inventory.updateQuarantine');
     Route::post('/makeTransaction', [InventoryController::class, 'makeTransaction'])->middleware('can:inventory.show')->name('inventory.makeTransaction');
     Route::post('/addQuarantine', [InventoryController::class, 'addQuarantine'])->middleware('can:inventory.show')->name('inventory.addQuarantine');
+    Route::put('/updateComment/{type}/{id}', [InventoryController::class, 'updateComment'])->middleware('can:inventory.show')->name('inventory.updateComment');
 
     //Inputs
     Route::resource('inputs',InputController::class)->middleware('can:inventory.show');
@@ -442,6 +443,18 @@ Route::prefix('laboratory/materials')->group(function () {
         
         Route::get('/{id}/payments', [CuentasPorCobrarController::class, 'getPayments'])->name('cuentas-por-cobrar.payments.list');
         Route::post('/{id}/payments', [CuentasPorCobrarController::class, 'addPayment'])->name('cuentas-por-cobrar.payments.add');
+    });
+
+    Route::prefix('cuentas-por-pagar')->group(function () {
+        Route::get('/', [\App\Http\Controllers\CuentasPorPagarController::class, 'index'])->name('cuentas-por-pagar.index');
+        Route::get('/dashboard', [\App\Http\Controllers\CuentasPorPagarController::class, 'dashboard'])->name('cuentas-por-pagar.dashboard');
+        Route::get('/facturas', [\App\Http\Controllers\CuentasPorPagarController::class, 'facturas'])->name('cuentas-por-pagar.facturas');
+        Route::get('/datatable', [\App\Http\Controllers\CuentasPorPagarController::class, 'datatable'])->name('cuentas-por-pagar.datatable');
+        Route::get('/export-excel', [\App\Http\Controllers\CuentasPorPagarController::class, 'exportExcel'])->name('cuentas-por-pagar.export-excel');
+        Route::post('/{id}/update', [\App\Http\Controllers\CuentasPorPagarController::class, 'update'])->name('cuentas-por-pagar.update');
+        Route::post('/{id}/cancel', [\App\Http\Controllers\CuentasPorPagarController::class, 'cancel'])->name('cuentas-por-pagar.cancel');
+        Route::get('/{id}/payments', [\App\Http\Controllers\CuentasPorPagarController::class, 'getPayments'])->name('cuentas-por-pagar.payments.list');
+        Route::post('/{id}/payments', [\App\Http\Controllers\CuentasPorPagarController::class, 'addPayment'])->name('cuentas-por-pagar.payments.add');
     });
 
     //production y i+d

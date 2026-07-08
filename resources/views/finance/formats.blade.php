@@ -24,12 +24,12 @@
         <span>Facturas</span>
     </a>
 
-    <a href="{{ route('pagos.index') }}" 
+    <a href="{{ route('cuentas-por-pagar.index') }}" 
       class="inline-flex items-center  {{ $btnBase }} {{ $btnCard }}">
         <img src="{{ asset('images/finance/pagos.png') }}" 
             alt="01" 
             class="{{ $imgCls }}">
-        <span>Programación de pagos</span>
+        <span>Cuentas por pagar</span>
     </a>
     
       <a href="{{ route('precios.index') }}" 

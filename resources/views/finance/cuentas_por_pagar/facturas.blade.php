@@ -7,26 +7,26 @@
   <section class="col-span-12 w-full flex flex-col items-center px-1">
     
     <div class="mt-6 text-center w-full relative">
-      <a href="{{ route('cuentas-por-cobrar.index') }}" class="absolute left-0 top-0 text-[#198754] hover:text-[#157347] transition flex items-center gap-1 font-semibold">
+      <a href="{{ route('cuentas-por-pagar.index') }}" class="absolute left-0 top-0 text-[#198754] hover:text-[#157347] transition flex items-center gap-1 font-semibold">
         <i class="ri-arrow-left-s-line text-xl"></i> Volver
       </a>
 
       <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-[#198754]">
-        <i class="ri-team-line mr-1"></i> Clientes
+        <i class="ri-building-line mr-1"></i> Facturas por Pagar
       </h1>
-      <p class="text-sm text-gray-600 mt-1">Gestión de Cuentas por Cobrar</p>
+      <p class="text-sm text-gray-600 mt-1">Gestión de Cuentas por Pagar</p>
       <div class="mt-2 h-px mx-auto bg-gradient-to-r from-transparent via-[#198754]/50 to-transparent max-w-sm"></div>
     </div>
 
-    @include('finance.cuentas_por_cobrar.modals.modals')
-    <button id="btn-open-edit-cxc" type="button" class="open-modal hidden" data-target="edit-cxc"></button>
-    <button id="btn-open-payments" type="button" class="open-modal hidden" data-target="payments-cxc"></button>
+    @include('finance.cuentas_por_pagar.modals.payments')
+    <button id="btn-open-edit-cxp" type="button" class="open-modal hidden" data-target="edit-cxp"></button>
+    <button id="btn-open-payments" type="button" class="open-modal hidden" data-target="payments-cxp"></button>
 
     <!-- Filtros -->
     <div class="mb-2 mt-6 flex justify-end w-full">
       <div class="bg-white/80 backdrop-blur-md border border-gray-200 rounded-xl p-3 shadow-sm flex items-center gap-3">
         <div class="flex items-center gap-2">
-          <label for="filter-month" class="text-sm font-medium text-gray-600">Mes:</label>
+          <label for="filter-month" class="text-sm font-medium text-gray-600">Mes de Factura:</label>
           <select id="filter-month" class="text-sm border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
             <option value="">Todos</option>
             @for ($i = 1; $i <= 12; $i++)
@@ -48,28 +48,27 @@
         <button type="button" id="btn-filter" class="bg-[#198754] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#157347] transition flex items-center gap-1">
           <i class="ri-filter-3-line"></i> Filtrar
         </button>
-        <button type="button" id="btn-export-excel" class="bg-[#217346] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#1e6b40] transition flex items-center gap-1">
-          <i class="ri-file-excel-2-line"></i> Exportar a Excel
+        <button type="button" id="btn-export" class="bg-[#198754] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#157347] transition flex items-center gap-1 ml-2 shadow-sm">
+          <i class="ri-file-excel-2-line text-white"></i> Exportar a Excel
         </button>
       </div>
     </div>
 
-    <!-- Tabla de clientes -->
+    <!-- Tabla de facturas -->
     <div class="w-full mt-8">
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="overflow-x-auto w-full p-4">
-          <table id="cxc-table" class="display w-full divide-y divide-gray-200 text-sm text-left">
+          <table id="cxp-table" class="display w-full divide-y divide-gray-200 text-sm text-left">
             <thead class="bg-gray-50 text-gray-700 uppercase font-semibold text-xs tracking-wider">
               <tr>
-                <th class="px-2 py-2">Folio</th>
-                <th class="px-2 py-2">Fecha Emisión</th>
-                <th class="px-2 py-2">Cliente</th>
-                <th class="px-2 py-2">Asesor</th>
-                <th class="px-2 py-2">Documento</th>
-                <th class="px-2 py-2">Método Pago</th>
+                <th class="px-2 py-2">Empresa</th>
+                <th class="px-2 py-2">Factura</th>
+                <th class="px-2 py-2">Motivo</th>
+                <th class="px-2 py-2">Banco / Método</th>
+                <th class="px-2 py-2">Fechas (Fac/Pago)</th>
+                <th class="px-2 py-2">Semana/Año</th>
                 <th class="px-2 py-2">Estatus</th>
-                <th class="px-2 py-2">Fecha Conclusión</th>
-                <th class="px-2 py-2 text-right">Total</th>
+                <th class="px-2 py-2 text-right">Cantidad</th>
                 <th class="px-2 py-2 text-right">Saldo Restante</th>
                 <th class="px-2 py-2 text-center">Acciones</th>
               </tr>
@@ -88,7 +87,7 @@
 @push('css')
 <style>
   .row-canceled td {
-    background-color: #fee2e2 !important; 
+    background-color: #fee2e2 !important; /* light red */
     color: #991b1b !important;
   }
 </style>
@@ -109,9 +108,9 @@ $(function(){
   const toInputDate = (dateStr) => dateStr ? dateStr.slice(0, 10) : '';
 
   // Datatable Init
-  const table = $('#cxc-table').DataTable({
+  const table = $('#cxp-table').DataTable({
     ajax: {
-      url: "{{ route('cuentas-por-cobrar.datatable') }}",
+      url: "{{ route('cuentas-por-pagar.datatable') }}",
       dataSrc: 'data',
       data: function(d) {
         d.month = $('#filter-month').val();
@@ -119,32 +118,36 @@ $(function(){
       }
     },
     createdRow: function(row, data, dataIndex) {
-      if (data.is_canceled == 1 || data.is_canceled === true || data.is_canceled === '1') {
+      if (data.is_canceled) {
         $(row).addClass('row-canceled');
       }
     },
     columns: [
-      { data: 'folio', render: data => `<span class="font-bold text-gray-700">#${data}</span>` },
-      { data: 'fecha_emision', render: formatDate },
-      { data: 'cliente_name', render: data => `<span class="font-semibold text-blue-800">${data}</span>` },
-      { data: 'asesor' },
-      { data: 'documento', render: data => `<span class="px-2 py-1 bg-gray-100 rounded text-xs font-medium">${data}</span>` },
-      { data: 'metodo_pago', render: data => {
-          let color = data === 'PPD' ? 'bg-orange-100 text-orange-800' : (data === 'PUE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800');
-          return `<span class="px-2 py-1 rounded text-xs font-semibold ${color}">${data}</span>`;
+      { data: 'empresa', render: data => `<span class="font-bold text-gray-700">${data}</span>` },
+      { data: 'folio_factura', render: data => `<span class="font-semibold text-blue-800">${data || '—'}</span>` },
+      { data: 'motivo', render: data => `<span class="text-xs truncate max-w-[150px] block" title="${data}">${data || '—'}</span>` },
+      { data: null, render: function(row) {
+          return `<span class="px-2 py-1 bg-gray-100 rounded text-xs font-medium">${row.banco || '—'}</span><br>
+                  <span class="px-2 py-1 bg-gray-50 rounded text-xs text-gray-500">${row.metodo_pago || '—'}</span>`;
+      }},
+      { data: null, render: function(row) {
+          return `<span class="text-xs text-gray-500">F: ${formatDate(row.fecha_factura)}</span><br>
+                  <span class="text-xs text-gray-800 font-medium">P: ${formatDate(row.fecha_pago)}</span>`;
+      }},
+      { data: null, render: function(row) {
+          return `Sem ${row.semana || '—'} / ${row.anio || '—'}`;
       }},
       { data: 'estatus', render: function(data, type, row){
-          if (row.is_canceled == 1 || row.is_canceled === true || row.is_canceled === '1') return '<span class="font-bold text-red-600">CANCELADA</span>';
+          if (row.is_canceled) return '<span class="font-bold text-red-600">CANCELADO</span>';
           let color = 'bg-gray-100 text-gray-800';
-          if(data === 'Pagado') color = 'bg-green-100 text-green-800';
-          if(data === 'Pendiente') color = 'bg-blue-100 text-blue-800';
-          if(data === 'Parcial') color = 'bg-yellow-100 text-yellow-800';
+          if(data === 'PAGADO') color = 'bg-green-100 text-green-800';
+          if(data === 'PENDIENTE') color = 'bg-blue-100 text-blue-800';
+          if(data === 'PARCIAL') color = 'bg-yellow-100 text-yellow-800';
           return `<span class="px-2 py-1 rounded text-xs font-semibold uppercase ${color}">${data}</span>`;
       }},
-      { data: 'fecha_conclusion', render: formatDate },
-      { data: 'total_venta', className: 'text-right font-medium', render: formatCurrency },
+      { data: 'total', className: 'text-right font-medium', render: formatCurrency },
       { data: 'saldo', className: 'text-right font-bold', render: function(data, type, row){
-          if (row.is_canceled == 1 || row.is_canceled === true || row.is_canceled === '1') return `<span class="text-red-600">${formatCurrency(0)}</span>`;
+          if(row.is_canceled) return `<span class="text-red-600">${formatCurrency(0)}</span>`;
           return `<span class="${data <= 0 ? 'text-green-600' : 'text-red-600'}">${formatCurrency(data)}</span>`;
       }},
       {
@@ -156,14 +159,13 @@ $(function(){
           
           return `
             <div class="flex items-center justify-center gap-2">
-              
-              <button type="button" class="btn-payments p-1.5 rounded bg-purple-100 text-purple-600 hover:bg-purple-200 transition" title="Complementos de Pago" data-row='${escapeHtml(JSON.stringify(row))}' ${disabledAttr}>
+              <button type="button" class="btn-payments p-1.5 rounded bg-purple-100 text-purple-600 hover:bg-purple-200 transition" title="Abonos" data-row='${escapeHtml(JSON.stringify(row))}' ${disabledAttr}>
                 <i class="ri-money-dollar-circle-line text-lg"></i>
               </button>
-              <button type="button" class="btn-edit-cxc p-1.5 rounded bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Editar Detalles" data-row='${escapeHtml(JSON.stringify(row))}' ${disabledAttr}>
+              <button type="button" class="btn-edit-cxp p-1.5 rounded bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Editar Detalles" data-row='${escapeHtml(JSON.stringify(row))}' ${disabledAttr}>
                 <i class="ri-edit-2-line text-lg"></i>
               </button>
-              <button type="button" class="btn-cancel-cxc p-1.5 rounded bg-red-100 text-red-600 hover:bg-red-200 transition" title="Cancelar Cuenta" data-id="${row.cxc_id}" ${disabledAttr}>
+              <button type="button" class="btn-cancel-cxp p-1.5 rounded bg-red-100 text-red-600 hover:bg-red-200 transition" title="Cancelar Cuenta" data-id="${row.cxp_id}" ${disabledAttr}>
                 <i class="ri-close-circle-line text-lg"></i>
               </button>
             </div>
@@ -177,7 +179,6 @@ $(function(){
     }
   });
 
-  // Util for escaping JSON strings for data attributes
   function escapeHtml(text) {
     if (!text) return '';
     return text.toString()
@@ -188,38 +189,35 @@ $(function(){
          .replace(/'/g, "&#039;");
   }
 
-  // Filtro
   $('#btn-filter').on('click', function() {
     table.ajax.reload();
   });
 
-  // Exportar Excel
-  $('#btn-export-excel').on('click', function() {
-    const month = $('#filter-month').val();
-    const year = $('#filter-year').val();
-    let url = "{{ route('cuentas-por-cobrar.export-excel') }}?";
-    if (month) url += "month=" + month + "&";
-    if (year) url += "year=" + year;
+  $('#btn-export').on('click', function() {
+    const m = $('#filter-month').val();
+    const y = $('#filter-year').val();
+    let url = "{{ route('cuentas-por-pagar.export-excel') }}?";
+    if (m) url += `month=${m}&`;
+    if (y) url += `year=${y}`;
     window.location.href = url;
   });
 
-  // --- ACTIONS ---
   // Cancelar
-  $(document).on('click', '.btn-cancel-cxc', function() {
+  $(document).on('click', '.btn-cancel-cxp', function() {
     const id = $(this).data('id');
     Swal.fire({
       title: '¿Estás seguro?',
-      text: "Se cancelará esta cuenta y no podrás editarla ni agregar pagos. La fila se marcará como CANCELADA.",
+      text: "Se cancelará esta cuenta por pagar.",
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
       cancelButtonColor: '#6e7d88',
-      confirmButtonText: 'Sí, cancelar cuenta',
+      confirmButtonText: 'Sí, cancelar',
       cancelButtonText: 'No, mantener'
     }).then((result) => {
       if (result.isConfirmed) {
         $.ajax({
-          url: `/cuentas-por-cobrar/${id}/cancel`,
+          url: `/cuentas-por-pagar/${id}/cancel`,
           method: 'POST',
           headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
           success: function(res) {
@@ -233,36 +231,38 @@ $(function(){
           }
         });
       }
-    }); 
+    });
   });
 
   // Abrir Modal de Edición
-  $(document).on('click', '.btn-edit-cxc', function() {
+  $(document).on('click', '.btn-edit-cxp', function() {
     const row = $(this).data('row');
-    $('#edit-cxc-id').val(row.cxc_id);
-    $('#edit-documento').val(row.documento || 'Factura');
+    $('#edit-cxp-id').val(row.cxp_id);
+    $('#edit-fecha-pago').val(toInputDate(row.fecha_pago));
+    $('#edit-semana').val(row.semana);
+    $('#edit-anio').val(row.anio);
+    $('#edit-banco').val(row.banco);
     $('#edit-metodo-pago').val(row.metodo_pago);
-    $('#edit-fecha-conclusion').val(toInputDate(row.fecha_conclusion));
-    $('#edit-descripcion').val(row.descripcion);
     
-    $('#btn-open-edit-cxc').trigger('click');
+    $('#btn-open-edit-cxp').trigger('click');
   });
 
   // Guardar Edición
-  $('#edit-cxc-form').on('submit', function(e) {
+  $('#edit-cxp-form').on('submit', function(e) {
     e.preventDefault();
-    const id = $('#edit-cxc-id').val();
+    const id = $('#edit-cxp-id').val();
     const payload = {
-      documento: $('#edit-documento').val(),
+      fecha_pago: $('#edit-fecha-pago').val(),
+      semana: $('#edit-semana').val(),
+      anio: $('#edit-anio').val(),
+      banco: $('#edit-banco').val(),
       metodo_pago: $('#edit-metodo-pago').val(),
-      fecha_conclusion: $('#edit-fecha-conclusion').val(),
-      descripcion: $('#edit-descripcion').val(),
     };
 
-    $('#btn-save-cxc').prop('disabled', true).text('Guardando...');
+    $('#btn-save-cxp').prop('disabled', true).text('Guardando...');
 
     $.ajax({
-      url: `/cuentas-por-cobrar/${id}/update`,
+      url: `/cuentas-por-pagar/${id}/update`,
       method: 'POST',
       data: payload,
       headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
@@ -270,40 +270,41 @@ $(function(){
         if(res.success) {
           Swal.fire('Guardado', res.message, 'success');
           table.ajax.reload(null, false);
-          $('#edit-cxc').find('.close-modal').trigger('click');
+          $('#edit-cxp').find('.close-modal').trigger('click');
         }
       },
       error: function(xhr) {
         Swal.fire('Error', xhr.responseJSON?.message || 'Error al guardar', 'error');
       },
       complete: function() {
-        $('#btn-save-cxc').prop('disabled', false).text('Guardar Cambios');
+        $('#btn-save-cxp').prop('disabled', false).text('Guardar Cambios');
       }
     });
   });
 
-  // Abrir Modal de Pagos
+  // Abrir Modal de Pagos (Abonos)
   $(document).on('click', '.btn-payments', function() {
     const row = $(this).data('row');
-    $('#pay-cxc-id').val(row.cxc_id);
-    $('#pay-folio').text('#' + row.folio);
-    $('#pay-total').text(formatCurrency(row.total_venta));
+    $('#pay-cxp-id').val(row.cxp_id);
+    $('#pay-folio').text(row.folio_factura || row.empresa);
+    $('#pay-total').text(formatCurrency(row.total));
     $('#pay-saldo').text(formatCurrency(row.saldo));
     
     // Clear form
     $('#pay-amount').val('');
     $('#pay-date').val(new Date().toISOString().split('T')[0]);
+    $('#pay-comprobante').val('');
+    $('#pay-notas').val('');
 
-    loadPayments(row.cxc_id);
+    loadPayments(row.cxp_id);
     $('#btn-open-payments').trigger('click');
   });
 
-  // Cargar lista de pagos
   function loadPayments(id) {
-    $('#payments-list').html('<tr><td colspan="3" class="text-center py-4">Cargando...</td></tr>');
+    $('#payments-list').html('<tr><td colspan="4" class="text-center py-4">Cargando...</td></tr>');
     $('#no-payments-msg').addClass('hidden');
 
-    $.get(`/cuentas-por-cobrar/${id}/payments`, function(res) {
+    $.get(`/cuentas-por-pagar/${id}/payments`, function(res) {
       if(res.success) {
         const tbody = $('#payments-list');
         tbody.empty();
@@ -315,6 +316,7 @@ $(function(){
               <tr>
                 <td class="px-4 py-2 text-gray-500">#${p.id}</td>
                 <td class="px-4 py-2">${formatDate(p.date)}</td>
+                <td class="px-4 py-2 truncate max-w-[150px]" title="${escapeHtml(p.notas)}">${escapeHtml(p.notas) || '—'}</td>
                 <td class="px-4 py-2 text-right font-semibold text-green-700">${formatCurrency(p.amount)}</td>
               </tr>
             `);
@@ -324,19 +326,21 @@ $(function(){
     });
   }
 
-  // Guardar Pago
+  // Guardar Abono
   $('#add-payment-form').on('submit', function(e) {
     e.preventDefault();
-    const id = $('#pay-cxc-id').val();
+    const id = $('#pay-cxp-id').val();
     const payload = {
       amount: $('#pay-amount').val(),
       date: $('#pay-date').val(),
+      comprobante: $('#pay-comprobante').val(),
+      notas: $('#pay-notas').val(),
     };
 
     $('#btn-save-payment').prop('disabled', true);
 
     $.ajax({
-      url: `/cuentas-por-cobrar/${id}/payments`,
+      url: `/cuentas-por-pagar/${id}/payments`,
       method: 'POST',
       data: payload,
       headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
@@ -347,9 +351,8 @@ $(function(){
             icon: 'success', title: res.message
           });
           loadPayments(id);
-          table.ajax.reload(null, false); // Reload datatable in background
+          table.ajax.reload(null, false);
           
-          // Optionally recalculate saldo in modal header dynamically or just rely on next open
           const currentSaldo = parseFloat($('#pay-saldo').text().replace(/[^0-9.-]+/g,""));
           const newSaldo = currentSaldo - parseFloat(payload.amount);
           $('#pay-saldo').text(formatCurrency(newSaldo));
@@ -357,7 +360,7 @@ $(function(){
         }
       },
       error: function(xhr) {
-        Swal.fire('Error', xhr.responseJSON?.message || 'Error al añadir pago', 'error');
+        Swal.fire('Error', xhr.responseJSON?.message || 'Error al añadir abono', 'error');
       },
       complete: function() {
         $('#btn-save-payment').prop('disabled', false);
