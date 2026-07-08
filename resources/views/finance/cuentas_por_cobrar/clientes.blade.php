@@ -88,7 +88,7 @@
 @push('css')
 <style>
   .row-canceled td {
-    background-color: #fee2e2 !important; /* light red */
+    background-color: #fee2e2 !important; 
     color: #991b1b !important;
   }
 </style>
@@ -156,9 +156,7 @@ $(function(){
           
           return `
             <div class="flex items-center justify-center gap-2">
-              <button type="button" class="btn-view-info p-1.5 rounded bg-gray-200 text-gray-600 hover:bg-gray-300 transition" title="Más información" data-info='${escapeHtml(row.descripcion || "Sin descripción")}'>
-                <i class="ri-eye-line text-lg"></i>
-              </button>
+              
               <button type="button" class="btn-payments p-1.5 rounded bg-purple-100 text-purple-600 hover:bg-purple-200 transition" title="Complementos de Pago" data-row='${escapeHtml(JSON.stringify(row))}' ${disabledAttr}>
                 <i class="ri-money-dollar-circle-line text-lg"></i>
               </button>
@@ -206,17 +204,6 @@ $(function(){
   });
 
   // --- ACTIONS ---
-
-  // Más información (Eye icon)
-  $(document).on('click', '.btn-view-info', function() {
-    const info = $(this).data('info');
-    Swal.fire({
-      title: 'Descripción / Notas',
-      text: info,
-      icon: 'info'
-    });
-  });
-
   // Cancelar
   $(document).on('click', '.btn-cancel-cxc', function() {
     const id = $(this).data('id');
@@ -246,7 +233,7 @@ $(function(){
           }
         });
       }
-    });
+    }); 
   });
 
   // Abrir Modal de Edición
