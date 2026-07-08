@@ -104,10 +104,62 @@ $(function(){
             modal.find('#updated_at').val('');
         });
 
-        father.on('click','.printFormat',function(){
+        father.on('click', '.printFormat', function(e) {
+            e.preventDefault();
             const id = $(this).data('id');
-            const route = `download-pdf/${isInput() ? 'inputs' : 'outputs'}/${id}`;
-            window.open(route, '_blank');
+            const typeLower = isInput() ? 'input' : 'output';
+            const routeBase = `download-pdf/${isInput() ? 'inputs' : 'outputs'}/${id}`;
+            
+            let currentComment = '';
+            if (isInput()) {
+                const item = inputs_dates.find(x => x.input_id == id);
+                if(item && item.comments) currentComment = item.comments;
+            } else {
+                const item = outputs_dates.find(x => x.output_id == id);
+                if(item && item.comments) currentComment = item.comments;
+            }
+
+            Swal.fire({
+                title: 'Imprimir Formato',
+                text: '¿Desea incluir el siguiente comentario en el PDF?',
+                input: 'textarea',
+                inputValue: currentComment,
+                inputPlaceholder: 'Escriba un comentario aquí...',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Guardar e Imprimir',
+                denyButtonText: 'Imprimir sin comentario',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#3085d6',
+                denyButtonColor: '#7066e0',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const newComment = result.value;
+                    $.ajax({
+                        url: `/updateComment/${typeLower}/${id}`,
+                        type: 'PUT',
+                        data: {
+                            _token: $('meta[name="csrf-token"]').attr('content'),
+                            comments: newComment
+                        },
+                        success: function() {
+                            if (isInput()) {
+                                const item = inputs_dates.find(x => x.input_id == id);
+                                if(item) item.comments = newComment;
+                            } else {
+                                const item = outputs_dates.find(x => x.output_id == id);
+                                if(item) item.comments = newComment;
+                            }
+                            window.open(`${routeBase}?include_comment=1`, '_blank');
+                        },
+                        error: function() {
+                            Swal.fire('Error', 'No se pudo actualizar el comentario', 'error');
+                        }
+                    });
+                } else if (result.isDenied) {
+                    window.open(`${routeBase}?include_comment=0`, '_blank');
+                }
+            });
         });
 
         father.on('click','.accordion-toggle',function(){
