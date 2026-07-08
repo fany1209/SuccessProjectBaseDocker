@@ -243,6 +243,7 @@ class CuentasPorCobrarController extends Controller
             $sale->total_venta = round($sale->total_venta, 2);
             $sale->saldo = round($sale->total_venta - $pagado, 2);
             $sale->pagado = round($pagado, 2);
+            $sale->is_canceled = (bool) $sale->is_canceled;
         }
 
         return response()->json(['data' => $sales]);
