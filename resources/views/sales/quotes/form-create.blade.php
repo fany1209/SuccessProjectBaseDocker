@@ -22,7 +22,7 @@
     @endif
 </datalist>
 
-<datalist id="presentationOptions">
+<datalist id="presentationOptions">2
     <option value="Saco de polipropileno">
     <option value="Saco de papel kraft">
     <option value="Supersaco de polipropileno">

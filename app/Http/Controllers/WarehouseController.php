@@ -77,10 +77,14 @@ class WarehouseController extends Controller{
         }
 
         if ($request->ajax() || $request->wantsJson()) {
-            return response()->json([
-                'feedback' => array_values($feedback) 
-            ]);
+            return response()->json(['feedback' => $feedback]);
         }
+
+        $now = Carbon::now();
+        $activeHour = null;
+
+        foreach ($hours as $hour) {
+            $time = Carbon::createFromTimeString($hour);
 
         $isFormActive = !empty($selectedWarehouse);
 
@@ -103,30 +107,22 @@ class WarehouseController extends Controller{
     {
         $request->validate([
             'warehouse_id' => 'required|exists:warehouses,warehouse_id',
-            'measurements' => 'required|array',
+            'measurements' => 'required|array|min:1',
             'measurements.*.hour' => 'required|string',
             'measurements.*.temperature' => 'required|numeric',
             'measurements.*.humidity' => 'required|numeric',
         ]);
 
-        $timezone = config('app.timezone');
-
-        foreach ($request->measurements as $measure) {
-            
-            $targetDateTime = Carbon::parse(Carbon::today($timezone)->toDateString() . ' ' . $measure['hour'], $timezone);
-
-            $control = new Control();
-            $control->temperature  = $measure['temperature'];
-            $control->humidity     = $measure['humidity'];
-            $control->warehouse_id = $request->warehouse_id;
-            $control->user_id      = auth()->id();
-            $control->host_ip      = $request->ip();
-            $control->host_user    = gethostname();
-            $control->host_name    = gethostbyaddr($request->ip());
-            $control->created_at   = $targetDateTime;
-            $control->updated_at   = now();
-            
-            $control->save(); 
+        foreach ($request->measurements as $measurement) {
+            Control::create([
+                'temperature' => $measurement['temperature'],
+                'humidity' => $measurement['humidity'],
+                'warehouse_id' => $request->warehouse_id,
+                'user_id' => auth()->id(),
+                'host_ip' => $request->ip(),
+                'host_user' => gethostname(),
+                'host_name' => gethostbyaddr($request->ip()),
+            ]);
         }
 
         return response()->json(['success' => true]);
