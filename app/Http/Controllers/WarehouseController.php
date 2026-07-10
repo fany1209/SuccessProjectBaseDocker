@@ -71,6 +71,10 @@ class WarehouseController extends Controller{
             }
         }
 
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['feedback' => $feedback]);
+        }
+
         $now = Carbon::now();
         $activeHour = null;
 
@@ -102,20 +106,24 @@ class WarehouseController extends Controller{
 
     public function temperature(Request $request){
         $request->validate([
-            'temperature' => 'required|numeric',
-            'humidity' => 'required|numeric',
-            'warehouse_id' => 'required|exists:warehouses,warehouse_id'
+            'warehouse_id' => 'required|exists:warehouses,warehouse_id',
+            'measurements' => 'required|array|min:1',
+            'measurements.*.hour' => 'required|string',
+            'measurements.*.temperature' => 'required|numeric',
+            'measurements.*.humidity' => 'required|numeric',
         ]);
 
-        Control::create([
-            'temperature' => $request->temperature,
-            'humidity' => $request->humidity,
-            'warehouse_id' => $request->warehouse_id,
-            'user_id' => auth()->id(),
-            'host_ip' => $request->ip(),
-            'host_user' => gethostname(),
-            'host_name' => gethostbyaddr($request->ip()),
-        ]);
+        foreach ($request->measurements as $measurement) {
+            Control::create([
+                'temperature' => $measurement['temperature'],
+                'humidity' => $measurement['humidity'],
+                'warehouse_id' => $request->warehouse_id,
+                'user_id' => auth()->id(),
+                'host_ip' => $request->ip(),
+                'host_user' => gethostname(),
+                'host_name' => gethostbyaddr($request->ip()),
+            ]);
+        }
 
         return response()->json(['success' => true]);
     }
