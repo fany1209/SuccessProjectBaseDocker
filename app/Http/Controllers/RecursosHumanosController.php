@@ -238,4 +238,123 @@ class RecursosHumanosController extends Controller
             return back()->withErrors(['pdf' => 'No se pudo generar el convenio con instituciones. Verifica los campos.']);
         }
     }
+
+    public function generarPdfVacaciones(Request $request)
+    {
+        $vacation = (object) $request->all();
+
+        if ($request->has('pending_tasks')) {
+            $vacation->pending_tasks = json_decode(json_encode($request->pending_tasks));
+        }
+
+        try {
+            $pdf = Pdf::loadView('formats.rh.vacation', compact('vacation'))
+                      ->setPaper('letter');
+
+            $dompdf = $pdf->getDomPDF();
+            $dompdf->set_option('isHtml5ParserEnabled', true);
+            $dompdf->set_option('isRemoteEnabled', true);
+            $dompdf->render();
+            
+            $canvas = $dompdf->get_canvas();
+            $w      = $canvas->get_width();
+            $fm     = $dompdf->getFontMetrics();
+            $font   = $fm->getFont('DejaVu Sans', 'normal');
+            $size   = 9;
+            $text   = 'Pág. {PAGE_NUM} de {PAGE_COUNT}';
+            
+            $ml = 24 * 0.75; $mr = 24 * 0.75; $innerW = $w - $ml - $mr;
+            $colStart = $ml + ($innerW * 0.80); $colWidth = $innerW * 0.20;
+            $pad = 10 * 0.75; $colStart += $pad; $colWidth -= $pad * 2;
+            $textWidth = $fm->getTextWidth($text, $font, $size);
+            
+            $x = $colStart + max(0, ($colWidth - $textWidth) / 2) + 25;
+            $y = 58; 
+            
+            $canvas->page_text($x, $y, $text, $font, $size, [0,0,0]);
+
+            $slug = \Illuminate\Support\Str::slug('solicitud_vacaciones_' . ($vacation->employee_name ?? 'empleado'), '_');
+            
+            return $pdf->stream($slug . '_' . now()->format('Ymd_His') . '.pdf');
+
+        } catch (\Throwable $e) {
+            report($e);
+            return back()->withErrors(['pdf' => 'No se pudo generar la solicitud de vacaciones. Verifica los campos.']);
+        }
+    }
+
+    public function generarPdfDnc(Request $request)
+    {
+        $dnc = (object) $request->all();
+
+        try {
+            $pdf = Pdf::loadView('formats.rh.dnc', compact('dnc'))
+                      ->setPaper('letter');
+
+            $dompdf = $pdf->getDomPDF();
+            $dompdf->set_option('isHtml5ParserEnabled', true);
+            $dompdf->set_option('isRemoteEnabled', true);
+            $dompdf->render();
+            $canvas = $dompdf->get_canvas();
+            $w      = $canvas->get_width();
+            $fm     = $dompdf->getFontMetrics();
+            $font   = $fm->getFont('DejaVu Sans', 'normal');
+            $size   = 9;
+            $text   = 'Pág. {PAGE_NUM} de {PAGE_COUNT}';
+            
+            $ml = 24 * 0.75; $mr = 24 * 0.75; $innerW = $w - $ml - $mr;
+            $colStart = $ml + ($innerW * 0.80); $colWidth = $innerW * 0.20;
+            $pad = 10 * 0.75; $colStart += $pad; $colWidth -= $pad * 2;
+            $textWidth = $fm->getTextWidth($text, $font, $size);
+            
+            $x = $colStart + max(0, ($colWidth - $textWidth) / 2) + 25;
+            $y = 74; 
+            
+            $canvas->page_text($x, $y, $text, $font, $size, [0,0,0]);
+
+            $slug = \Illuminate\Support\Str::slug('dnc_' . ($dnc->employee_name ?? 'empleado'), '_');
+            
+            return $pdf->stream($slug . '_' . now()->format('Ymd_His') . '.pdf');
+
+        } catch (\Throwable $e) {
+            report($e);
+            return back()->withErrors(['pdf' => 'No se pudo generar el Cuestionario DNC. Verifica los campos.']);
+        }
+    }
+
+    public function generarExpedientePracticantePdf(Request $request)
+    {
+        $practicante = (object) $request->all();
+        
+        $reqData = [];
+        $nombresRequisitos = ['Fotografía infantil', 'Solicitud de empleo o CV', 'Copia de acta de nacimiento', 'Copia de comprobante de domicilio', 'Copia de INE', 'Copia de CURP', 'Copia de RFC', 'Número de Seguro Social', 'Copia del último grado de estudios', 'Constancias de cursos tomados', 'Copia de licencia de manejo', 'Solicitud de Residencias', 'Liberación de servicio social', 'Carta de Presentación', 'Carta de Aceptación', 'Convenio de Colaboración', 'Carta de Terminación'];
+        
+        foreach ($request->req as $index => $data) {
+            $reqData[] = [
+                'nombre' => $nombresRequisitos[$index] ?? 'N/A',
+                'ok'     => $data['ok'] ?? null,
+                'com'    => $data['com'] ?? ''
+            ];
+        }
+        $practicante->req = $reqData;
+
+        $pdf = Pdf::loadView('formats.rh.practicante', compact('practicante'))->setPaper('letter');
+
+        $dompdf = $pdf->getDomPDF();
+        $dompdf->render();
+
+        $canvas = $dompdf->get_canvas();
+        $w      = $canvas->get_width();
+        $fm     = $dompdf->getFontMetrics();
+        $font   = $fm->getFont('Arial', 'bold');
+        $size   = 9;
+        $text   = 'Pág. {PAGE_NUM} de {PAGE_COUNT}';
+        
+        $x = $w - 100; 
+        $y = 60; 
+        
+        $canvas->page_text($x, $y, $text, $font, $size, [0, 0, 0]);
+
+        return $pdf->stream('Expediente_' . \Illuminate\Support\Str::slug($practicante->nombre ?? 'practicante') . '.pdf');
+    }
 }

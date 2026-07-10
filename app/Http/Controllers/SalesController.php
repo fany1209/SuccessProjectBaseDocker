@@ -20,7 +20,7 @@ class SalesController extends Controller
 {
     public function index()
     {
-        $total_sales = Sale::count();
+        $total_sales = Sale::max('folio') ?? 0;
         $sectors = Sector::all();
         $products = Product::select('product_id', 'name')->get();
         $prospects = Prospect::select('prospect_id', 'name', 'sector_id')->get();
@@ -190,14 +190,12 @@ class SalesController extends Controller
                             $data['prospect_id'] = null;
                             $data['is_customer'] = 1;
 
-                            // Actualizar ventas previas (si las hubiera, aunque esta sería la primera compra)
                             Sale::where('prospect_id', $prospect->prospect_id)->update([
                                 'customer_id' => $customer->customer_id,
                                 'prospect_id' => null,
                                 'is_customer' => 1
                             ]);
 
-                            // Borrar el prospecto ya convertido a cliente
                             $prospect->delete();
                         } else {
                             $data['customer_id'] = null;
@@ -211,8 +209,8 @@ class SalesController extends Controller
                     }
                 }
 
-                $count = Sale::count();
-                $data['folio'] = $count + 1;
+                $ultimo_folio = Sale::max('folio') ?? 0;
+                $data['folio'] = $ultimo_folio + 1;
 
                 $sale = Sale::create($data);
                 $sale_id = $sale->sale_id;

@@ -141,8 +141,8 @@
     </td>
   </tr>
 
-  {{-- ================= DESCRIPCIÓN DE LA INCIDENCIA ================= --}}
-  @if(!empty($descripcion_items) && is_array($descripcion_items))
+ {{-- ================= DESCRIPCIÓN DE LA INCIDENCIA ================= --}}
+  @if(!empty($descripcion) && is_array($descripcion))
     <tr>
       <td colspan="100" class="c p3 green-cell" style="font-weight:bold; font-size:11pt; padding:3px; line-height:1.1;">
         DESCRIPCIÓN DE LA INCIDENCIA
@@ -154,34 +154,19 @@
       <th colspan="60" style="padding:4px;">Imágenes</th>
     </tr>
 
-    @foreach($descripcion_items as $it)
+    @foreach($descripcion as $it)
       <tr style="page-break-inside: avoid;">
         <td colspan="40" class="p4" style="vertical-align: top; padding:10px 6px;">
           {{ $it['texto'] ?? '' }}
         </td>
 
-        <td colspan="60" class="p4" style="vertical-align: middle; padding:10px 6px;">
-          @php
-            $imgs = $it['imgs'] ?? [];
-            $imgs = (is_array($imgs) ? array_values(array_filter($imgs)) : []);
-            $rows = array_chunk($imgs, 3); 
-          @endphp
-
-          @if(count($rows))
-            <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
-              @foreach($rows as $rImgs)
-                <tr>
-                  @for($c = 0; $c < 3; $c++)
-                    <td style="width:33.33%; text-align:center; vertical-align: middle; padding:4px;">
-                      @if(!empty($rImgs[$c]))
-                        <img src="{{ $rImgs[$c] }}"
-                             style="display:block; margin:0 auto; height:120px; width:auto; max-width:100%; object-fit:contain; border:1px solid #ddd;">
-                      @endif
-                    </td>
-                  @endfor
-                </tr>
-              @endforeach
-            </table>
+        <td colspan="60" class="p4" style="text-align:center; vertical-align: middle; padding:10px 6px;">
+          @if(!empty($it['img']))
+            <img src="{{ $it['img'] }}" 
+                 style="display:block; margin:0 auto; height:120px; width:auto; max-width:100%; object-fit:contain; border:1px solid #ddd;" 
+                 alt="Evidencia">
+          @else
+            <span style="color:#999; font-size:8pt; font-style:italic;">Sin imagen</span>
           @endif
         </td>
       </tr>

@@ -13,10 +13,11 @@
         $btnCard = 'w-full sm:w-64 !h-auto min-h-[100px] py-3 flex flex-col items-center justify-center gap-2 text-center';
     @endphp
 
-    <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 justify-items-center w-full max-w-6xl px-4">
+    <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 flex-wrap justify-items-center w-full px-4 max-w-6xl">
+        
         
         <a href="{{ route('attendance.index') }}" class="{{ $btnBase }} {{ $btnCard }}">
-            <svg class="h-10 w-10 text-white mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg class="h-10 w-10 text-white mb-1 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
             <span class="text-sm font-bold uppercase tracking-wider">Asistencia</span>
@@ -35,6 +36,21 @@
         <button type="button" class="open-modal {{ $btnBase }} {{ $btnCard }}" data-target="modal-entrevista-terminacion">
             <img src="{{ asset('images/rh/exit-03.png') }}" alt="Entrevista de Terminación" class="{{ $imgCls ?? 'w-12 h-12 mx-auto mb-2' }}"> 
             <span class="text-sm font-bold uppercase tracking-wider">Entrevista de <br> Terminación</span>
+        </button>
+
+        <button type="button" class="open-modal {{ $btnBase }} {{ $btnCard }}" data-target="modal-vacaciones">
+            <img src="{{ asset('images/rh/vaca-08.png') }}" alt="Solicitud de Vacaciones" class="{{ $imgCls ?? 'w-12 h-12 mx-auto mb-2' }}"> 
+            <span class="text-sm font-bold uppercase tracking-wider">Solicitud de <br> Vacaciones</span>
+        </button>
+
+        <button type="button" class="open-modal {{ $btnBase }} {{ $btnCard }}" data-target="modal-dnc">
+            <img src="{{ asset('images/rh/dnc-05.png') }}" alt="Cuestionario DNC" class="{{ $imgCls ?? 'w-12 h-12 mx-auto mb-2' }}"> 
+            <span class="text-sm font-bold uppercase tracking-wider">Cuestionario DNC</span>
+        </button>
+
+        <button type="button" class="open-modal {{ $btnBase }} {{ $btnCard }}" data-target="modal-practicantes">
+            <img src="{{ asset('images/rh/pract-06.png') }}" alt="Expediente de Practicantes" class="{{ $imgCls ?? 'w-12 h-12 mx-auto mb-2' }}"> 
+            <span class="text-sm font-bold uppercase tracking-wider">Expediente <br> Practicantes</span>
         </button>
 
         <button type="button" class="open-modal {{ $btnBase }} {{ $btnCard }}" data-target="modal-evaluacion-desempeno">
@@ -57,6 +73,9 @@
     @include('rh.modals.expediente')
     @include('rh.modals.descripcion_puesto')
     @include('rh.modals.entrevista_terminacion')
+    @include('rh.modals.vacation')
+    @include('rh.modals.dnc')
+    @include('rh.modals.practicantes') 
     @include('rh.modals.evaluacion_desempeno')
     @include('rh.modals.solicitud_personal')
     @include('rh.modals.convenio_instituciones')

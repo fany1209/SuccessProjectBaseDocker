@@ -229,6 +229,7 @@ class QuoteController extends Controller
             'fecha_texto'         => 'Apaseo el Grande, Guanajuato, México. a ' . \Carbon\Carbon::parse($quote->date)->translatedFormat('d \d\e F \d\e\l Y') . '.',
             'productos'           => $quote->details,
             'incoterm'            => $quote->place_of_delivery ?? 'LAB Apaseo El Grande.',
+            'phone'               => $quote->phone ?? 'N/A',
             'presentacion'        => $quote->presentation ?? 'N/A',
             'transporte'          => $quote->transport_specification ?? 'Paquetería consolidada',
             'tiempo_entrega'      => $quote->deadline ?? '6 días hábiles una vez recibida la orden de compra y pago.',

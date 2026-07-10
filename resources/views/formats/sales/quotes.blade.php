@@ -28,41 +28,43 @@
 <body>
 
 <header>
-  <table style="width:100%; border-collapse:collapse; border:1px solid #000; font-family:Arial, sans-serif; font-size:11pt;">
+  <table style="width:100%; border-collapse:collapse; border:1px solid #000; font-family:Arial, sans-serif; table-layout: fixed;">
     <tr>
-      <td style="width:22%; text-align:center; border:1px solid #000;">
+      <td rowspan="2" style="width:22%; text-align:center; border:1px solid #000; padding:5px; vertical-align:middle;">
         <img src="{{ public_path('images/logo.png') }}" alt="Logo" style="height:50px;">
       </td>
-      <td style="width:58%; border:1px solid #000; vertical-align:top; padding:0;">
-        <div style="text-align:center; font-weight:bold; font-size:14pt; padding:10px; border-bottom:1px solid #000;">
-          COTIZACIÓN
-        </div>
-        <table style="width:100%; border-collapse:collapse; font-size:9pt;">
-          <tr>
-            <td style="width:38%; border-right:1px solid #000; padding:4px; text-align:center;">
-              <b>Fecha de elaboración:</b><br> {{ $fecha_elaboracion }}
-            </td>
-            <td style="width:38%; border-right:1px solid #000; padding:4px; text-align:center;">
-              <b>Fecha de actualización:</b><br> {{ $fecha_actualizacion }}
-            </td>
-            <td style="width:24%; padding:4px; text-align:center;">
-              <b>Versión:</b> {{ $version }}
-            </td>
-          </tr>
-        </table>
+
+      <td colspan="3" style="width:58%; text-align:center; font-weight:bold; font-size:14pt; border:1px solid #000; padding:10px; vertical-align:middle;">
+        COTIZACIÓN
       </td>
-      <td style="width:20%; border:1px solid #000; vertical-align:top; font-size:7pt; padding:0;">
-        <div style="border-bottom:1px solid #000; padding:10px; text-align:center;">
-          <b>Código:</b><br> {{ $codigo_formato }} 
-        </div>
-        <div style="padding:10px; text-align:center;">
-          Pág. {{ $pagina }}
-        </div>
+
+      <td style="width:20%; border:1px solid #000; text-align:center; font-size:9pt; padding:5px; vertical-align:middle;">
+        <b>Código:</b><br>
+        {{ $codigo_formato }}
+      </td>
+    </tr>
+
+    <tr>
+      <td style="width:19.3%; border:1px solid #000; text-align:center; font-size:9pt; padding:4px; height:35px; vertical-align:middle;">
+        <b>Fecha de elaboración:</b><br>
+        {{ $fecha_elaboracion }}
+      </td>
+
+      <td style="width:19.3%; border:1px solid #000; text-align:center; font-size:9pt; padding:4px; vertical-align:middle;">
+        <b>Fecha de actualización:</b>{{ $fecha_actualizacion }}
+      </td>
+
+      <td style="width:19.4%; border:1px solid #000; text-align:center; font-size:9pt; padding:4px; vertical-align:middle;">
+        <b>Versión:</b>
+        {{ $version }}
+      </td>
+
+      <td style="width:20%; border:1px solid #000; text-align:center; font-size:9pt; padding:4px; vertical-align:middle;">
+        Pág. {{ $pagina }}
       </td>
     </tr>
   </table>
 </header>
-
 <main>
   <div class="folio-box">
     <b>Folio:</b> <span class="folio-val">{{ $folio }}</span>
@@ -87,6 +89,11 @@
     <tr>
       <td class="p4"><b>Departamento:</b></td>
       <td class="p4">{{ $departamento }}</td>
+    </tr>
+
+        <tr>
+      <td class="p4"><b>Teléfono:</b></td>
+      <td class="p4">{{ $phone }}</td>
     </tr>
   </table>
 

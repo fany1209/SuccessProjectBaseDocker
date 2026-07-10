@@ -201,7 +201,7 @@ Route::middleware([
 
     Route::get('suppliers-get-directory', [DirectoryController::class, 'getDirectory'])->name('suppliers.getDirectory');
     Route::resource('purchases/supplier-directory', DirectoryController::class)
-    ->names('supplier_directory') // Las rutas serán: supplier_directory.index, supplier_directory.store...
+    ->names('supplier_directory')
     ->parameters(['supplier-directory' => 'code']);
 
     //Propects
@@ -516,28 +516,20 @@ Route::prefix('laboratory/materials')->group(function () {
     Route::get('/rh/asistencia', [RhController::class, 'index'])->name('attendance.index');
     Route::post('/rh/asistencia/upload', [RhController::class, 'uploadCsv'])->name('attendance.upload');
 
-       // Cambiamos ExpedienteController por RecursosHumanosController
-
+    
     // La ruta de la vista principal
     Route::get('/recursos-humanos', [RecursosHumanosController::class, 'index'])->name('expediente.index');
 
-    // La ruta para guardar la información del modal
     Route::post('/recursos-humanos/expediente', [RecursosHumanosController::class, 'store'])->name('rh.expediente.store');
     Route::post('/recursos-humanos/expediente/pdf', [RecursosHumanosController::class, 'generarPdfExpediente'])->name('rh.expediente.pdf');
-    // Ruta para generar el PDF de la Descripción de Puesto
-    Route::post('/rh/descripcion-puesto/pdf', [App\Http\Controllers\RecursosHumanosController::class, 'descripcionPuestoPdf'])->name('rh.descripcion_puesto.pdf');
-    // Ruta para generar el PDF de la Entrevista de Terminación-
-    Route::post('/rh/entrevista-terminacion/pdf', [App\Http\Controllers\RecursosHumanosController::class, 'entrevistaTerminacionPdf'])->name('rh.entrevista_terminacion.pdf');
-
-
-    // Ruta para generar el PDF de la Evaluación del Desempeño
-    Route::post('/rh/evaluacion-desempeno/pdf', [App\Http\Controllers\RecursosHumanosController::class, 'evaluacionDesempenoPdf'])->name('rh.evaluacion_desempeno.pdf');
-
-    // Ruta para generar el PDF de Solicitud de Personal
-    Route::post('/rh/solicitud-personal/pdf', [App\Http\Controllers\RecursosHumanosController::class, 'solicitudPersonalPdf'])->name('rh.solicitud_personal.pdf');
-
-    // Ruta para generar el PDF de Convenio con Instituciones
-    Route::post('/rh/convenio-instituciones/pdf', [App\Http\Controllers\RecursosHumanosController::class, 'convenioInstitucionesPdf'])->name('rh.convenio_instituciones.pdf');
+    Route::post('/rh/descripcion-puesto/pdf', [RecursosHumanosController::class, 'descripcionPuestoPdf'])->name('rh.descripcion_puesto.pdf');
+    Route::post('/rh/entrevista-terminacion/pdf', [RecursosHumanosController::class, 'entrevistaTerminacionPdf'])->name('rh.entrevista_terminacion.pdf');
+    Route::post('/rh/vacaciones/generar-pdf', [RecursosHumanosController::class, 'generarPdfVacaciones'])->name('rh.vacaciones.pdf');
+    Route::post('/rh/dnc/generar-pdf', [RecursosHumanosController::class, 'generarPdfDnc'])->name('rh.dnc.pdf');
+    Route::post('/rh/practicantes/generar-pdf', [RecursosHumanosController::class, 'generarExpedientePracticantePdf'])->name('rh.practicantes.pdf');
+    Route::post('/rh/evaluacion-desempeno/pdf', [RecursosHumanosController::class, 'evaluacionDesempenoPdf'])->name('rh.evaluacion_desempeno.pdf');
+    Route::post('/rh/solicitud-personal/pdf', [RecursosHumanosController::class, 'solicitudPersonalPdf'])->name('rh.solicitud_personal.pdf');
+    Route::post('/rh/convenio-instituciones/pdf', [RecursosHumanosController::class, 'convenioInstitucionesPdf'])->name('rh.convenio_instituciones.pdf');
 
     //documents
     Route::get('/delivery-note/{sale_id}', [PdfController::class, 'makeDeliveryNotePDF'])
