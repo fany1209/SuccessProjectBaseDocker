@@ -12,7 +12,8 @@ class CxcPayment extends Model
     protected $fillable = [
         'cxc_detail_id',
         'amount',
-        'date'
+        'date',
+        'comprobante',
     ];
 
     public function detail()

@@ -61,7 +61,7 @@
           <table id="cxc-table" class="display w-full divide-y divide-gray-200 text-sm text-left">
             <thead class="bg-gray-50 text-gray-700 uppercase font-semibold text-xs tracking-wider">
               <tr>
-                <th class="px-2 py-2">Folio</th>
+                <th class="px-2 py-2">Remisión</th>
                 <th class="px-2 py-2">Fecha Emisión</th>
                 <th class="px-2 py-2">Cliente</th>
                 <th class="px-2 py-2">Asesor</th>
@@ -294,6 +294,12 @@ $(function(){
     $('#pay-amount').val('');
     $('#pay-date').val(new Date().toISOString().split('T')[0]);
 
+    if (row.estatus === 'Pagado' || row.saldo <= 0) {
+      $('#add-payment-form').hide();
+    } else {
+      $('#add-payment-form').show();
+    }
+
     loadPayments(row.cxc_id);
     $('#btn-open-payments').trigger('click');
   });
@@ -315,6 +321,9 @@ $(function(){
               <tr>
                 <td class="px-4 py-2 text-gray-500">#${p.id}</td>
                 <td class="px-4 py-2">${formatDate(p.date)}</td>
+                <td class="px-4 py-2">
+                  ${p.comprobante ? `<a href="/storage/comprobantes/${p.comprobante}" target="_blank" class="text-blue-600 hover:underline"><i class="ri-file-text-line"></i> Ver</a>` : '<span class="text-gray-400">N/A</span>'}
+                </td>
                 <td class="px-4 py-2 text-right font-semibold text-green-700">${formatCurrency(p.amount)}</td>
               </tr>
             `);
@@ -328,17 +337,24 @@ $(function(){
   $('#add-payment-form').on('submit', function(e) {
     e.preventDefault();
     const id = $('#pay-cxc-id').val();
-    const payload = {
-      amount: $('#pay-amount').val(),
-      date: $('#pay-date').val(),
-    };
+    const formData = new FormData(this);
+    // Add amount and date explicitly since inputs might not have 'name' attributes
+    formData.append('amount', $('#pay-amount').val());
+    formData.append('date', $('#pay-date').val());
+    
+    const fileInput = document.getElementById('pay-comprobante');
+    if (fileInput.files[0]) {
+      formData.append('comprobante', fileInput.files[0]);
+    }
 
     $('#btn-save-payment').prop('disabled', true);
 
     $.ajax({
       url: `/cuentas-por-cobrar/${id}/payments`,
       method: 'POST',
-      data: payload,
+      data: formData,
+      processData: false,
+      contentType: false,
       headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
       success: function(res) {
         if(res.success) {
@@ -351,9 +367,10 @@ $(function(){
           
           // Optionally recalculate saldo in modal header dynamically or just rely on next open
           const currentSaldo = parseFloat($('#pay-saldo').text().replace(/[^0-9.-]+/g,""));
-          const newSaldo = currentSaldo - parseFloat(payload.amount);
+          const newSaldo = currentSaldo - parseFloat($('#pay-amount').val());
           $('#pay-saldo').text(formatCurrency(newSaldo));
           $('#pay-amount').val('');
+          $('#pay-comprobante').val('');
         }
       },
       error: function(xhr) {
