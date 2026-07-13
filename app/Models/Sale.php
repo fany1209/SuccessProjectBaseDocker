@@ -20,9 +20,15 @@ class Sale extends Model
     protected static function booted()
     {
         static::created(function ($sale) {
-            // Automatically create a CxcDetail record for new sales
+            $metodoPago = 'N/A';
+            if (strtolower($sale->sale_type) === 'cash') {
+                $metodoPago = 'PUE';
+            } elseif (strtolower($sale->sale_type) === 'credit') {
+                $metodoPago = 'PPD';
+            }
             \App\Models\CxcDetail::create([
                 'sale_id' => $sale->sale_id,
+                'metodo_pago' => $metodoPago,
             ]);
         });
     }
