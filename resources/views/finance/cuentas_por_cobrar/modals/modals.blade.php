@@ -20,6 +20,7 @@
           <select id="edit-documento" class="w-full rounded-lg border-2 border-gray-200 focus:border-[#198754] focus:ring-2 focus:ring-[#198754]/20 px-4 py-2 text-gray-700">
             <option value="Factura">Factura</option>
             <option value="Complemento de Pago">Complemento de Pago</option>
+            <option value="N/A">N/A</option>
           </select>
         </div>
 
@@ -85,7 +86,7 @@
     </div>
 
     <!-- Form to add payment -->
-    <form id="add-payment-form" class="mb-6 bg-green-50 p-4 rounded-lg border border-green-100">
+    <form id="add-payment-form" class="mb-6 bg-green-50 p-4 rounded-lg border border-green-100" enctype="multipart/form-data">
       <h4 class="font-semibold text-green-800 mb-3 text-sm">Añadir Nuevo Pago</h4>
       <input type="hidden" id="pay-cxc-id">
       <div class="flex gap-3 items-end">
@@ -99,6 +100,12 @@
         <div class="flex-1">
           <label class="block text-xs font-medium text-gray-700 mb-1">Fecha de pago</label>
           <input type="date" id="pay-date" required class="w-full rounded-lg border-2 border-gray-200 focus:border-[#198754] focus:ring-2 focus:ring-[#198754]/20 px-3 py-2 text-gray-700">
+        </div>
+      </div>
+      <div class="mt-3 flex gap-3 items-end">
+        <div class="flex-1">
+          <label class="block text-xs font-medium text-gray-700 mb-1">Comprobante (Opcional, max 25MB)</label>
+          <input type="file" id="pay-comprobante" accept=".jpg,.jpeg,.png,.pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
         </div>
         <div>
           <button type="submit" id="btn-save-payment" class="px-4 py-2 bg-[#198754] text-white font-medium rounded-lg hover:bg-[#157347] transition flex items-center gap-1">
@@ -115,6 +122,7 @@
           <tr>
             <th class="px-4 py-2">ID</th>
             <th class="px-4 py-2">Fecha</th>
+            <th class="px-4 py-2">Comprobante</th>
             <th class="px-4 py-2 text-right">Monto</th>
           </tr>
         </thead>

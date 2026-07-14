@@ -293,7 +293,8 @@ class CuentasPorCobrarController extends Controller
     {
         $request->validate([
             'amount' => 'required|numeric|min:0.01',
-            'date' => 'required|date'
+            'date' => 'required|date',
+            'comprobante' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:25600',
         ]);
 
         $cxc = CxcDetail::findOrFail($id);
@@ -302,9 +303,21 @@ class CuentasPorCobrarController extends Controller
             return response()->json(['success' => false, 'message' => 'No se pueden añadir pagos a una cuenta cancelada.'], 403);
         }
 
+        if ($cxc->estatus === 'Pagado') {
+            return response()->json(['success' => false, 'message' => 'Esta cuenta ya se encuentra pagada.'], 403);
+        }
+
+        $comprobanteName = null;
+        if ($request->hasFile('comprobante')) {
+            $file = $request->file('comprobante');
+            $comprobanteName = time() . '_' . $file->getClientOriginalName();
+            $file->move(base_path('storage/app/public/comprobantes'), $comprobanteName);
+        }
+
         $cxc->payments()->create([
             'amount' => $request->amount,
-            'date' => $request->date
+            'date' => $request->date,
+            'comprobante' => $comprobanteName
         ]);
 
         // Calculate new balance and estatus
@@ -402,7 +415,7 @@ class CuentasPorCobrarController extends Controller
         $sheet->getRowDimension(1)->setRowHeight(30);
 
         // Headers
-        $headers = ['Folio', 'Fecha Emisión', 'Cliente', 'Asesor', 'Documento', 'Método Pago', 'Estatus', 'Fecha Conclusión', 'Total Venta', 'Monto Abonado', 'Saldo Restante'];
+        $headers = ['Remisión', 'Fecha Emisión', 'Cliente', 'Asesor', 'Documento', 'Método Pago', 'Estatus', 'Fecha Conclusión', 'Total', 'Monto Abonado', 'Saldo Restante'];
         $columnLetter = 'A';
         foreach ($headers as $header) {
             $sheet->setCellValue($columnLetter . '2', $header);

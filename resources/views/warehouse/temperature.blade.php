@@ -184,12 +184,16 @@ $(document).ready(function() {
                 updateFormUI(data.feedback);
             },
             error: function() {
-                alert('Error al conectar con el servidor.');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Connection Error',
+                    text: 'Error al conectar con el servidor.',
+                    confirmButtonColor: '#16a34a'
+                });
             }
         });
     });
 
-    // Cambia los colores de los bloques, desactiva inputs y modifica iconos por cada Almacén
     function updateFormUI(feedbackArray) {
         if($('#selected_warehouse').val()) {
             $('#measurement-form-container').removeClass('hidden');
@@ -246,7 +250,12 @@ $(document).ready(function() {
         let processedIndexes = [];
 
         if(!warehouse) {
-            alert('Please select a warehouse first.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Warehouse Selected',
+                text: 'Please select a warehouse first.',
+                confirmButtonColor: '#16a34a'
+            });
             return;
         }
 
@@ -263,7 +272,12 @@ $(document).ready(function() {
             let humValue = humInput.val().trim();
 
             if ((tempValue && !humValue) || (!tempValue && humValue)) {
-                alert('Please fill both Temperature and Humidity fields for ' + hour);
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Incomplete Fields',
+                    text: 'Please fill both Temperature and Humidity fields for ' + hour,
+                    confirmButtonColor: '#16a34a'
+                });
                 validationFailed = true;
                 return false; 
             }
@@ -281,7 +295,12 @@ $(document).ready(function() {
         if (validationFailed) return;
 
         if (measurementsData.length === 0) {
-            alert('Please enter at least one new measurement before saving.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Data',
+                text: 'Please enter at least one new measurement before saving.',
+                confirmButtonColor: '#16a34a'
+            });
             return;
         }
         
@@ -294,7 +313,14 @@ $(document).ready(function() {
                 _token: '{{ csrf_token() }}'
             },
             success: function(response) {
-                alert('All entries saved successfully for this warehouse!');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Saved!',
+                    text: 'All entries saved successfully for this warehouse!',
+                    confirmButtonColor: '#16a34a',
+                    timer: 3000,
+                    timerProgressBar: true
+                });
 
                 processedIndexes.forEach(function(idx) {
                     let row = $('.hour-row[data-index="' + idx + '"]');
@@ -308,7 +334,12 @@ $(document).ready(function() {
                 });
             },
             error: function(xhr) {
-                alert('Error al guardar los datos.');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Save Error',
+                    text: 'Error al guardar los datos.',
+                    confirmButtonColor: '#16a34a'
+                });
             }
         });
     });
