@@ -1,11 +1,4 @@
-{{--
-Customers
-Agregar Customer
-Fecha de creación: xx-xx-2025
-Creado por: Jacob
-Actualizado por: Jacob
-Fecha de actualización: 09-09-2025
---}}
+
 <x-section-1>
     <x-wrapper-h-1>
         <p class="bg-purple-700 text-white p-1 rounded-md font-semibold tracking-[5px]">All customers: {{ $total_customers }}</p>

@@ -57,6 +57,8 @@ use App\Http\Controllers\RhController;
 use App\Http\Controllers\RecursosHumanosController;
 use App\Http\Controllers\CuentasPorCobrarController;
 use App\Http\Controllers\PortalAuthController;
+use App\Http\Middleware\RedirectIfClientUnauthenticated;
+use App\Http\Controllers\PortalUserController;
 
 Route::get('/', function () {
     return view('home');
@@ -82,6 +84,19 @@ Route::get('/contact', function () {
 
 Route::post('/contact', [ContactoController::class, 'store'])
     ->name('contact.store');
+
+        // Rutas Públicas del Portal de Clientes
+Route::get('/portal-clientes', [\App\Http\Controllers\PortalAuthController::class, 'showLoginForm'])->name('portal.login');
+Route::post('/portal-clientes', [\App\Http\Controllers\PortalAuthController::class, 'login'])->name('portal.login.submit');
+Route::post('/portal-logout', [\App\Http\Controllers\PortalAuthController::class, 'logout'])->name('portal.logout');
+     Route::get('admin/portal-users/{portalUserId}/sales', [\App\Http\Controllers\PortalUserController::class, 'getClientSales']);
+
+
+
+Route::middleware(RedirectIfClientUnauthenticated::class)->get('/portal/venta/{id}', [PortalAuthController::class, 'verDetalle'])->name('portal.ver-detalle');
+
+Route::middleware(RedirectIfClientUnauthenticated::class)->get('/portal/dashboard', [PortalAuthController::class, 'dashboard'])->name('portal.dashboard');
+Route::middleware(RedirectIfClientUnauthenticated::class)->get('/portal/descargar-pdf/{id}', [PortalAuthController::class, 'descargarPdf'])->name('portal.descargar-pdf');
 
 Route::middleware([
     'auth:sanctum',
@@ -531,16 +546,22 @@ Route::prefix('laboratory/materials')->group(function () {
     Route::post('/rh/solicitud-personal/pdf', [RecursosHumanosController::class, 'solicitudPersonalPdf'])->name('rh.solicitud_personal.pdf');
     Route::post('/rh/convenio-instituciones/pdf', [RecursosHumanosController::class, 'convenioInstitucionesPdf'])->name('rh.convenio_instituciones.pdf');
 
-    // Rutas Públicas del Portal de Clientes
-Route::get('/portal-clientes', [\App\Http\Controllers\PortalAuthController::class, 'showLoginForm'])->name('portal.login');
-Route::post('/portal-clientes', [\App\Http\Controllers\PortalAuthController::class, 'login'])->name('portal.login.submit');
-Route::post('/portal-logout', [\App\Http\Controllers\PortalAuthController::class, 'logout'])->name('portal.logout');
+   
+
+         Route::get('admin/get-json-portal-users', [\App\Http\Controllers\PortalUserController::class, 'getPortalUsers'])
+     ->name('admin.portal-users.getPortalUsers');
+
+// 2. Resource del CRUD completo, excluyendo el 'show' que no existe
+Route::resource('admin/portal-users', \App\Http\Controllers\PortalUserController::class)
+     ->except(['show'])
+     ->names('admin.portal-users');
 
 
-Route::middleware('auth:client')->get('/portal/venta/{id}', [PortalAuthController::class, 'verDetalle'])->name('portal.ver-detalle');
+Route::post('admin/sales/{saleId}/upload-docs', [\App\Http\Controllers\PortalUserController::class, 'uploadDocs'])
+     ->name('admin.sales.uploadDocs');
 
-Route::middleware('auth:client')->get('/portal/dashboard', [PortalAuthController::class, 'dashboard'])->name('portal.dashboard');
-Route::middleware('auth:client')->get('/portal/descargar-pdf/{id}', [PortalAuthController::class, 'descargarPdf'])->name('portal.descargar-pdf');
+Route::delete('admin/sales/{saleId}/delete-doc/{type}', [\App\Http\Controllers\PortalUserController::class, 'deleteDoc'])
+     ->name('admin.sales.deleteDoc');
 
     //documents
     Route::get('/delivery-note/{sale_id}', [PdfController::class, 'makeDeliveryNotePDF'])

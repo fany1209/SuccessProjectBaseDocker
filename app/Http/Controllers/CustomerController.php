@@ -1,12 +1,4 @@
 <?php
-/*
-Customers
-Controlador Customers
-Fecha de creación: xx-xx-2025
-Creado por: Jacob
-Actualizado por: Stefany
-Fecha de actualización: 08-01-2026
-*/
 namespace App\Http\Controllers;
 
 use App\Helpers\DatabaseErrors;
@@ -50,7 +42,18 @@ class CustomerController extends Controller
             ->whereIn('roles.name', ['Sales', 'Admin'])
             ->get();
 
-        return view('customers', compact('sectors', 'total_customers', 'customers_per_sector', 'sellers'));
+        $clientesSistemas = DB::table('customers')
+            ->select('customer_id', 'name', 'customer_code')
+            ->orderBy('name', 'asc')
+            ->get();
+
+        return view('customers', compact(
+            'sectors', 
+            'total_customers', 
+            'customers_per_sector', 
+            'sellers', 
+            'clientesSistemas'
+        ));
     }
 
     public function getCustomers(Request $request)
@@ -179,8 +182,8 @@ class CustomerController extends Controller
                 'address',
                 'country',
                 'vendedor',
-                'contact',          // Agregado
-                'delivery_address', // Agregado
+                'contact',         
+                'delivery_address', 
             ])
         ]);
     }
