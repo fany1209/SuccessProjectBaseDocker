@@ -504,9 +504,23 @@ Fecha de actualización: 15-06-2026
 
                 $(document).on('click', '.remove-btn-2', function () {
                     const father = $('#update-sale-form');
-                    $(this).closest('.wrapper').remove();
-                    father.find('#products-count').text(father.find('#products-sales .wrapper').length);
-                    window.updateGrandTotalUpdate();
+                    const wrapper = $(this).closest('.wrapper');
+                    Swal.fire({
+                        title: '¿Eliminar producto?',
+                        text: 'Esta acción quitará el producto de la venta.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#6b7280',
+                        confirmButtonText: 'Sí, eliminar',
+                        cancelButtonText: 'Cancelar'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            wrapper.remove();
+                            father.find('#products-count').text(father.find('#products-sales .wrapper').length);
+                            window.updateGrandTotalUpdate();
+                        }
+                    });
                 });
             }
 
