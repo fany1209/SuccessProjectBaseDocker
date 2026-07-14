@@ -80,12 +80,6 @@ class WarehouseController extends Controller{
             return response()->json(['feedback' => $feedback]);
         }
 
-        $now = Carbon::now();
-        $activeHour = null;
-
-        foreach ($hours as $hour) {
-            $time = Carbon::createFromTimeString($hour);
-
         $isFormActive = !empty($selectedWarehouse);
 
         return view('warehouse', compact(
