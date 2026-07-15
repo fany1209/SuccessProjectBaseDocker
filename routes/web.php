@@ -57,7 +57,6 @@ use App\Http\Controllers\RhController;
 use App\Http\Controllers\RecursosHumanosController;
 use App\Http\Controllers\CuentasPorCobrarController;
 use App\Http\Controllers\PortalAuthController;
-use App\Http\Controllers\PortalPasswordResetController;
 use App\Http\Middleware\RedirectIfClientUnauthenticated;
 use App\Http\Controllers\PortalUserController;
 
@@ -92,21 +91,9 @@ Route::post('/portal-clientes', [PortalAuthController::class, 'login'])->name('p
 Route::post('/portal-logout', [PortalAuthController::class, 'logout'])->name('portal.logout');
 Route::get('admin/portal-users/{portalUserId}/sales', [PortalUserController::class, 'getClientSales']);
 
-// Rutas de restablecimiento de contraseña — Portal de Clientes
-Route::get('/portal/forgot-password', [PortalPasswordResetController::class, 'showForgotForm'])
-    ->name('portal.password.request');
-Route::post('/portal/forgot-password', [PortalPasswordResetController::class, 'sendResetLink'])
-    ->middleware('throttle:5,1')  // máx. 5 intentos por minuto por IP
-    ->name('portal.password.email');
-Route::get('/portal/reset-password/{token}', [PortalPasswordResetController::class, 'showResetForm'])
-    ->name('portal.password.reset');
-Route::post('/portal/reset-password', [PortalPasswordResetController::class, 'resetPassword'])
-    ->name('portal.password.update');
-
 Route::middleware(RedirectIfClientUnauthenticated::class)->get('/portal/venta/{id}', [PortalAuthController::class, 'verDetalle'])->name('portal.ver-detalle');
 Route::middleware(RedirectIfClientUnauthenticated::class)->get('/portal/dashboard', [PortalAuthController::class, 'dashboard'])->name('portal.dashboard');
 Route::middleware(RedirectIfClientUnauthenticated::class)->get('/portal/descargar-pdf/{id}', [PortalAuthController::class, 'descargarPdf'])->name('portal.descargar-pdf');
-Route::middleware(RedirectIfClientUnauthenticated::class)->post('/portal/change-password', [PortalPasswordResetController::class, 'changePassword'])->name('portal.password.change');
 
 Route::middleware([
     'auth:sanctum',

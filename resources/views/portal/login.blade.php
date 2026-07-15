@@ -113,13 +113,6 @@
                 <p class="text-sm text-gray-200">Bienvenido, por favor inicia sesión para acceder a tus documentos.</p>
             </div>
 
-            @if(session('status'))
-                <div class="bg-emerald-500/20 border border-emerald-500/50 text-emerald-200 p-4 rounded-xl text-sm mb-6 flex items-start space-x-3 backdrop-blur-md">
-                    <svg class="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <span>{{ session('status') }}</span>
-                </div>
-            @endif
-
             @if($errors->any())
                 <div class="bg-red-500/20 border border-red-500/50 text-red-200 p-4 rounded-xl text-sm mb-6 flex items-start space-x-3 backdrop-blur-md">
                     <svg class="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -163,18 +156,6 @@
                     </svg>
                 </button>
             </form>
-
-            {{-- Enlace de olvidé contraseña DENTRO del card, siempre visible --}}
-            <div class="mt-6 pt-5 border-t border-white/10 text-center">
-                <a href="{{ route('portal.password.request') }}"
-                   class="inline-flex items-center gap-2 text-sm text-emerald-300 hover:text-white transition-colors duration-200 group">
-                    <svg class="h-4 w-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-                    </svg>
-                    ¿Olvidaste tu contraseña? <span class="underline underline-offset-2">Recupérala aquí</span>
-                </a>
-            </div>
-
         </div>
         
         <p class="text-center text-xs text-gray-300 mt-6 animate-fade-in-up" style="animation-delay: 0.2s">
