@@ -544,6 +544,11 @@ Route::prefix('laboratory/materials')->group(function () {
     Route::post('/rh/solicitud-personal/pdf', [RecursosHumanosController::class, 'solicitudPersonalPdf'])->name('rh.solicitud_personal.pdf');
     Route::post('/rh/convenio-instituciones/pdf', [RecursosHumanosController::class, 'convenioInstitucionesPdf'])->name('rh.convenio_instituciones.pdf');
 
+    // Clima Laboral
+    Route::post('/rh/clima-laboral', [\App\Http\Controllers\ClimaLaboralController::class, 'store'])->name('rh.clima_laboral.store');
+    Route::get('/rh/clima-laboral/resultados', [\App\Http\Controllers\ClimaLaboralController::class, 'index'])->name('rh.clima_laboral.resultados');
+
+
     //portal users
     Route::get('admin/get-json-portal-users', [PortalUserController::class, 'getPortalUsers'])
     ->name('admin.portal-users.getPortalUsers');

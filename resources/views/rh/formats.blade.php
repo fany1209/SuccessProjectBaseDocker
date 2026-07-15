@@ -68,6 +68,21 @@
             <span class="text-sm font-bold uppercase tracking-wider">Convenio con <br> Instituciones</span>
         </button>
 
+        <!-- Clima Laboral -->
+        <button type="button" class="open-modal {{ $btnBase }} {{ $btnCard }}" data-target="modal-clima-laboral">
+            <svg class="h-10 w-10 text-white mb-1 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span class="text-sm font-bold uppercase tracking-wider">Clima Laboral <br> (Encuesta)</span>
+        </button>
+
+        <a href="{{ route('rh.clima_laboral.resultados') }}" class="{{ $btnBase }} {{ $btnCard }}">
+            <svg class="h-10 w-10 text-white mb-1 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <span class="text-sm font-bold uppercase tracking-wider">Resultados <br> Clima Laboral</span>
+        </a>
+
     </div>
 
     @include('rh.modals.expediente')
@@ -79,5 +94,20 @@
     @include('rh.modals.evaluacion_desempeno')
     @include('rh.modals.solicitud_personal')
     @include('rh.modals.convenio_instituciones')
+    @include('rh.modals.clima_laboral')
+
+    @if(session('success'))
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    text: '{{ session('success') }}',
+                    confirmButtonColor: '#198754'
+                });
+            });
+        </script>
+    @endif
 
 </section>
