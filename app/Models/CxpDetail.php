@@ -17,7 +17,9 @@ class CxpDetail extends Model
         'semana',
         'anio',
         'estatus',
-        'is_canceled'
+        'is_canceled',
+        'pdf_path',
+        'xml_path'
     ];
 
     public function payments()

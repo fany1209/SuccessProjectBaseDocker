@@ -61,7 +61,7 @@
           <table id="cxc-table" class="display w-full divide-y divide-gray-200 text-sm text-left">
             <thead class="bg-gray-50 text-gray-700 uppercase font-semibold text-xs tracking-wider">
               <tr>
-                <th class="px-2 py-2">Remisión</th>
+                <th class="px-2 py-2">Folio</th>
                 <th class="px-2 py-2">Fecha Emisión</th>
                 <th class="px-2 py-2">Cliente</th>
                 <th class="px-2 py-2">Asesor</th>

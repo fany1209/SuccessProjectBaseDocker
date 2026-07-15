@@ -91,7 +91,7 @@
       <!-- Nuevo Pago -->
       <div class="md:col-span-1 bg-gray-50 p-4 rounded-xl border border-gray-200">
         <h3 class="text-md font-bold text-gray-800 mb-3">Registrar Abono</h3>
-        <form id="add-payment-form">
+        <form id="add-payment-form" enctype="multipart/form-data">
           <div class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Monto ($)</label>
@@ -105,7 +105,7 @@
 
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Comprobante</label>
-              <input type="text" id="pay-comprobante" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" placeholder="Opcional">
+              <input type="file" id="pay-comprobante" accept=".jpg,.jpeg,.png,.pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
             </div>
 
             <div>
@@ -123,5 +123,43 @@
       </div>
 
     </div>
+    </div>
+  </div>
+</x-modal>
+
+<!-- Documents Modal -->
+<x-modal id="documents-cxp">
+  <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+      <i class="ri-file-upload-fill text-[#198754]"></i> Subir Documentos (Factura)
+    </h3>
+    <button type="button" class="close-modal text-gray-400 hover:text-gray-600">
+      <i class="ri-close-line text-2xl"></i>
+    </button>
+  </div>
+  
+  <div class="p-6">
+    <form id="upload-docs-form" enctype="multipart/form-data">
+      <input type="hidden" id="docs-cxp-id">
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Archivo PDF (Opcional, max 10MB)</label>
+          <input type="file" id="docs-pdf" accept=".pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Archivo XML (Opcional, max 10MB)</label>
+          <input type="file" id="docs-xml" accept=".xml" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-end gap-3">
+        <button type="button" class="close-modal px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">Cancelar</button>
+        <button type="submit" id="btn-save-docs" class="px-4 py-2 bg-[#198754] text-white rounded-lg hover:bg-[#157347] transition flex items-center gap-2">
+          <i class="ri-upload-cloud-2-line"></i> Subir Documentos
+        </button>
+      </div>
+    </form>
   </div>
 </x-modal>

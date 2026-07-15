@@ -455,6 +455,7 @@ Route::prefix('laboratory/materials')->group(function () {
         Route::post('/{id}/cancel', [\App\Http\Controllers\CuentasPorPagarController::class, 'cancel'])->name('cuentas-por-pagar.cancel');
         Route::get('/{id}/payments', [\App\Http\Controllers\CuentasPorPagarController::class, 'getPayments'])->name('cuentas-por-pagar.payments.list');
         Route::post('/{id}/payments', [\App\Http\Controllers\CuentasPorPagarController::class, 'addPayment'])->name('cuentas-por-pagar.payments.add');
+        Route::post('/{id}/documents', [\App\Http\Controllers\CuentasPorPagarController::class, 'uploadDocuments'])->name('cuentas-por-pagar.documents.upload');
     });
 
     //production y i+d

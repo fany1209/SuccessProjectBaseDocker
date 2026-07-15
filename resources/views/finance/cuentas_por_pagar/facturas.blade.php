@@ -21,6 +21,7 @@
     @include('finance.cuentas_por_pagar.modals.payments')
     <button id="btn-open-edit-cxp" type="button" class="open-modal hidden" data-target="edit-cxp"></button>
     <button id="btn-open-payments" type="button" class="open-modal hidden" data-target="payments-cxp"></button>
+    <button id="btn-open-docs-cxp" type="button" class="open-modal hidden" data-target="documents-cxp"></button>
 
     <!-- Filtros -->
     <div class="mb-2 mt-6 flex justify-end w-full">
@@ -159,6 +160,9 @@ $(function(){
           
           return `
             <div class="flex items-center justify-center gap-2">
+              <button type="button" class="btn-docs-cxp p-1.5 rounded bg-orange-100 text-orange-600 hover:bg-orange-200 transition" title="Subir Documentos" data-id="${row.cxp_id}" ${disabledAttr}>
+                <i class="ri-file-upload-line text-lg"></i>
+              </button>
               <button type="button" class="btn-payments p-1.5 rounded bg-purple-100 text-purple-600 hover:bg-purple-200 transition" title="Abonos" data-row='${escapeHtml(JSON.stringify(row))}' ${disabledAttr}>
                 <i class="ri-money-dollar-circle-line text-lg"></i>
               </button>
@@ -247,6 +251,60 @@ $(function(){
     $('#btn-open-edit-cxp').trigger('click');
   });
 
+  // Abrir Modal de Documentos
+  $(document).on('click', '.btn-docs-cxp', function() {
+    const id = $(this).data('id');
+    $('#docs-cxp-id').val(id);
+    
+    // Clear previous inputs
+    $('#docs-pdf').val('');
+    $('#docs-xml').val('');
+    
+    $('#btn-open-docs-cxp').trigger('click');
+  });
+
+  // Enviar Documentos
+  $('#upload-docs-form').on('submit', function(e) {
+    e.preventDefault();
+    const id = $('#docs-cxp-id').val();
+    const formData = new FormData();
+    
+    const pdfFile = document.getElementById('docs-pdf').files[0];
+    const xmlFile = document.getElementById('docs-xml').files[0];
+    
+    if (!pdfFile && !xmlFile) {
+        Swal.fire('Atención', 'Selecciona al menos un documento para subir.', 'warning');
+        return;
+    }
+    
+    if (pdfFile) formData.append('pdf_file', pdfFile);
+    if (xmlFile) formData.append('xml_file', xmlFile);
+
+    $('#btn-save-docs').prop('disabled', true).html('<i class="ri-loader-4-line animate-spin"></i> Subiendo...');
+
+    $.ajax({
+      url: `/cuentas-por-pagar/${id}/documents`,
+      method: 'POST',
+      data: formData,
+      processData: false,
+      contentType: false,
+      headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
+      success: function(res) {
+        if(res.success) {
+          Swal.fire('Subidos', res.message, 'success');
+          table.ajax.reload(null, false);
+          $('#documents-cxp').find('.close-modal').trigger('click');
+        }
+      },
+      error: function(xhr) {
+        Swal.fire('Error', xhr.responseJSON?.message || 'Error al subir los documentos', 'error');
+      },
+      complete: function() {
+        $('#btn-save-docs').prop('disabled', false).html('<i class="ri-upload-cloud-2-line"></i> Subir Documentos');
+      }
+    });
+  });
+
   // Guardar Edición
   $('#edit-cxp-form').on('submit', function(e) {
     e.preventDefault();
@@ -317,6 +375,9 @@ $(function(){
                 <td class="px-4 py-2 text-gray-500">#${p.id}</td>
                 <td class="px-4 py-2">${formatDate(p.date)}</td>
                 <td class="px-4 py-2 truncate max-w-[150px]" title="${escapeHtml(p.notas)}">${escapeHtml(p.notas) || '—'}</td>
+                <td class="px-4 py-2">
+                  ${p.comprobante ? `<a href="/${p.comprobante}" target="_blank" class="text-blue-600 hover:underline"><i class="ri-file-text-line"></i> Ver</a>` : '<span class="text-gray-400">N/A</span>'}
+                </td>
                 <td class="px-4 py-2 text-right font-semibold text-green-700">${formatCurrency(p.amount)}</td>
               </tr>
             `);
@@ -330,19 +391,24 @@ $(function(){
   $('#add-payment-form').on('submit', function(e) {
     e.preventDefault();
     const id = $('#pay-cxp-id').val();
-    const payload = {
-      amount: $('#pay-amount').val(),
-      date: $('#pay-date').val(),
-      comprobante: $('#pay-comprobante').val(),
-      notas: $('#pay-notas').val(),
-    };
+    const formData = new FormData(this);
+    formData.append('amount', $('#pay-amount').val());
+    formData.append('date', $('#pay-date').val());
+    formData.append('notas', $('#pay-notas').val());
+    
+    const fileInput = document.getElementById('pay-comprobante');
+    if (fileInput.files[0]) {
+      formData.append('comprobante', fileInput.files[0]);
+    }
 
     $('#btn-save-payment').prop('disabled', true);
 
     $.ajax({
       url: `/cuentas-por-pagar/${id}/payments`,
       method: 'POST',
-      data: payload,
+      data: formData,
+      processData: false,
+      contentType: false,
       headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
       success: function(res) {
         if(res.success) {
