@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Detalle de Remisión #{{ $venta->folio ?? $venta->sale_id }} - Suministros Sustentables</title>
+    <link rel="icon" href="{{ asset('images/successIconG.ico') }}" type="image/x-icon" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {

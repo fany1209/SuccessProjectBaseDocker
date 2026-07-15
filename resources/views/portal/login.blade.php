@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal de Clientes - Acceso Premium</title>
+    <title>Portal de Clientes</title>
+    <link rel="icon" href="{{ asset('images/successIconG.ico') }}" type="image/x-icon" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
