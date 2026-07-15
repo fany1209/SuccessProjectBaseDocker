@@ -30,7 +30,12 @@
     <style>
         body {
             font-family: 'Outfit', sans-serif;
-            background-color: #f8fafc;
+            /* Aplicamos una capa blanca con 92% de opacidad para que las imágenes del fondo sean sutiles */
+            background-image: linear-gradient(rgba(248, 250, 252, 0.92), rgba(248, 250, 252, 0.92)), url("{{ asset('images/formats/agro.png') }}");
+            /* Controla aquí el tamaño del patrón (ej. 100px de ancho) */
+            background-size: 100px auto;
+            background-repeat: repeat;
+            background-attachment: fixed;
         }
         
         .bg-header-agro {
@@ -40,9 +45,10 @@
         }
 
         .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.90);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
         }
 
@@ -50,7 +56,7 @@
             transition: all 0.2s ease;
         }
         .table-row-hover:hover {
-            background-color: #f0fdf4; 
+            background-color: rgba(240, 253, 244, 0.95); 
             transform: translateY(-1px);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
@@ -106,7 +112,7 @@
             <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-slate-50 text-slate-600 text-sm uppercase tracking-wider">
+                        <tr class="bg-slate-50/75 text-slate-600 text-sm uppercase tracking-wider">
                             <th class="p-4 font-semibold border-b border-slate-200">Folio / ID</th>
                             <th class="p-4 font-semibold border-b border-slate-200">Fecha</th>
                             <th class="p-4 font-semibold border-b border-slate-200 text-center">Acciones y Documentos</th>
@@ -124,7 +130,7 @@
                                 $coaManual = $documentosVenta->where('file_type', 'coa')->first();
                             @endphp
 
-                            <tr class="table-row-hover bg-white">
+                            <tr class="table-row-hover bg-white/90">
                                 <td class="p-4 font-bold text-emerald-700">
                                     #{{ $venta->folio ?? $venta->sale_id }}
                                 </td>
