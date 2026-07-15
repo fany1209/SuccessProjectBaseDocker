@@ -323,7 +323,7 @@ class CuentasPorPagarController extends Controller
         $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'date' => 'required|date',
-            'comprobante' => 'nullable|string',
+            'comprobante' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:25600',
             'notas' => 'nullable|string'
         ]);
 
@@ -333,10 +333,18 @@ class CuentasPorPagarController extends Controller
             return response()->json(['success' => false, 'message' => 'No se pueden añadir pagos a una cuenta cancelada.'], 403);
         }
 
+        $comprobantePath = null;
+        if ($request->hasFile('comprobante')) {
+            $file = $request->file('comprobante');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(base_path('public/uploads/cxp/payments'), $filename);
+            $comprobantePath = 'uploads/cxp/payments/' . $filename;
+        }
+
         $cxp->payments()->create([
             'amount' => $request->amount,
             'date' => $request->date,
-            'comprobante' => $request->comprobante,
+            'comprobante' => $comprobantePath,
             'notas' => $request->notas
         ]);
 
@@ -356,6 +364,39 @@ class CuentasPorPagarController extends Controller
         $cxp->update(['estatus' => $newEstatus]);
 
         return response()->json(['success' => true, 'message' => 'Abono añadido correctamente']);
+    }
+
+    public function uploadDocuments(Request $request, $id)
+    {
+        $request->validate([
+            'pdf_file' => 'nullable|file|mimes:pdf|max:10240',
+            'xml_file' => 'nullable|file|mimes:xml|max:10240',
+        ]);
+
+        $cxp = CxpDetail::findOrFail($id);
+
+        $updateData = [];
+
+        if ($request->hasFile('pdf_file')) {
+            $file = $request->file('pdf_file');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(base_path('public/uploads/cxp/documents'), $filename);
+            $updateData['pdf_path'] = 'uploads/cxp/documents/' . $filename;
+        }
+
+        if ($request->hasFile('xml_file')) {
+            $file = $request->file('xml_file');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(base_path('public/uploads/cxp/documents'), $filename);
+            $updateData['xml_path'] = 'uploads/cxp/documents/' . $filename;
+        }
+
+        if (!empty($updateData)) {
+            $cxp->update($updateData);
+            return response()->json(['success' => true, 'message' => 'Documentos subidos correctamente']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'No se adjuntó ningún archivo'], 400);
     }
 
     public function exportExcel(Request $request)
