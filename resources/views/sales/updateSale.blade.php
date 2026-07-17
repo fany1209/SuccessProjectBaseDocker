@@ -551,5 +551,5 @@ Fecha de actualización: 15-06-2026
             updateSale();
             reactiveUpdateSale();
         });
-    </script>
+    </script> 
 @endpush
