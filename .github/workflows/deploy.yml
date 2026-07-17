@@ -23,5 +23,5 @@ jobs:
         username: ${{ secrets.SSH_USERNAME }}
         password: ${{ secrets.SSH_PASSWORD }}
         port: 22 
-        protocol: sftp
+        protocol: SFTP
         server-dir: test_migration/
