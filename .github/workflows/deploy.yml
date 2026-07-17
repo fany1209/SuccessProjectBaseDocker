@@ -17,7 +17,7 @@ jobs:
         fetch-depth: 0
 
     - name: Sincronizar Código Fuente (test_migration)
-      uses: itsallclean/github-action-sftp-deploy-incremental@v1.0.5
+      uses: wlixcc/SFTP-Deploy-Action@v1.2.4
       with:
         server: ${{ secrets.SSH_HOST }}
         username: ${{ secrets.SSH_USERNAME }}
@@ -25,3 +25,4 @@ jobs:
         port: 22
         local_path: './*'
         remote_path: 'test_emilio/'
+        sftpArgs: '-F /dev/null -o StrictHostKeyChecking=no'
