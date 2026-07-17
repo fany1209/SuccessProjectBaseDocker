@@ -23,5 +23,5 @@ jobs:
         username: ${{ secrets.SSH_USERNAME }}
         password: ${{ secrets.SSH_PASSWORD }}
         port: 22
-        local_dir: .
-        server-dir: test_migration/
+        local_path: './*'
+        remote_path: 'test_migration/'
