@@ -79,11 +79,20 @@ class LaboratoryController extends Controller
                     \DB::raw("CONVERT(ls.sku USING utf8mb4)")
                 );
             })
+            ->leftJoin('suppliers as sup', function ($join) {
+                $join->on(
+                    \DB::raw("CONVERT(sup.name USING utf8mb4)"),
+                    '=',
+                    \DB::raw("CONVERT(ls.proveedor USING utf8mb4)")
+                );
+            })
             ->select([
                 'ls.folio',
                 'ls.producto',
                 'ls.sku',
                 'p.product_id',
+                'ls.stock_inicial',
+                'sup.supplier_id',
             ])
             ->orderBy('ls.id', 'asc')
             ->limit(1000)

@@ -69,9 +69,8 @@
         {{-- === Lote=== --}}
         <div>
           <label class="block text-sm font-semibold">Lote</label>
-          <select name="lote" id="lote" class="w-full border rounded px-2 py-1" required>
-            <option value="">— Selecciona un producto primero —</option>
-          </select>
+          <input type="text" name="lote" id="lote" list="lote-list" class="w-full border rounded px-2 py-1" required autocomplete="off" placeholder="Seleccione o escriba un lote" value="{{ old('lote', $model->lote ?? '') }}">
+          <datalist id="lote-list"></datalist>
         </div>
 
         <div class="lg:col-span-2">
@@ -227,7 +226,7 @@
       const folioSelect   = modalRoot?.querySelector('select[name="folio_muestra"]');
       const productSelect = modalRoot?.querySelector('select[name="product_id"]');
       const skuInput      = modalRoot?.querySelector('input[name="sku"]');
-      const loteSelect    = modalRoot?.querySelector('select[name="lote"]');
+      const loteSelect    = modalRoot?.querySelector('input[name="lote"]');
 
       const BATCHES_BY_PRODUCT = @json($batchesByProduct ?? []);
       const PREV_LOTE = @json(old('lote', $model->lote ?? ''));
@@ -239,41 +238,34 @@
       }
 
       function fillLotes(pid) {
-        if (!loteSelect) return;
-
+        const loteList = document.getElementById('lote-list');
         const lotes = BATCHES_BY_PRODUCT?.[pid] || [];
         let html = '';
 
-        if (!pid) {
-          html = '<option value="">— Selecciona un producto primero —</option>';
-          loteSelect.innerHTML = html;
-          loteSelect.disabled = true;
-          return;
-        }
-
-        if (!lotes.length) {
-          html = '<option value="">— No hay lotes para este producto —</option>';
-          loteSelect.innerHTML = html;
-          loteSelect.disabled = true;
-          return;
-        }
-
-        html = '<option value="">— Selecciona un lote —</option>';
         for (const lote of lotes) {
-          const sel = (String(lote) === String(PREV_LOTE)) ? ' selected' : '';
-          html += `<option value="${String(lote)}"${sel}>${String(lote)}</option>`;
+          html += `<option value="${String(lote)}"></option>`;
         }
-        loteSelect.innerHTML = html;
-        loteSelect.disabled = false;
-
-        if (!lotes.map(String).includes(String(PREV_LOTE))) {
-          loteSelect.value = '';
-        }
+        if (loteList) loteList.innerHTML = html;
       }
 
       function onProductChange(){
         const pid = productSelect?.value || '';
         setSkuFromProduct();
+        
+        if (pid) {
+          if (loteSelect) {
+            loteSelect.disabled = false;
+            loteSelect.placeholder = "Seleccione o escriba un lote";
+          }
+        } else {
+          if (document.getElementById('lote-list')) document.getElementById('lote-list').innerHTML = '';
+          if (loteSelect) {
+            loteSelect.disabled = true;
+            loteSelect.placeholder = "— Selecciona un producto primero —";
+            if (!PREV_LOTE) loteSelect.value = '';
+          }
+        }
+        
         fillLotes(pid);
       }
 

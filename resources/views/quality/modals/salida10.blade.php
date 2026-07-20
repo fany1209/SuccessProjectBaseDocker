@@ -4,7 +4,7 @@
     <div class="border rounded-lg p-4 space-y-4">
       <h2 class="font-semibold">Datos Generales</h2>
 
-     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="md:col-span-2">
           <x-label value="Cliente"/>
           @php
@@ -14,8 +14,7 @@
             );
           @endphp
 
-          <select id="customer" name="customer_id"
-                  class="w-full rounded-md border border-gray-300 px-3 py-2" required>
+          <select id="customer" name="customer_id" class="w-full rounded-md border border-gray-300 px-3 py-2" required>
             <option value="">-- Selecciona un cliente --</option>
             @foreach($sorted as $c)
               <option value="{{ $c->customer_id }}"
@@ -31,18 +30,17 @@
         </div>
         <div>
           <x-label value="Fecha de inspección"/>
-          <input type="date" name="fecha_inspeccion" value="{{ old('fecha_inspeccion') }}"
-                 class="w-full rounded-md border border-gray-300 px-3 py-2" required>
+          <input type="date" name="fecha_inspeccion" value="{{ old('fecha_inspeccion') }}" class="w-full rounded-md border border-gray-300 px-3 py-2" required>
           @error('fecha_inspeccion') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
         </div>
       </div>
     </div>
 
+    <!-- DATOS DEL PRODUCTO -->
     <div class="border rounded-lg p-4 space-y-3">
       <div class="flex items-center justify-between">
         <h2 class="font-semibold">Datos del producto</h2>
-        <button type="button" id="add-row"
-                class="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 text-sm">
+        <button type="button" id="add-row" class="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 text-sm">
           + Agregar producto
         </button>
       </div>
@@ -78,8 +76,7 @@
                 <input type="text" name="items[0][presentacion]" class="w-full border rounded px-2 py-1">
               </td>
               <td class="px-2 py-2">
-                <input type="number" name="items[0][cantidad]" min="0" step="any"
-                       class="w-full border rounded px-2 py-1 text-right">
+                <input type="number" name="items[0][cantidad]" min="0" step="any" class="w-full border rounded px-2 py-1 text-right">
               </td>
               <td class="px-2 py-2">
                 <input type="text" name="items[0][empaque]" class="w-full border rounded px-2 py-1">
@@ -112,7 +109,7 @@
       </template>
     </div>
 
-    {{-- ================= LIBERACIÓN DE PRODUCTO ================= --}}
+    <!-- LIBERACIÓN DE PRODUCTO -->
     <div class="border rounded-lg p-4 space-y-3">
       <h2 class="font-semibold">Liberación de producto</h2>
       <p class="text-sm text-gray-600">Marca una opción por requisito: <b>Cumple</b>, <b>No aplica</b> o deja sin marcar (se interpretará como “No cumple”).</p>
@@ -150,12 +147,8 @@
             @foreach($reqs_limpieza as $key => $label)
               <tr>
                 <td class="px-2 py-2 text-left">{{ $label }}</td>
-                <td class="px-2 py-2">
-                  <input type="radio" name="lib_{{ $key }}" value="cumple">
-                </td>
-                <td class="px-2 py-2">
-                  <input type="radio" name="lib_{{ $key }}" value="no_aplica">
-                </td>
+                <td class="px-2 py-2"><input type="radio" name="lib_{{ $key }}" value="cumple"></td>
+                <td class="px-2 py-2"><input type="radio" name="lib_{{ $key }}" value="no_aplica"></td>
               </tr>
             @endforeach
 
@@ -163,12 +156,8 @@
             @foreach($reqs_etiqueta as $key => $label)
               <tr>
                 <td class="px-2 py-2 text-left">{{ $label }}</td>
-                <td class="px-2 py-2">
-                  <input type="radio" name="lib_{{ $key }}" value="cumple">
-                </td>
-                <td class="px-2 py-2">
-                  <input type="radio" name="lib_{{ $key }}" value="no_aplica">
-                </td>
+                <td class="px-2 py-2"><input type="radio" name="lib_{{ $key }}" value="cumple"></td>
+                <td class="px-2 py-2"><input type="radio" name="lib_{{ $key }}" value="no_aplica"></td>
               </tr>
             @endforeach
           </tbody>
@@ -176,13 +165,13 @@
       </div>
     </div>
 
-<div class="border rounded-lg p-4">
-  <h3 class="text-sm font-semibold">Observaciones</h3>
-  <textarea name="observaciones" rows="5"
-            class="w-full rounded-md border border-gray-300 px-3 py-2"
-            placeholder="Notas, hallazgos, acuerdos, acciones…">{{ old('observaciones') }}</textarea>
-</div>
+    <!-- OBSERVACIONES -->
+    <div class="border rounded-lg p-4">
+      <h3 class="text-sm font-semibold">Observaciones</h3>
+      <textarea name="observaciones" rows="5" class="w-full rounded-md border border-gray-300 px-3 py-2" placeholder="Notas, hallazgos, acuerdos, acciones…">{{ old('observaciones') }}</textarea>
+    </div>
 
+    <!-- VERIFICACIÓN DEL TRANSPORTE -->
     <div class="border rounded-lg p-4 space-y-3">
       <h2 class="font-semibold">Verificación del transporte</h2>
 
@@ -213,15 +202,9 @@
             @foreach($transp as $key => $label)
               <tr>
                 <td class="px-2 py-2 text-left">{{ $label }}</td>
-                <td class="px-2 py-2 text-center">
-                  <input type="radio" name="tr_{{ $key }}" value="cumple">
-                </td>
-                <td class="px-2 py-2 text-center">
-                  <input type="radio" name="tr_{{ $key }}" value="no_aplica">
-                </td>
-                <td class="px-2 py-2">
-                  <input type="text" name="tr_{{ $key }}_obs" class="w-full border rounded px-2 py-1" placeholder="Observaciones">
-                </td>
+                <td class="px-2 py-2 text-center"><input type="radio" name="tr_{{ $key }}" value="cumple"></td>
+                <td class="px-2 py-2 text-center"><input type="radio" name="tr_{{ $key }}" value="no_aplica"></td>
+                <td class="px-2 py-2"><input type="text" name="tr_{{ $key }}_obs" class="w-full border rounded px-2 py-1" placeholder="Observaciones"></td>
               </tr>
             @endforeach
           </tbody>
@@ -229,42 +212,26 @@
       </div>
     </div>
 
-    {{-- ================= EVIDENCIA FOTOGRÁFICA ================= --}}
+    <!-- EVIDENCIA FOTOGRÁFICA -->
     <div class="border rounded-lg p-4 space-y-3">
       <h2 class="font-semibold">Evidencia Fotográfica</h2>
       <p class="text-sm text-gray-600">Sube hasta 3 imágenes como evidencia (opcional).</p>
       
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="flex flex-col space-y-2 border border-gray-100 p-2 rounded-md bg-gray-50/50">
-          <x-label value="Imagen 1"/>
-          <input type="file" name="evidencias[]" accept="image/*" class="evidencia-input w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white">
-          <div class="flex justify-center items-center h-36 bg-gray-100 rounded-md border border-dashed border-gray-300 overflow-hidden">
-            <img id="preview-0" src="#" alt="Vista previa 1" class="hidden max-h-full max-w-full object-contain p-1">
-            <span id="placeholder-0" class="text-xs text-gray-400 text-center px-2">Sin archivo seleccionado</span>
+        @for($i = 0; $i < 3; $i++)
+          <div class="flex flex-col space-y-2 border border-gray-100 p-2 rounded-md bg-gray-50/50">
+            <x-label value="Imagen {{ $i + 1 }}"/>
+            <input type="file" name="evidencias[]" accept="image/*" class="evidencia-input w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white">
+            <div class="flex justify-center items-center h-36 bg-gray-100 rounded-md border border-dashed border-gray-300 overflow-hidden">
+              <img id="preview-{{ $i }}" src="#" alt="Vista previa {{ $i + 1 }}" class="hidden max-h-full max-w-full object-contain p-1">
+              <span id="placeholder-{{ $i }}" class="text-xs text-gray-400 text-center px-2">Sin archivo seleccionado</span>
+            </div>
           </div>
-        </div>
-
-        <div class="flex flex-col space-y-2 border border-gray-100 p-2 rounded-md bg-gray-50/50">
-          <x-label value="Imagen 2"/>
-          <input type="file" name="evidencias[]" accept="image/*" class="evidencia-input w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white">
-          <div class="flex justify-center items-center h-36 bg-gray-100 rounded-md border border-dashed border-gray-300 overflow-hidden">
-            <img id="preview-1" src="#" alt="Vista previa 2" class="hidden max-h-full max-w-full object-contain p-1">
-            <span id="placeholder-1" class="text-xs text-gray-400 text-center px-2">Sin archivo seleccionado</span>
-          </div>
-        </div>
-
-        <div class="flex flex-col space-y-2 border border-gray-100 p-2 rounded-md bg-gray-50/50">
-          <x-label value="Imagen 3"/>
-          <input type="file" name="evidencias[]" accept="image/*" class="evidencia-input w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white">
-          <div class="flex justify-center items-center h-36 bg-gray-100 rounded-md border border-dashed border-gray-300 overflow-hidden">
-            <img id="preview-2" src="#" alt="Vista previa 3" class="hidden max-h-full max-w-full object-contain p-1">
-            <span id="placeholder-2" class="text-xs text-gray-400 text-center px-2">Sin archivo seleccionado</span>
-          </div>
-        </div>
+        @endfor
       </div>
     </div>
 
-    {{-- ================= FIRMAS ================= --}}
+    <!-- FIRMAS -->
     <div class="border rounded-lg p-4">
       <h2 class="font-semibold mb-2">Nombre</h2>
       <x-label value="Nombre de quien realizó la inspección"/>
@@ -280,10 +247,26 @@
 
 @push('js')
 <script>
-  document.querySelectorAll('.evidencia-input').forEach((input, index) => {
+(function() {
+  const form = document.getElementById('salida10-form');
+  if (!form) return;
+
+  // 1. Manejo del código de cliente
+  const customerSelect = form.querySelector('#customer');
+  const customerCodeInput = form.querySelector('#customer_code');
+  
+  if (customerSelect) {
+    customerSelect.addEventListener('change', function() {
+      const code = this.selectedOptions[0]?.getAttribute('data-code') || '';
+      if (customerCodeInput) customerCodeInput.value = code;
+    });
+  }
+
+  // 2. Previsualizaciones de Imagen
+  form.querySelectorAll('.evidencia-input').forEach((input, index) => {
     input.addEventListener('change', function() {
-      const imgPreview = document.getElementById(`preview-${index}`);
-      const txtPlaceholder = document.getElementById(`placeholder-${index}`);
+      const imgPreview = document.getElementById(preview-${index});
+      const txtPlaceholder = document.getElementById(placeholder-${index});
       const file = this.files[0];
 
       if (file) {
@@ -301,63 +284,20 @@
       }
     });
   });
-</script>
 
-<script>
-  document.getElementById('customer')?.addEventListener('change', function(){
-    const code = this.selectedOptions[0]?.getAttribute('data-code') || '';
-    document.getElementById('customer_code').value = code;
-  });
+  // 3. Gestión dinámicas de filas de la Tabla
+  const tbody  = form.querySelector('#rows');
+  const addBtn = form.querySelector('#add-row');
+  const tpl    = form.querySelector('#row-tpl');
 
-  const tbody = document.getElementById('rows');
-  const tpl   = document.getElementById('row-tpl');
-
-  function reindexRows(){
-    const rows = tbody.querySelectorAll('tr.data-row');
-    rows.forEach((row, idx) => {
-      row.querySelector('.row-num').textContent = idx + 1;
-      row.querySelectorAll('input, select').forEach(el => {
-        el.name = el.name.replace(/items\[\d+\]/, 'items['+idx+']');
-      });
-    });
-  }
-
-  document.getElementById('add-row').addEventListener('click', () => {
-    const clone = tpl.content.cloneNode(true);
-    tbody.appendChild(clone);
-    reindexRows();
-  });
-
-  document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('remove-row')) {
-      const rows = tbody.querySelectorAll('tr.data-row');
-      if (rows.length === 1) {
-        rows[0].querySelectorAll('input').forEach(i => i.value = '');
-        rows[0].querySelectorAll('select').forEach(s => s.selectedIndex = 0);
-      } else {
-        e.target.closest('tr.data-row').remove();
-        reindexRows();
-      }
-    }
-  });
-</script>
-<script>
-(function(){
-  const form  = document.getElementById('salida10-form');
-  if (!form) return;
-  
-  const tbody = form.querySelector('#rows');       
-  const addBtn= form.querySelector('#add-row');   
-  const tpl   = form.querySelector('#row-tpl');   
-
-  function clearRow(row){
+  function clearRow(row) {
     row.querySelectorAll('input, select, textarea').forEach(el => {
       if (el.tagName === 'SELECT') el.selectedIndex = 0;
       else el.value = '';
     });
   }
 
-  function reindexRows(){
+  function reindexRows() {
     const rows = tbody.querySelectorAll('tr.data-row');
     rows.forEach((row, idx) => {
       const num = row.querySelector('.row-num');
@@ -366,12 +306,12 @@
       row.querySelectorAll('input, select, textarea').forEach(el => {
         const name = el.getAttribute('name');
         if (!name) return;
-        el.setAttribute('name', name.replace(/items\[\d+\]/, 'items['+idx+']'));
+        el.setAttribute('name', name.replace(/items\[\d+\]/, 'items[' + idx + ']'));
       });
     });
   }
 
-  function addRow(){
+  function addRow() {
     if (!tpl || !tpl.content) {
       const last = tbody.querySelector('tr.data-row:last-of-type');
       if (!last) return;
@@ -385,11 +325,9 @@
       tbody.appendChild(frag);
     }
     reindexRows();
-    const focusable = tbody.querySelector('tr.data-row:last-of-type select, tr.data-row:last-of-type input');
-    if (focusable) focusable.focus();
   }
 
-  function removeRow(btn){
+  function removeRow(btn) {
     const rows = tbody.querySelectorAll('tr.data-row');
     const tr = btn.closest('tr.data-row');
     if (!tr) return;
@@ -412,6 +350,7 @@
       removeRow(btn);
     }
   });
+
   reindexRows();
 })();
 </script>

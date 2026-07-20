@@ -15,6 +15,8 @@
               value="{{ $s->folio }}"
               data-product-id="{{ $s->product_id }}"
               data-sku="{{ $s->sku }}"
+              data-supplier-id="{{ $s->supplier_id ?? '' }}"
+              data-stock-inicial="{{ $s->stock_inicial ?? '' }}"
             >
               {{ $s->folio }} — {{ $s->producto ?? 'Sin producto' }}
             </option>
@@ -58,9 +60,8 @@
 
         <div class="mt-3">
           <label for="batch" class="block text-sm font-semibold">Lote</label>
-          <select name="batch" id="batch" class="w-full border rounded px-2 py-1" required>
-            <option value="">— Selecciona un lote —</option>
-          </select>
+          <input type="text" name="batch" id="batch" list="batch-list" class="w-full border rounded px-2 py-1" required autocomplete="off" placeholder="Seleccione o escriba un lote" value="{{ old('batch', $model->batch ?? '') }}">
+          <datalist id="batch-list"></datalist>
         </div>
 
         <div>
@@ -270,26 +271,14 @@ document.addEventListener('DOMContentLoaded', function(){
 
   window.fillBatches = function(pid){
     const batches = BATCHES[pid] || [];
-    const current = batchSelect?.value;
+    const batchList = document.getElementById('batch-list');
     let html = '';
 
-    if(!batches.length){
-      html = '<option value="">— No hay lotes para este producto —</option>';
-      batchSelect.innerHTML = html;
-      batchSelect.disabled = true;
-      batchSelect.value = '';
-      return;
-    }
-
-    html = '<option value="">— Selecciona un lote —</option>';
     for(const b of batches){
-      const sel = (b === PREV_BATCH || b === current) ? ' selected' : '';
-      html += `<option value="${String(b)}"${sel}>${String(b)}</option>`;
+      html += `<option value="${String(b)}"></option>`;
     }
 
-    batchSelect.innerHTML = html;
-    batchSelect.disabled = false;
-    if(!batches.includes(PREV_BATCH)) batchSelect.value = '';
+    if(batchList) batchList.innerHTML = html;
   };
 
   function maybePreselectSupplier(pid){
@@ -302,6 +291,18 @@ document.addEventListener('DOMContentLoaded', function(){
   productSelect?.addEventListener('change', () => {
     const pid = productSelect.value;
     setSkuFromProduct();
+    if(pid) {
+      if(batchSelect) {
+        batchSelect.disabled = false;
+        batchSelect.placeholder = "Seleccione o escriba un lote";
+      }
+    } else {
+      if(batchSelect) {
+        batchSelect.disabled = true;
+        batchSelect.placeholder = "— Selecciona un producto primero —";
+        batchSelect.value = '';
+      }
+    }
     fillBatches(pid);
     maybePreselectSupplier(pid);
   });
@@ -310,9 +311,17 @@ document.addEventListener('DOMContentLoaded', function(){
   if(productSelect?.value){
     fillBatches(productSelect.value);
     maybePreselectSupplier(productSelect.value);
+    if(batchSelect) {
+      batchSelect.disabled = false;
+      batchSelect.placeholder = "Seleccione o escriba un lote";
+    }
   } else {
-    batchSelect.innerHTML = '<option value="">— Selecciona un producto primero —</option>';
-    batchSelect.disabled = true;
+    if(document.getElementById('batch-list')) document.getElementById('batch-list').innerHTML = '';
+    if(batchSelect) {
+      batchSelect.disabled = true;
+      batchSelect.placeholder = "— Selecciona un producto primero —";
+      if (!PREV_BATCH) batchSelect.value = '';
+    }
   }
 });
 
@@ -322,17 +331,29 @@ $(function(){
     const opt = $(this).find(':selected');
     const pid = opt.data('product-id');
     const sku = opt.data('sku');
+    const supplierId = opt.data('supplier-id');
+    const stockInicial = opt.data('stock-inicial');
 
     if(!pid){
       $('#product_id').val('');
       $('#sku').val('');
-      $('#batch').html('<option value="">— Selecciona un producto primero —</option>').prop('disabled', true);
+      $('#batch-list').html('');
+      $('#batch').val('').attr('placeholder', '— Selecciona un producto primero —').prop('disabled', true);
       return;
     }
 
     $('#product_id').val(pid);
     setSkuFromProduct();
+    $('#batch').prop('disabled', false).attr('placeholder', 'Seleccione o escriba un lote');
     fillBatches(pid);
+
+    if (supplierId) {
+      $('#supplier_id').val(supplierId);
+    }
+    
+    if (stockInicial !== undefined && stockInicial !== '') {
+      $('input[name="cantidad"]').val(stockInicial);
+    }
   });
 });
 

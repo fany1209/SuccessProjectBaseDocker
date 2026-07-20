@@ -42,7 +42,7 @@ class LabSampleController extends Controller
                 'ls.fecha_entrada',
                 'ls.fecha_salida',
                 'ros.batch as lote',
-                's.name as proveedor',
+                'ls.proveedor',
             ])
             ->orderByDesc('ls.fecha_entrada')
             ->orderByDesc('ls.id')
