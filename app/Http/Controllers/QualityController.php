@@ -686,7 +686,9 @@ class QualityController extends Controller
                     if ($req->hasFile("obs.$i.evidencia_file")) {
                         $f = $req->file("obs.$i.evidencia_file");
                         if ($f && $f->isValid()) {
-                            $evidencia_path = $f->store('inspections_w/evidencias', 'public');
+                            $filename = time() . '_' . uniqid() . '.' . $f->getClientOriginalExtension();
+                            $f->move(base_path('../public_html/inspections_w/evidencias'), $filename);
+                            $evidencia_path = 'inspections_w/evidencias/' . $filename;
                         }
                     }
 
@@ -1935,8 +1937,10 @@ class QualityController extends Controller
                     : null;
 
                     if(isset($obsData['evidencia_file']) && $obsData['evidencia_file'] instanceof \Illuminate\Http\UploadedFile){
-                        $path = $obsData['evidencia_file']->store('inspections_w/evidencias', 'public');
-                        $obs->evidencia_path = $path;
+                        $f = $obsData['evidencia_file'];
+                        $filename = time() . '_' . uniqid() . '.' . $f->getClientOriginalExtension();
+                        $f->move(base_path('../public_html/inspections_w/evidencias'), $filename);
+                        $obs->evidencia_path = 'inspections_w/evidencias/' . $filename;
                     } elseif(isset($obsData['existing_evidencia_path'])) {
                         $obs->evidencia_path = $obsData['existing_evidencia_path'];
                     }
@@ -2004,8 +2008,9 @@ class QualityController extends Controller
 
                 if ($request->hasFile("obs.$i.ev_corr_file")) {
                     $file = $request->file("obs.$i.ev_corr_file");
-                    $path = $file->store('observaciones', 'public'); 
-                    $observacion->ev_corr_path = $path;
+                    $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    $file->move(base_path('../public_html/observaciones'), $filename);
+                    $observacion->ev_corr_path = 'observaciones/' . $filename;
                 }
 
                 $observacion->save();
