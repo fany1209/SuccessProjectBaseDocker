@@ -58,7 +58,7 @@ class TaskController extends Controller
             'status' => 'pending',
         ]);
         
-        broadcast(new TaskAssignedEvent($task))->toOthers();
+        // broadcast(new TaskAssignedEvent($task))->toOthers();
 
         $usuarioDestino = User::find($request->user_id);
         if ($usuarioDestino) {
