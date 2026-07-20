@@ -153,7 +153,41 @@ class SupplierController extends Controller
                 $count = Supplier::count();
                 $data = $request->all();
                 $next = $count + 1;
-                $data['supplier_code'] = 'SP' . $next;
+
+                $sector = Sector::find($data['sector_id']);
+                $prefix = 'SP';
+                
+                if ($sector) {
+                    $sectorName = strtolower(trim($sector->name));
+                    switch ($sectorName) {
+                        case 'pecuario':
+                            $prefix = 'SPP';
+                            break;
+                        case 'agro':
+                            $prefix = 'SPA';
+                            break;
+                        case 'food':
+                            $prefix = 'SPCH';
+                            break;
+                        case 'petfood':
+                            $prefix = 'SPPF';
+                            break;
+                        case 'envases':
+                            $prefix = 'SPE';
+                            break;
+                        case 'industrial':
+                            $prefix = 'SPI';
+                            break;
+                        case 'otro':
+                            $prefix = 'SPO';
+                            break;
+                        default:
+                            $prefix = 'SP';
+                            break;
+                    }
+                }
+
+                $data['supplier_code'] = $prefix . $next;
 
                 Supplier::create($data);
 
