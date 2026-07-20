@@ -19,7 +19,7 @@ class StoreSaleRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
-    public function rules(): array
+  public function rules(): array
     {
         return [
             'seller' => 'required|string|max:150',
@@ -36,7 +36,6 @@ class StoreSaleRequest extends FormRequest
             'user_id' => 'required|integer',
             'sales_status_id' => 'required|integer',
             'sector_id' => 'required|integer',
-            'payment_status' => 'nullable|string|in:PAID,PENDING',
             'product_id'   => 'required|array|min:1', 
             'product_id.*' => 'required|integer|exists:products,product_id',
             'quantity'     => 'required|array',
@@ -44,7 +43,13 @@ class StoreSaleRequest extends FormRequest
             'cost'         => 'required|array',
             'cost.*'       => 'required|numeric|min:0',
             'has_tax'      => 'nullable|array',
-            'has_tax.*'    => 'nullable|integer'
+            'has_tax.*'    => 'nullable|integer',
+            'invoice_val'            => 'nullable|array',
+            'invoice_val.*'          => 'nullable|integer|in:0,1',
+            'public_product_name'    => 'nullable|array',
+            'public_product_name.*'  => 'nullable|string|max:200',
+            'public_batch'           => 'nullable|array',
+            'public_batch.*'         => 'nullable|string|max:100',
         ];
     }
 }
