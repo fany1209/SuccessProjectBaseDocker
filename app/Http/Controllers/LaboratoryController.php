@@ -654,7 +654,9 @@ class LaboratoryController extends Controller
                 
                 $q = \DB::table($tableLab)->lockForUpdate();
                 
-                if (!empty($sku)) {
+                if (!empty($validated['folio_muestra'])) {
+                    $q->where('folio', $validated['folio_muestra']);
+                } elseif (!empty($sku)) {
                     $q->where('sku', $sku);
                 } else {
                     $q->where('producto', $productName);
@@ -777,28 +779,22 @@ class LaboratoryController extends Controller
     public function destroyMuestra($id)
     {
         try {
-            $recepcion = \DB::table('reception_of_samples')->where('id', $id)->first();
+            $salida = \DB::table('salida_muestras')->where('id', $id)->first();
 
-            if (!$recepcion) {
-                return response()->json(['error' => 'No se encontró el registro de la recepción.'], 404);
+            if (!$salida) {
+                return response()->json(['error' => 'No se encontró el registro de la muestra de salida.'], 404);
             }
 
-            $folio = $recepcion->folio ?? null; 
-
-            if ($folio) {
-                \DB::table('salida_muestras')->where('folio_muestra', $folio)->delete();
-            }
-
-            \DB::table('reception_of_samples')->where('id', $id)->delete();
+            \DB::table('salida_muestras')->where('id', $id)->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Recepción y salida asociada eliminadas correctamente.'
+                'message' => 'Muestra de salida eliminada correctamente.'
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
-                'error' => 'Error al eliminar: ' . $e->getMessage()
+                'error' => 'Ocurrió un error al eliminar el registro.'
             ], 500);
         }
     }
