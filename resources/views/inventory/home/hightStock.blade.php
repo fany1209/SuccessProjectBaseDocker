@@ -3,11 +3,11 @@ Inventario - Insumos
 --}}
 <section class="flex flex-col items-center w-full overflow-y-auto h-[500px]">
     <div class="flex flex-col justify-center items-center w-full">
-        <div class="flex flex-col justify-center items-center w-full p-2 bg-sky-400 rounded-sm">
+        <div class="flex flex-col justify-center items-center w-full p-2 bg-sky-700 rounded-sm">
             <h2 class="text-xl font-bold tracking-[5px] text-white">Insumos</h2>
         </div>
         <table id="hight-stock-table" class="display w-full divide-y divide-gray-200 table-fixed text-md text-left">
-            <thead class="bg-sky-400 text-white uppercase text-md">
+            <thead class="bg-sky-700 text-white uppercase text-md">
                 <tr>
                     <th scope="col" class="px-6 py-1 text-left">PRODUCT</th>
                     <th scope="col" class="px-6 py-1 text-left">STOCK</th>
@@ -45,7 +45,7 @@ $(document).ready(function(){
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
                         });
-                        return `<span class="text-xs tracking-[2px] font-bold text-white px-2 py-1 rounded-lg bg-sky-400">${formatted}</span>`;
+                        return `<span class="text-xs tracking-[2px] font-bold text-white px-2 py-1 rounded-lg bg-sky-700">${formatted}</span>`;
                     }
                 },
                 { data: 'unit',
