@@ -558,32 +558,32 @@ Fecha de actualización: 27-02-2026
             });
         }
 
-        function updateSale(){
-            $("#update-sale-form").submit(function(event) {
-                event.preventDefault();
-                var form = $('#update-sale-form')[0];
-                var data = new FormData(form);
-                var id = $('#sale-id').val(); 
-                data.append('_method', 'PUT');
-                $.ajax({
-                    type:'POST',
-                    url:`/sales/${id}`,
-                    data:data,
-                    processData:false,
-                    contentType:false,
-                    success: function(){
-                        Swal.fire({
-                            icon: 'success', title: 'Success', text: 'The sale was updated successfully.'
-                        }).then((result) => {
-                            if (result.isConfirmed) location.reload();
-                        });
-                    }
+            function updateSale() {
+                $("#update-sale-form").submit(function (event) {
+                    event.preventDefault();
+                    var form = $('#update-sale-form')[0];
+                    var data = new FormData(form);
+                    var id = $('#sale-id').val();
+                    data.append('_method', 'PUT');
+                    $.ajax({
+                        type: 'POST',
+                        url: `/sales/${id}`,
+                        data: data,
+                        processData: false,
+                        contentType: false,
+                        success: function () {
+                            Swal.fire({
+                                icon: 'success', title: 'Success', text: 'The sale was updated successfully.'
+                            }).then((result) => {
+                                if (result.isConfirmed) location.reload();
+                            });
+                        }
+                    });
                 });
-            });
-        }
-        
-        updateSale();
-        reactiveUpdateSale();
-    });
-</script>
+            }
+
+            updateSale();
+            reactiveUpdateSale();
+        });
+    </script> 
 @endpush

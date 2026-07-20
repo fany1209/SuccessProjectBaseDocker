@@ -63,7 +63,9 @@
                                 <span class="bg-gray-200 text-gray-700 py-1 px-2 rounded-full text-xs font-bold">{{ $precio->moneda }}</span>
                             </td>
                             
-                            <td class="px-4 py-3 text-gray-500">{{ \Carbon\Carbon::parse($precio->fecha_cotizacion)->format('d/m/Y') }}</td>
+                            <td class="px-4 py-3 text-gray-500" data-sort="{{ \Carbon\Carbon::parse($precio->fecha_cotizacion)->format('Y-m-d') }}">
+                                {{ \Carbon\Carbon::parse($precio->fecha_cotizacion)->format('d/m/Y') }}
+                            </td>
                             
                             <td class="px-4 py-3 text-center">
                                 <div class="flex gap-1 justify-center items-center">
