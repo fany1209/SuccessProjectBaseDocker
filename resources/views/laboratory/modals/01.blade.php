@@ -10,7 +10,7 @@
         <select name="folio_muestra" id="folio_muestra" class="w-full border rounded px-2 py-1" required>
           <option value="">Seleccione folio…</option>
           
-          @foreach ($samples->sortByDesc('folio') as $s)
+          @foreach ($samples->sortByDesc('folio')->unique('folio') as $s)
             <option
               value="{{ $s->folio }}"
               data-product-id="{{ $s->product_id }}"
