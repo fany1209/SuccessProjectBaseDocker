@@ -8,7 +8,11 @@ Fecha de actualización: 08-01-2025
 --}}
 <section class="col-span-12 w-full flex flex-col items-center px-1">
     <div class="flex flex-col justify-center items-center w-full">
-        <div class="flex justify-end items-center gap-2 w-full my-2">
+        <div class="flex justify-between items-center gap-2 w-full my-2">
+            <div class="relative w-full md:w-1/3">
+                <input type="text" id="global-search" class="filter-input w-full p-2 pr-10 border border-gray-300 focus:border-green-500 focus:ring-green-500 rounded-md shadow-sm" placeholder="Search by code, name, email, phone...">
+                <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+            </div>
             <button id="toggle-filters" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md shadow-sm text-gray-700 font-medium flex items-center gap-2" title="Toggle Filters">
                 <i class="fas fa-filter"></i> Filters
             </button>
@@ -85,6 +89,7 @@ $(function(){
                     d.city = $('#filter-city').val();
                     d.vendedor = $('#filter-vendedor').val();
                     d.name = $('#filter-name').val();
+                    d.search = $('#global-search').val();
                 },
                 dataSrc: 'customers'
             },
@@ -163,6 +168,7 @@ $(function(){
             $('#filter-city').val('');
             $('#filter-vendedor').val('');
             $('#filter-name').val('');
+            $('#global-search').val('');
             table.ajax.reload();
         });
 

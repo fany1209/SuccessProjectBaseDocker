@@ -513,7 +513,7 @@ class QualityController extends Controller
 
             $toDomPdfPath = function (?string $relativePath) {
                 if (!$relativePath) return null;
-                $p = public_path('storage/'.ltrim($relativePath, '/'));
+                $p = base_path('../public_html/'.ltrim($relativePath, '/'));
                 return file_exists($p) ? $p : null;
             };
 
@@ -776,8 +776,8 @@ class QualityController extends Controller
                         'name'          => $o->name,
                         'rev'           => $o->rev,
                         'fecha'         => $fmtYmd($o->fecha),
-                        'evidencia_url' => $evi ? \Storage::disk('public')->url($evi) : null,
-                        'ev_corr_url'   => $cor ? \Storage::disk('public')->url($cor) : null,
+                        'evidencia_url' => $evi ? asset($evi) : null,
+                        'ev_corr_url'   => $cor ? asset($cor) : null,
                         'evidencia_path'=> $evi,
                         'ev_corr_path'  => $cor,
                         'ubicacion' => $o->ubicacion,
@@ -812,7 +812,6 @@ class QualityController extends Controller
 
             return response()->json(['inspections' => $payload], 200);
         }
-        //en produccion la ruta de imagenes cambia
         public function pdf6(Request $request)
         {
             $coalesce = function (Request $r, array $keys) {
@@ -920,7 +919,7 @@ class QualityController extends Controller
                 'imagenes'         => 'nullable|array',
                 'imagenes.*'       => 'file|mimes:jpg,jpeg,png,webp|max:5120',
                 'firma_nombre'     => 'nullable|string|max:150',
-                'comentarios'      => 'nullable|string', // ← SE MANTIENE EL FIX DEL COMENTARIO
+                'comentarios'      => 'nullable|string', 
             ]);
 
             if ($v->fails()) {
@@ -979,7 +978,6 @@ class QualityController extends Controller
                             $stored = $file->storeAs('incidencias/'.$folio, $name, 'public'); 
                             $imgRel = 'storage/'.$stored;
                             
-                            // ← FIX APLICADO: Ruta física del servidor para el PDF
                             $imgAbs = storage_path('app/public/'.$stored); 
                             
                             $relativePublicPaths[] = $imgRel;
@@ -1016,7 +1014,6 @@ class QualityController extends Controller
                         $imgRel= $relativePublicPaths[$i] ?? null;
                         $descItemsForView[] = [
                             'texto' => $texto,
-                            // ← FIX APLICADO: Ruta física del servidor para el array compatible
                             'img'   => $imgRel ? storage_path('app/public/' . str_replace('storage/', '', $imgRel)) : null,
                         ];
                     }
@@ -1065,8 +1062,6 @@ class QualityController extends Controller
                     'fecha_incidencia' => $insertData['fecha_incidencia'],
                     'incidencia'       => $insertData['incidencia'],
                     'descripcion'      => $descItemsForView, 
-                    
-                    // ← FIX APLICADO: Asegurándonos de que todas las imágenes procesadas sean rutas storage_path
                     'imagenes'         => array_map(fn($rel) => storage_path('app/public/' . str_replace('storage/', '', $rel)), $relativePublicPaths),
                     
                     'comentarios'      => $insertData['comentarios'],
@@ -1513,9 +1508,8 @@ class QualityController extends Controller
         'tr_otro_obs'                  => 'nullable|string|max:300',
         'inspector_nombre'             => 'nullable|string|max:150',
         'observaciones'                => 'nullable',
-        // --- SE AGREGA LA VALIDACIÓN DE IMÁGENES ---
         'evidencias'                   => 'nullable|array|max:3',
-        'evidencias.*'                 => 'image|mimes:jpeg,png,jpg|max:2048', // max 2MB por foto
+        'evidencias.*'                 => 'image|mimes:jpeg,png,jpg|max:2048',
     ]);
 
     if ($v->fails()) {
@@ -1575,7 +1569,6 @@ class QualityController extends Controller
         return $row;
     })->values()->toArray();
 
-    // --- PROCESAMIENTO DE IMÁGENES A BASE64 ---
     $evidencias_base64 = [];
     if ($request->hasFile('evidencias')) {
         foreach ($request->file('evidencias') as $file) {
@@ -1583,13 +1576,11 @@ class QualityController extends Controller
                 $path = $file->getRealPath();
                 $type = $file->getClientMimeType();
                 $imgData = file_get_contents($path);
-                // Convertir a base64 para que DomPDF lo renderice sin problemas de rutas
                 $base64 = 'data:' . $type . ';base64,' . base64_encode($imgData);
                 $evidencias_base64[] = $base64;
             }
         }
     }
-    // Pasamos el arreglo de base64 a la vista
     $data['evidencias'] = $evidencias_base64;
 
     try {
@@ -1851,7 +1842,7 @@ class QualityController extends Controller
                         'name' => $obs->name,
                         'rev' => $obs->rev,
                         'ubicacion'       => $obs->ubicacion,                                     
-                        'evidencia_url' => $obs->evidencia_path ? asset('storage/'.$obs->evidencia_path) : null,
+                        'evidencia_url' => $obs->evidencia_path ? asset($obs->evidencia_path) : null,
                     ];
                 });
 
