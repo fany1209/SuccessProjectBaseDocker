@@ -761,7 +761,8 @@ $(document).ready(function (){
                     select.empty().append('<option value="">-- Selecciona un certificado --</option>');
                     
                     (response.certificates ?? []).forEach(cert => {
-                        select.append(`<option value="${cert.id}">${cert.supplier_name} - ${cert.product_name}</option>`);
+                        let fecha = cert.fecha_emision ? ` (Emitido: ${cert.fecha_emision})` : '';
+                        select.append(`<option value="${cert.certificate_id}">${cert.supplier_name} - ${cert.product_name}${fecha}</option>`);
                     });
                 });
 

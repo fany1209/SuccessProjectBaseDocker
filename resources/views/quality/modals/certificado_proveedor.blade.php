@@ -23,6 +23,11 @@
         </div>
 
         <div>
+            <label for="fecha_emision" class="block text-sm font-medium text-gray-700">Fecha de Emisión</label>
+            <input type="date" name="fecha_emision" id="fecha_emision" class="w-full rounded-md border border-gray-300 px-3 py-2" required>
+        </div>
+
+        <div>
             <label for="file" class="block text-sm font-medium text-gray-700">Certificado (PDF)</label>
             <input type="file" name="file" id="file" accept="application/pdf" 
                 class="w-full rounded-md border border-gray-300 px-3 py-2" required>

@@ -13,6 +13,7 @@
           <th class="px-6 py-4">Supplier</th>
           <th class="px-6 py-4">Product</th>
           <th class="px-6 py-4">File</th>
+          <th class="px-6 py-4">Fecha Emisión</th>
           <th class="px-6 py-4">Date</th>
           <th class="px-6 py-4">Actions</th>
         </tr>
@@ -45,6 +46,9 @@ $(document).ready(function () {
             { data: 'file_path', render: function(data){
                 const url = ensureStorageUrl(data);
                 return url ? `<a href="${url}" target="_blank" class="text-blue-600 underline">Ver PDF</a>` : '';
+            }},
+            { data: 'fecha_emision', render: function(data){
+                return data ? data : 'N/A';
             }},
             { data: 'created_at', render: function(data){
                 return new Date(data).toLocaleString();

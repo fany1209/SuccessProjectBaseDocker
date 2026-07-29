@@ -12,6 +12,7 @@ class SupplierCertificateController extends Controller
         $request->validate([
             'supplier_id' => 'required|exists:suppliers,supplier_id',
             'product_id' => 'required|exists:products,product_id',
+            'fecha_emision' => 'required|date',
             'file' => 'required|mimes:pdf|max:2048',
         ]);
 
@@ -24,6 +25,7 @@ class SupplierCertificateController extends Controller
         DB::table('supplier_certificates')->insert([
             'supplier_id' => $request->supplier_id,
             'file_id' => $fileId,
+            'fecha_emision' => $request->fecha_emision,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -42,6 +44,7 @@ class SupplierCertificateController extends Controller
                 's.name as supplier_name',
                 'p.name as product_name',
                 'f.path as file_path',
+                'sc.fecha_emision',
                 'sc.created_at'
             )
             ->orderBy('sc.created_at', 'desc')
