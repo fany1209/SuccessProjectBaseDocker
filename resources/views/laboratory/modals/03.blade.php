@@ -2,26 +2,35 @@
   <form id="salida-muestras-form" method="POST" action="{{ route('laboratory.pdf3') }}" target="_blank" class="space-y-4">
     @csrf
 
-   {{-- ======= Folio ======= --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
       <div>
-        <label class="block text-sm font-semibold">Folio muestra *</label>
-
+        <label class="block text-sm font-semibold">Folio muestra (Inventario) *</label>
         <select name="folio_muestra" id="folio_muestra" class="w-full border rounded px-2 py-1" required>
           <option value="">Seleccione folio…</option>
-          
           @foreach ($samples->sortByDesc('folio') as $s)
             <option value="{{ $s->folio }}"
                     data-product-id="{{ $s->product_id ?? '' }}"
                     data-sku="{{ $s->sku ?? '' }}"
                     data-producto="{{ $s->producto ?? '' }}"
                     @selected(old('folio_muestra') == $s->folio)>
-              
               {{ $s->folio }} — {{ $s->producto ?? 'Sin producto' }}
-              
             </option>
           @endforeach
         </select>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-blue-700">Vincular con Solicitud (Opcional)</label>
+        <select id="folio_solicitud" class="w-full border border-blue-400 rounded px-2 py-1">
+          <option value="">Seleccione una solicitud para autocompletar datos…</option>
+          @if(isset($customerRequests))
+              @foreach($customerRequests as $req)
+                <option value="{{ $req->folio }}">
+                  {{ $req->folio }} — {{ $req->cliente_nombre }} ({{ $req->producto }})
+                </option>
+              @endforeach
+          @endif
+        </select>
+        <p class="text-xs text-gray-500 mt-1">Al seleccionar una solicitud se autocompletarán los datos de contacto y paquetería.</p>
       </div>
     </div>
 
@@ -190,7 +199,6 @@
   {{-- ======= JS ====== --}}
   <script>
     (function(){
-      // Submit
       document.getElementById('salida-muestras-submit')?.addEventListener('click', function(){
         const modal = this.closest('[role="dialog"], .modal, [data-modal]') || document;
         const form  = modal.querySelector('#salida-muestras-form');
@@ -199,7 +207,6 @@
 
       function toggleText(enable, el){ if(!el) return; el.disabled = !enable; if(!enable) el.value=''; }
 
-      // Motivo
       function syncMotivo(){
         const v = (document.querySelector('input[name="motivo_salida"]:checked')||{}).value;
         toggleText(v === 'otro', document.getElementById('mot_otro_txt'));
@@ -207,21 +214,16 @@
       document.querySelectorAll('input[name="motivo_salida"]').forEach(r=>r.addEventListener('change', syncMotivo));
       syncMotivo();
 
-      // Entrega otro
       const entOtroChk = document.getElementById('entrega_otro_chk');
       const entOtroTxt = document.getElementById('entrega_otro_txt');
       function syncEntrega(){ toggleText(!!entOtroChk?.checked, entOtroTxt); }
       entOtroChk?.addEventListener('change', syncEntrega); syncEntrega();
 
-      // Docs otro
       const docsOtroChk = document.getElementById('docs_otro_chk');
       const docsOtroTxt = document.getElementById('docs_otro_txt');
       function syncDocs(){ toggleText(!!docsOtroChk?.checked, docsOtroTxt); }
       docsOtroChk?.addEventListener('change', syncDocs); syncDocs();
 
-      // =======================
-      //  Producto / SKU / Lotes
-      // =======================
       const modalRoot     = document.getElementById('03');
       const folioSelect   = modalRoot?.querySelector('select[name="folio_muestra"]');
       const productSelect = modalRoot?.querySelector('select[name="product_id"]');
@@ -269,7 +271,20 @@
         fillLotes(pid);
       }
 
-      // ✅ NUEVO: al cambiar folio, selecciona producto automáticamente
+      let customerRequestsCache = null;
+      async function getCustomerRequests() {
+          if (customerRequestsCache) return customerRequestsCache;
+          try {
+              const res = await fetch("{{ route('laboratory.customer_requests.json') }}");
+              const json = await res.json();
+              customerRequestsCache = json.data || [];
+              return customerRequestsCache;
+          } catch (e) {
+              console.error("Error fetching customer requests:", e);
+              return [];
+          }
+      }
+
       function setProductFromFolio(){
         if (!folioSelect || !productSelect) return;
         const opt = folioSelect.selectedOptions?.[0];
@@ -281,11 +296,73 @@
         }
       }
 
-      // Eventos
+      async function onSolicitudChange() {
+          const reqFolio = document.getElementById('folio_solicitud')?.value;
+          if (!reqFolio) return;
+
+          const reqs = await getCustomerRequests();
+          const matched = reqs.find(r => r.folio === reqFolio);
+          if (matched) {
+                const destNombre = document.querySelector('#salida-muestras-form input[name="dest_nombre"]');
+                if (destNombre) destNombre.value = matched.cliente_nombre || '';
+                
+                const destDir = document.querySelector('#salida-muestras-form input[name="dest_direccion"]');
+                if (destDir) destDir.value = matched.cliente_direccion || '';
+                
+                const destCorreo = document.querySelector('#salida-muestras-form input[name="dest_correo"]');
+                if (destCorreo) destCorreo.value = matched.cliente_correo || '';
+                
+                const destTel = document.querySelector('#salida-muestras-form input[name="dest_telefono"]');
+                if (destTel) destTel.value = matched.cliente_telefono || '';
+                
+                const destRecibe = document.querySelector('#salida-muestras-form input[name="dest_recibe"]');
+                if (destRecibe) destRecibe.value = matched.solicitante_nombre || '';
+
+                const paqEmp = document.querySelector('#salida-muestras-form input[name="paq_empresa"]');
+                if (paqEmp) paqEmp.value = matched.paq_nombre || '';
+                
+                const paqGuia = document.querySelector('#salida-muestras-form input[name="paq_guia"]');
+                if (paqGuia) paqGuia.value = matched.paq_guia || '';
+
+                const entPaq = document.querySelector('#salida-muestras-form input[name="entrega_paqueteria"]');
+                if (entPaq) entPaq.checked = !!matched.entrega_paqueteria;
+                
+                const entRec = document.querySelector('#salida-muestras-form input[name="entrega_recoleccion_planta"]');
+                if (entRec) entRec.checked = !!matched.entrega_recoleccion_planta;
+                
+                const entPers = document.querySelector('#salida-muestras-form input[name="entrega_personal_empresa"]');
+                if (entPers) entPers.checked = !!matched.entrega_personal_empresa;
+                
+                const entOtro = document.querySelector('#salida-muestras-form input[name="entrega_otro"]');
+                if (entOtro) entOtro.checked = !!matched.entrega_otro;
+                
+                const entOtroTxt = document.querySelector('#salida-muestras-form input[name="entrega_otro_txt"]');
+                if (entOtroTxt) entOtroTxt.value = matched.entrega_otro_txt || '';
+                
+                const docsCc = document.querySelector('#salida-muestras-form input[name="docs_cc"]');
+                if (docsCc) docsCc.checked = !!matched.docs_cc;
+                
+                const docsFt = document.querySelector('#salida-muestras-form input[name="docs_ft"]');
+                if (docsFt) docsFt.checked = !!matched.docs_ft;
+                
+                const docsHs = document.querySelector('#salida-muestras-form input[name="docs_hs"]');
+                if (docsHs) docsHs.checked = !!matched.docs_hs;
+                
+                const docsOtro = document.querySelector('#salida-muestras-form input[name="docs_otro"]');
+                if (docsOtro) docsOtro.checked = !!matched.docs_otro;
+                
+                const docsOtroTxt = document.querySelector('#salida-muestras-form input[name="docs_otro_txt"]');
+                if (docsOtroTxt) docsOtroTxt.value = matched.docs_otro_txt || '';
+
+                if (typeof syncEntrega === 'function') syncEntrega();
+                if (typeof syncDocs === 'function') syncDocs();
+          }
+      }
+
       productSelect?.addEventListener('change', onProductChange);
       folioSelect?.addEventListener('change', setProductFromFolio);
+      document.getElementById('folio_solicitud')?.addEventListener('change', onSolicitudChange);
 
-      // Inicializa (por si hay old values)
       onProductChange();
       setProductFromFolio();
 
