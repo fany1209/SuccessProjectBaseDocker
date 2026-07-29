@@ -107,13 +107,16 @@ class LaboratoryController extends Controller
             ->unique()
             ->values();
 
+        $customerRequests = \App\Models\CustomerSampleRequest::orderByDesc('id')->get();
+
         return view('laboratory', compact(
             'products',
             'batchesByProduct',
             'suppliers',
             'customers',
             'samples',
-            'folios'
+            'folios',
+            'customerRequests'
         ));
     }
 
@@ -1596,6 +1599,7 @@ class LaboratoryController extends Controller
             $pesoKg   = (float) $validated['peso'];
             $pesoUnit = 'kg';
         }
+        $folio = $validated['folio'] ?? null;
 
         $record = \DB::transaction(function () use ($validated, $dosis, $fechasForDb, $fechaAplicacionDb, $folio) {
             return \App\Models\LaboratoryMonitoring::create([
