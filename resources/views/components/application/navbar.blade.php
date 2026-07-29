@@ -127,7 +127,7 @@
                         </span>
                     </button>
 
-                    <div x-show="showNotifications" 
+                    <div id="notifications-dropdown-list" x-show="showNotifications" 
                          @click.away="showNotifications = false" 
                          x-transition:enter="transition ease-out duration-200"
                          x-transition:enter-start="opacity-0 scale-95"
@@ -148,8 +148,12 @@
                                 </div>
                                 <p class="text-xs">{{ $notification->data['message'] ?? 'No detail provided' }}</p>
                                 
+                                @if(isset($notification->data['url']))
+                                    <a href="{{ $notification->data['url'] }}" class="text-[10px] text-indigo-600 hover:underline">Ver detalles</a>
+                                @endif
+
                                 @if($notification->read_at)
-                                    <span class="text-[10px] text-gray-400 italic">Leída</span>
+                                    <span class="text-[10px] text-gray-400 italic block mt-1">Leída</span>
                                 @endif
                             </div>
                         @endforeach

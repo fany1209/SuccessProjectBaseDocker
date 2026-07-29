@@ -14,7 +14,10 @@ use App\Models\Prospect;
 use App\Models\Product;
 use App\Models\SaleDetail;
 use App\Models\User;
+use App\Models\Inventory;
 use Illuminate\Database\QueryException;
+use App\Notifications\SaleAlmacenNotification;
+use Illuminate\Support\Facades\Notification;
 
 class SalesController extends Controller
 {
@@ -243,7 +246,17 @@ class SalesController extends Controller
                     ]);
                 }
 
-                return response()->json(['message' => 'Operation successfully completed'], 201);
+                $almacenUsers = User::role(['Warehouse', 'Admin'])->get();
+                if($almacenUsers->count() > 0) {
+                    Notification::send($almacenUsers, new SaleAlmacenNotification($sale, 'new_sale', "Nueva venta registrada: Folio " . $sale->folio . " esperando confirmación."));
+                }
+                
+                // Notificar también al creador de la venta
+                if ($sale->user) {
+                    $sale->user->notify(new SaleAlmacenNotification($sale, 'pending', "Tu venta Folio " . $sale->folio . " ha sido enviada a almacén para confirmación."));
+                }
+
+                return response()->json(['message' => 'Venta registrada y enviada a almacén para confirmación'], 201);
             });
         } catch (\Exception $e) {
             if ($e instanceof QueryException) {
@@ -509,5 +522,122 @@ class SalesController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    public function almacenDetail($id)
+    {
+        $sale = Sale::with(['customer', 'prospect', 'user', 'products'])->findOrFail($id);
+        
+        $user = Auth::user();
+        if (!$user->hasRole(['Warehouse', 'Production', 'Admin', 'Sales'])) {
+            abort(403, 'No tienes permiso para ver esta vista.');
+        }
+
+        return view('sales.almacen_detail', compact('sale'));
+    }
+
+    public function almacenAction(Request $request, $id)
+    {
+        try {
+            return DB::transaction(function () use ($request, $id) {
+                $sale = Sale::with(['user', 'products'])->findOrFail($id);
+                $action = $request->input('action');
+                $userVentas = $sale->user; 
+                $almacenUsers = User::role(['Warehouse', 'Admin'])->get();
+                
+                if ($action === 'confirm') {
+                    $sale->almacen_status = 'confirmed';
+                    $sale->save();
+
+                    $saleDetails = SaleDetail::where('sale_id', $id)->get();
+                    foreach ($saleDetails as $detail) {
+                        $inventoryQuery = Inventory::where('product_id', $detail->product_id)->lockForUpdate();
+                        
+                        if ($detail->public_batch) {
+                            $inventoryQuery->where('batch', $detail->public_batch);
+                        }
+                        
+                        $inventory = $inventoryQuery->first();
+                        
+                        if ($inventory) {
+                            if ($inventory->stock < $detail->quantity) {
+                                throw new \Exception("Stock insuficiente para el producto: " . ($detail->public_product_name ?: 'ID '.$detail->product_id));
+                            }
+                            $inventory->stock -= $detail->quantity;
+                            $inventory->save();
+                        } else {
+                            $inventoryGeneral = Inventory::where('product_id', $detail->product_id)->lockForUpdate()->first();
+                            if ($inventoryGeneral) {
+                                if ($inventoryGeneral->stock < $detail->quantity) {
+                                    throw new \Exception("Stock insuficiente para el producto: " . ($detail->public_product_name ?: 'ID '.$detail->product_id));
+                                }
+                                $inventoryGeneral->stock -= $detail->quantity;
+                                $inventoryGeneral->save();
+                            } else {
+                                throw new \Exception("Inventario no encontrado para el producto ID: " . $detail->product_id);
+                            }
+                        }
+                    }
+
+                    if ($userVentas) {
+                        $userVentas->notify(new SaleAlmacenNotification($sale, 'confirmed', "Tu venta Folio " . $sale->folio . " ha sido confirmada por almacén."));
+                    }
+                    if ($almacenUsers->count() > 0) {
+                        Notification::send($almacenUsers, new SaleAlmacenNotification($sale, 'inventory_updated', "El inventario ha sido reducido para la venta Folio " . $sale->folio));
+                    }
+                    
+                    return response()->json(['success' => true, 'message' => 'Venta confirmada e inventario actualizado.']);
+                } 
+                elseif ($action === 'postpone') {
+                    $request->validate(['reason' => 'required', 'date' => 'required|date']);
+                    $sale->almacen_status = 'postponed';
+                    $sale->almacen_comment = $request->reason;
+                    $sale->almacen_postponed_date = $request->date;
+                    $sale->save();
+                    
+                    if ($userVentas) {
+                        $userVentas->notify(new SaleAlmacenNotification($sale, 'postponed', "Tu venta Folio " . $sale->folio . " fue pospuesta por almacén.", $request->reason, $request->date));
+                    }
+                    return response()->json(['success' => true, 'message' => 'Venta pospuesta.']);
+                }
+                elseif ($action === 'cancel') {
+                    $request->validate(['reason' => 'required']);
+                    $sale->almacen_status = 'cancelled';
+                    $sale->almacen_comment = $request->reason;
+                    $sale->save();
+                    
+                    if ($userVentas) {
+                        $userVentas->notify(new SaleAlmacenNotification($sale, 'cancelled', "Tu venta Folio " . $sale->folio . " fue cancelada por almacén.", $request->reason));
+                    }
+                    return response()->json(['success' => true, 'message' => 'Venta cancelada.']);
+                }
+
+                return response()->json(['success' => false, 'message' => 'Acción inválida.'], 400);
+            });
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function unreadNotifications()
+    {
+        $user = Auth::user();
+        if (!$user) return response()->json(['notifications' => []]);
+
+        $notifications = $user->unreadNotifications->where('type', 'App\Notifications\SaleAlmacenNotification');
+        return response()->json(['notifications' => $notifications]);
+    }
+
+    public function markNotificationAsRead($id)
+    {
+        $user = Auth::user();
+        if (!$user) return response()->json(['success' => false], 401);
+
+        $notification = $user->unreadNotifications->where('id', $id)->first();
+        if ($notification) {
+            $notification->markAsRead();
+            return response()->json(['success' => true]);
+        }
+        return response()->json(['success' => false], 404);
     }
 }

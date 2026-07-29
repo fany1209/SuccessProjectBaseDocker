@@ -254,6 +254,10 @@ Route::middleware([
     Route::delete('/deleteDetail', [SalesController::class, 'deleteDetail'])->middleware('can:sales.show')->name('sales.deleteDetail');
     Route::get('/sales-chart-data', [SalesController::class, 'getRemisionesChartData'])->name('sales.chartData');
     Route::patch('/sales/{sale}/update-status', [SalesController::class, 'updateStatus'])->name('sales.updateStatus');
+    Route::get('/sales/{id}/almacen', [SalesController::class, 'almacenDetail'])->name('sales.almacen_detail');
+    Route::post('/sales/{id}/almacen/action', [SalesController::class, 'almacenAction'])->name('sales.almacen_action');
+    Route::get('/almacen-notifications/unread', [SalesController::class, 'unreadNotifications'])->name('almacen_notifications.unread');
+    Route::post('/almacen-notifications/mark-read/{id}', [SalesController::class, 'markNotificationAsRead'])->name('almacen_notifications.mark_read');
     
     //quote
     Route::resource('quotes', QuoteController::class)->names([

@@ -14,7 +14,7 @@ class Sale extends Model
     protected $fillable = [
         'seller', 'first_time', 'is_customer', 'purchase_order', 'invoice',
         'sale_type', 'term', 'date', 'folio', 'customer_id', 'prospect_id', 'user_id', 'sales_status_id',
-        'sector_id', 'payment_status'
+        'sector_id', 'payment_status', 'almacen_status', 'almacen_comment', 'almacen_postponed_date'
     ];
 
     protected static function booted()

@@ -80,6 +80,67 @@
                         badge.text(current + 1).removeClass('hidden').show();
                     }
                 });
+
+                // Polling for Almacen Notifications
+                let shownNotifications = [];
+                function fetchUnreadNotifications() {
+                    $.get('{{ route("almacen_notifications.unread") }}', function(res) {
+                        if(res.notifications) {
+                            let newNotifs = Object.values(res.notifications).filter(n => !shownNotifications.includes(n.id));
+                            if(newNotifs.length > 0) {
+                                newNotifs.forEach(n => {
+                                    shownNotifications.push(n.id);
+                                    let msg = n.data.message || 'Nueva notificación de almacén';
+                                    Swal.fire({
+                                        toast: true,
+                                        position: 'top-end',
+                                        icon: 'info',
+                                        title: 'Notificación de Venta',
+                                        text: msg,
+                                        showConfirmButton: true,
+                                        confirmButtonText: 'Ver detalles',
+                                        showCancelButton: true,
+                                        cancelButtonText: 'Cerrar',
+                                        timer: 10000,
+                                        timerProgressBar: true
+                                    }).then((result) => {
+                                        if (result.isConfirmed && n.data.url) {
+                                            $.post('{{ url("/almacen-notifications/mark-read") }}/' + n.id, function() {
+                                                window.location.href = n.data.url;
+                                            });
+                                        }
+                                    });
+
+                                    let dropdown = $('#notifications-dropdown-list');
+                                    if(dropdown.length > 0) {
+                                        let urlLink = n.data.url ? `<a href="${n.data.url}" class="text-[10px] text-indigo-600 hover:underline">Ver detalles</a>` : '';
+                                        let html = `
+                                            <div class="p-2 bg-white border-l-4 border-green-500">
+                                                <div class="flex justify-between">
+                                                    <span class="text-sm font-bold">Notificación</span>
+                                                    <small class="text-gray-400">Ahora mismo</small>
+                                                </div>
+                                                <p class="text-xs">${msg}</p>
+                                                ${urlLink}
+                                            </div>
+                                        `;
+                                        dropdown.children().first().after(html);
+                                    }
+                                });
+
+                                let badge = $('#notification-count');
+                                if(badge.length > 0) {
+                                    let current = parseInt(badge.text()) || 0;
+                                    badge.text(current + newNotifs.length).removeClass('hidden').show();
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                fetchUnreadNotifications();
+                setInterval(fetchUnreadNotifications, 30000); // 30 seconds
+
             @endauth
         });
 
