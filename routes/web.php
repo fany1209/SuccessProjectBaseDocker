@@ -565,6 +565,9 @@ Route::prefix('laboratory/materials')->group(function () {
     Route::post('/rh/clima-laboral', [\App\Http\Controllers\ClimaLaboralController::class, 'store'])->name('rh.clima_laboral.store');
     Route::get('/rh/clima-laboral/resultados', [\App\Http\Controllers\ClimaLaboralController::class, 'index'])->name('rh.clima_laboral.resultados');
 
+    // Cursos
+    Route::post('/rh/cursos', [\App\Http\Controllers\RecursosHumanosController::class, 'storeCurso'])->name('rh.cursos.store');
+    Route::get('/rh/cursos/resultados', [\App\Http\Controllers\RecursosHumanosController::class, 'indexCursos'])->name('rh.cursos.resultados');
 
     //portal users
     Route::get('admin/get-json-portal-users', [PortalUserController::class, 'getPortalUsers'])

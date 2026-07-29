@@ -20,6 +20,35 @@ class RecursosHumanosController extends Controller
                          ->with('success', 'Expediente creado correctamente.');
     }
 
+    public function storeCurso(Request $request)
+    {
+        $validated = $request->validate([
+            'fecha' => 'required|date',
+            'sede' => 'required|string|max:255',
+            'horario' => 'required|string|max:255',
+            'curso' => 'required|string|max:255',
+            'objetivo' => 'required|string',
+            'asistentes' => 'nullable|array'
+        ]);
+
+        // Filter empty assistants
+        if (isset($validated['asistentes'])) {
+            $validated['asistentes'] = array_filter($validated['asistentes'], function($value) {
+                return !is_null($value) && trim($value) !== '';
+            });
+        }
+
+        \App\Models\Curso::create($validated);
+
+        return redirect()->back()->with('success', 'Curso guardado correctamente.');
+    }
+
+    public function indexCursos()
+    {
+        $cursos = \App\Models\Curso::orderBy('fecha', 'desc')->get();
+        return view('rh.cursos_resultados', compact('cursos'));
+    }
+
     public function generarPdfExpediente(Request $req)
     {
         $validated = $req->validate([

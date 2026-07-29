@@ -16,4 +16,16 @@ class CustomerSampleRequest extends Model
         'entrega_paqueteria', 'entrega_personal_empresa', 'entrega_recoleccion_planta', 'entrega_otro', 'entrega_otro_txt',
         'paq_nombre', 'paq_guia', 'observaciones', 'solicitante_nombre'
     ];
+
+    protected $appends = ['producto'];
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class, 'product_id', 'product_id');
+    }
+
+    public function getProductoAttribute()
+    {
+        return $this->product ? $this->product->name : '';
+    }
 }

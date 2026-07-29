@@ -6,6 +6,11 @@ Actualizado por Jacob
     <div class="flex flex-col lg:flex-row lg:justify-between items-center gap-3">
         <form class="flex flex-col items-start justify-center gap-3 w-full lg:w-2/4" id="contact-form" method="POST">
             @csrf
+            {{-- Honeypot field --}}
+            <div style="position: absolute; left: -9999px; top: -9999px; opacity: 0; z-index: -1;" aria-hidden="true">
+                <label for="bot_check">Deja este campo vacío si eres humano:</label>
+                <input type="text" name="bot_check" id="bot_check" tabindex="-1" autocomplete="off">
+            </div>
             <x-wrapper-form-1>
                 <x-tittle-form class="border-s-2 border-[#198754] ps-3">Envíanos un mensaje</x-tittle-form>
             </x-wrapper-form-1>

@@ -14,8 +14,13 @@ use Illuminate\Http\Request;
 class ContactoController extends Controller
 {
     public function store(Request $request)
-{
-    $validated = $request->validate([
+    {
+        // Validación Honeypot: si el campo 'bot_check' tiene algún valor, es un bot.
+        if ($request->filled('bot_check')) {
+            return redirect()->back()->with('success', 'Mensaje enviado exitosamente.');
+        }
+
+        $validated = $request->validate([
         'name' => 'required|string|max:200',
         'phone' => 'required|string|max:15',
         'message' => 'required|string|max:255',
