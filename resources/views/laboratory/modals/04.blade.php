@@ -188,6 +188,14 @@
           <input type="date" name="fecha_entrada" class="w-full border rounded px-2 py-1">
         </div>
 
+        <div>
+          <label class="block text-sm font-semibold">Estatus</label>
+          <select name="status" id="status" class="w-full border rounded px-2 py-1">
+            <option value="En laboratorio">En laboratorio</option>
+            <option value="Fuera de laboratorio" selected>Fuera de laboratorio</option>
+          </select>
+        </div>
+
         {{--
         <div>
           <label class="block text-sm font-semibold">F. salida de lab</label>
