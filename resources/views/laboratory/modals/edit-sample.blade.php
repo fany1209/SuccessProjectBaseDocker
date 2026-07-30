@@ -61,6 +61,14 @@
         <input type="date" id="edit-fecha_salida" name="fecha_salida" class="w-full border rounded px-2 py-1">
       </div>
 
+      <div>
+        <label class="block text-sm font-semibold">Estatus</label>
+        <select id="edit-status" name="status" class="w-full border rounded px-2 py-1">
+          <option value="En laboratorio">En laboratorio</option>
+          <option value="Fuera de laboratorio">Fuera de laboratorio</option>
+        </select>
+      </div>
+
      {{-- <div class="md:col-span-2">
         <label class="block text-sm font-semibold">Proveedor</label>
         <input type="text" id="edit-proveedor" name="proveedor" class="w-full border rounded px-2 py-1">

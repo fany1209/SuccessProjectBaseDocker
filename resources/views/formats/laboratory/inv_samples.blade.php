@@ -29,6 +29,7 @@
           <th class="px-6 py-4">STOCK FINAL (g)</th>
           <th class="px-6 py-4">F. ENTRADA</th>
           <th class="px-6 py-4">F. SALIDA</th>
+          <th class="px-6 py-4">ESTATUS</th>
           <th class="px-6 py-4">ACTIONS</th>
         </tr>
       </thead>
@@ -106,6 +107,17 @@
         { data: 'stock_final',   className:'text-right' },
         { data: 'fecha_entrada' },
         { data: 'fecha_salida' },
+        { 
+          data: 'status', 
+          render: function(d) {
+            const st = d || 'Fuera de laboratorio';
+            if (st === 'En laboratorio') {
+              return `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">En laboratorio</span>`;
+            } else {
+              return `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-rose-100 text-rose-800">${st}</span>`;
+            }
+          }
+        },
         { data: null, render: renderLabActions, orderable:false, searchable:true }
       ],
       order: [[0,'asc']],
@@ -149,6 +161,7 @@
         setVal('edit-stock_final', r.stock_final);
         setVal('edit-fecha_entrada', r.fecha_entrada_raw ?? r.fecha_entrada);
         setVal('edit-fecha_salida',  r.fecha_salida_raw  ?? r.fecha_salida);
+        setVal('edit-status', r.status ?? 'Fuera de laboratorio');
         setVal('edit-proveedor', r.proveedor);
         setVal('edit-presentacion', r.presentacion);
         setVal('edit-motivo_salida', r.motivo_salida);

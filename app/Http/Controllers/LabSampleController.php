@@ -43,6 +43,7 @@ class LabSampleController extends Controller
                 'ls.fecha_salida',
                 'ros.batch as lote',
                 'ls.proveedor',
+                'ls.status',
             ])
             ->orderByDesc('ls.fecha_entrada')
             ->orderByDesc('ls.id')
@@ -71,6 +72,7 @@ class LabSampleController extends Controller
                     'stock_final'    => $num($r->stock_final),
                     'fecha_entrada'  => $d($r->fecha_entrada),
                     'fecha_salida'   => $d($r->fecha_salida),
+                    'status'         => $r->status ?? 'Fuera de laboratorio',
                     'acciones'       => '
                         <div class="flex gap-2">
                             <button class="px-2 py-1 rounded bg-emerald-600 text-white text-xs"
@@ -129,6 +131,7 @@ class LabSampleController extends Controller
                 'stock_final'      => $row->stock_final,
                 'fecha_entrada'    => $row->fecha_entrada,
                 'fecha_salida'     => $row->fecha_salida,
+                'status'           => $row->status ?? 'Fuera de laboratorio',
                 'fecha_entrada_raw'=> $toYmd($row->fecha_entrada),
                 'fecha_salida_raw' => $toYmd($row->fecha_salida),
             ]
@@ -146,7 +149,7 @@ class LabSampleController extends Controller
             'fecha_salida'     => ['nullable','date'],
             'stock_inicial'    => ['nullable','numeric','min:0'],
             'cantidad_salida'  => ['nullable','numeric','min:0'],
-            
+            'status'           => ['nullable','string','max:50'],
         ]);
 
         unset($validated['stock_final']);

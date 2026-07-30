@@ -681,12 +681,16 @@ class LaboratoryController extends Controller
                 }
 
                 $nuevaSalidaTotal = round($loQueYaHabiaSalido + $salidaG, 2);
+                $newStatus = ($nuevaSalidaTotal >= (float)$row->stock_inicial || ($stockActual - $salidaG) <= 0)
+                    ? 'Fuera de laboratorio'
+                    : ($row->status ?? 'Fuera de laboratorio');
 
                 \DB::table($tableLab)->where('id', $row->id)->update([
                     'cantidad_salida' => $nuevaSalidaTotal,
                     'fecha_salida'    => $fechaSalidaGuardar,
                     'motivo_salida'   => $validated['motivo_salida'] ?? $row->motivo_salida,
                     'cliente'         => $validated['dest_nombre'] ?? $row->cliente,
+                    'status'          => $newStatus,
                     'updated_at'      => now(),
                 ]);
 
@@ -1914,6 +1918,7 @@ class LaboratoryController extends Controller
             'solicitante'      => 'nullable|string|max:255',
             'recolector'       => 'nullable|string|max:255',
             'cliente'          => 'nullable|string|max:255',
+            'status'           => 'nullable|string|max:50',
         ]);
 
         unset($validated['stock_final']);
@@ -1934,6 +1939,9 @@ class LaboratoryController extends Controller
 
             $data = $validated;
             $data['folio'] = $folioFinal;
+            if (empty($data['status'])) {
+                $data['status'] = 'Fuera de laboratorio';
+            }
 
             return LaboratorySample::create($data);
         });
@@ -1961,7 +1969,7 @@ class LaboratoryController extends Controller
             'STOCK INICIAL (gramos)','Presentación','UBICACIÓN STOCK',
             'FECHA ENTRADA LABORATORIO','FECHA SALIDA LABORATORIO',
             'CANTIDAD DE SALIDA (gramos)','STOCK FINAL (gramos)',
-            'MOTIVO DE SALIDA','SOLICITANTE','RECOLECTOR','CLIENTE',
+            'MOTIVO DE SALIDA','SOLICITANTE','RECOLECTOR','CLIENTE','ESTATUS',
         ];
 
         $callback = function () use ($columns) {
@@ -1975,7 +1983,7 @@ class LaboratoryController extends Controller
                     'folio','tipo_muestra','proveedor','sku','producto',
                     'stock_inicial','presentacion','ubicacion_stock',
                     'fecha_entrada','fecha_salida','cantidad_salida','stock_final',
-                    'motivo_salida','solicitante','recolector','cliente',
+                    'motivo_salida','solicitante','recolector','cliente','status',
                 ])
                 ->get();
 
@@ -1997,6 +2005,7 @@ class LaboratoryController extends Controller
                     $r->solicitante,
                     $r->recolector,
                     $r->cliente,
+                    $r->status ?? 'Fuera de laboratorio',
                 ]);
             }
             fclose($out);

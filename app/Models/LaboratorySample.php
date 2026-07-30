@@ -12,6 +12,7 @@ class LaboratorySample extends Model
         'stock_inicial','presentacion','ubicacion_stock',
         'fecha_entrada','fecha_salida','cantidad_salida',
         'motivo_salida','solicitante','recolector','cliente',
+        'status',
     ];
 }
 
