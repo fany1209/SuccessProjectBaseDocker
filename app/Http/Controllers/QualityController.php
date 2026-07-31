@@ -1404,7 +1404,7 @@ class QualityController extends Controller
                 'accion_final'        => 'required|string',
                 'comentarios_adicionales' => 'nullable|string',
                 'evidencias'          => 'nullable|array|max:6',
-                'evidencias.*'        => 'file|image|mimes:jpeg,jpg,png,webp|max:3072',
+                'evidencias.*'        => 'nullable|file|image|mimes:jpeg,jpg,png,webp|max:3072',
                 'cliente_firma'       => 'nullable|string|max:150',
                 'receptor_firma'      => 'nullable|string|max:150',
             ], [
@@ -1509,7 +1509,7 @@ class QualityController extends Controller
         'inspector_nombre'             => 'nullable|string|max:150',
         'observaciones'                => 'nullable',
         'evidencias'                   => 'nullable|array|max:3',
-        'evidencias.*'                 => 'image|mimes:jpeg,png,jpg|max:2048',
+        'evidencias.*'                 => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
     ]);
 
     if ($v->fails()) {

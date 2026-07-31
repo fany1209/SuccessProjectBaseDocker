@@ -265,8 +265,8 @@
   // 2. Previsualizaciones de Imagen
   form.querySelectorAll('.evidencia-input').forEach((input, index) => {
     input.addEventListener('change', function() {
-      const imgPreview = document.getElementById(preview-${index});
-      const txtPlaceholder = document.getElementById(placeholder-${index});
+      const imgPreview = document.getElementById(`preview-${index}`);
+      const txtPlaceholder = document.getElementById(`placeholder-${index}`);
       const file = this.files[0];
 
       if (file) {
