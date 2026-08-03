@@ -13,6 +13,9 @@ class ClimaLaboralController extends Controller
      */
     public function store(Request $request)
     {
+        if (ClimaLaboral::where('user_id', Auth::id())->exists()) {
+            return redirect()->back()->with('error', 'Ya has contestado la encuesta de clima laboral anteriormente.');
+        }
         $request->validate([
             'q1_ambiente' => 'required|integer|min:1|max:5',
             'q2_respeto' => 'required|integer|min:1|max:5',

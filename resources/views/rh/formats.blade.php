@@ -68,13 +68,26 @@
             <span class="text-sm font-bold uppercase tracking-wider">Convenio con <br> Instituciones</span>
         </button>
 
-        <!-- Clima Laboral -->
+        <!-- Clima Laboral 
+        @php
+            $yaContestoClima = \App\Models\ClimaLaboral::where('user_id', Auth::id())->exists();
+        @endphp
+
+        @if($yaContestoClima)
+        <button type="button" class="opacity-50 cursor-not-allowed {{ $btnBase }} {{ $btnCard }}" onclick="Swal.fire({icon: 'info', title: 'Completada', text: 'Ya has contestado la encuesta. ¡Gracias!', confirmButtonColor: '#198754'}); return false;">
+            <svg class="h-10 w-10 text-white mb-1 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span class="text-sm font-bold uppercase tracking-wider">Clima Laboral <br> <span class="text-yellow-300">(Completada)</span></span>
+        </button>
+        @else
         <button type="button" class="open-modal {{ $btnBase }} {{ $btnCard }}" data-target="modal-clima-laboral">
             <svg class="h-10 w-10 text-white mb-1 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
             <span class="text-sm font-bold uppercase tracking-wider">Clima Laboral <br> (Encuesta)</span>
         </button>
+        @endif-->
 
         <a href="{{ route('rh.clima_laboral.resultados') }}" class="{{ $btnBase }} {{ $btnCard }}">
             <svg class="h-10 w-10 text-white mb-1 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

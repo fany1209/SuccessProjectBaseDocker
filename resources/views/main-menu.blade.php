@@ -108,9 +108,25 @@
                 <x-application.buttons.menu-btn module="orders" link="{{ route('orders.index') }}" image="{{ asset('images/main-menu/orders.png') }}">
                     ORDERS
                 </x-application.buttons.menu-btn>
+
+                @php
+                    $yaContestoClima = \App\Models\ClimaLaboral::where('user_id', Auth::id())->exists();
+                @endphp
+
+                @if($yaContestoClima)
+                    <x-application.buttons.menu-btn module="clima_laboral" link="#" class="opacity-50 cursor-not-allowed" onclick="Swal.fire({icon: 'info', title: 'Completada', text: 'Ya has contestado la encuesta de clima laboral. ¡Gracias por tu participación!', confirmButtonColor: '#198754'}); return false;" image="{{ asset('images/main-menu/personal.png') }}">
+                        ENCUESTA CLIMA LABORAL <br><span class="text-[12px] text-yellow-300 tracking-normal leading-tight block mt-1">(Completada)</span>
+                    </x-application.buttons.menu-btn>
+                @else
+                    <x-application.buttons.menu-btn module="clima_laboral" link="#" class="open-modal" data-target="modal-clima-laboral" image="{{ asset('images/main-menu/personal.png') }}">
+                        ENCUESTA CLIMA LABORAL
+                    </x-application.buttons.menu-btn>
+                @endif
         </div>
     </div>
 </x-application.section-1>
+
+@include('rh.modals.clima_laboral')
 @endsection
 @push('js')
     <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
@@ -177,6 +193,26 @@
                     }
                 });
             @endif
+        @endif
+
+        // Alerta de sesión (error general)
+        @if(session('error'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Aviso',
+                text: '{{ session('error') }}',
+                confirmButtonColor: '#d33'
+            });
+        @endif
+        
+        // Alerta de sesión (éxito general)
+        @if(session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: '{{ session('success') }}',
+                confirmButtonColor: '#198754'
+            });
         @endif
     </script>
 @endpush
