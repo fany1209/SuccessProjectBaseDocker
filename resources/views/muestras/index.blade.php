@@ -186,6 +186,7 @@
             
             if (rowData) {
                 $('#edit-muestra-id').val(rowData.id);
+                $('#edit-folio_muestra').val(rowData.folio_muestra);
                 $('#edit-product_id').val(rowData.product_id);
                 $('#edit-fecha_salida').val(rowData.fecha_salida);
                 $('#edit-nombre_comercial').val(rowData.nombre_comercial);

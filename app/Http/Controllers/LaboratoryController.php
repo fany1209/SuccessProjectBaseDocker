@@ -860,6 +860,7 @@ class LaboratoryController extends Controller
             }
 
             $validated = $request->validate([
+                'folio_muestra' => 'nullable|string|max:50',
                 'product_id' => 'nullable|integer',
                 'fecha_salida' => 'nullable|date',
                 'nombre_comercial' => 'nullable|string|max:255',
@@ -898,6 +899,7 @@ class LaboratoryController extends Controller
             }
 
             \DB::table('salida_muestras')->where('id', $id)->update([
+                'folio_muestra' => $validated['folio_muestra'] ?? $salida->folio_muestra,
                 'product_id' => $validated['product_id'] ?? $salida->product_id,
                 'fecha_salida' => $validated['fecha_salida'] ?? $salida->fecha_salida,
                 'nombre_comercial' => $validated['nombre_comercial'] ?? $salida->nombre_comercial,
