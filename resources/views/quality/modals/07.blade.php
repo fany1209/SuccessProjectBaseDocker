@@ -75,7 +75,7 @@
       <div>
         <label class="block text-sm font-medium mb-1">Producto</label>
 
-        <select id="producto_select"
+        <select id="cert_producto_select"
                 class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
           <option value="">— Selecciona un producto —</option>
 
@@ -105,12 +105,12 @@
         </select>
 
         <input type="text"
-              id="producto_otro"
+              id="cert_producto_otro"
               class="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 {{ (!$oldEnLista && $oldProducto !== '') ? '' : 'hidden' }}"
               placeholder="Escribe el producto"
               value="{{ (!$oldEnLista ? $oldProducto : '') }}">
 
-        <input type="hidden" name="producto" id="producto_hidden" value="{{ old('producto') }}">
+        <input type="hidden" name="producto" id="cert_producto_hidden" value="{{ old('producto') }}">
       </div>
 
       <div>
@@ -698,9 +698,9 @@
 })();
 
 document.addEventListener("DOMContentLoaded", () => {
-  const sel = document.getElementById("producto_select");
-  const otro = document.getElementById("producto_otro");
-  const hid = document.getElementById("producto_hidden");
+  const sel = document.getElementById("cert_producto_select");
+  const otro = document.getElementById("cert_producto_otro");
+  const hid = document.getElementById("cert_producto_hidden");
 
   if (!sel || !otro || !hid) return;
 

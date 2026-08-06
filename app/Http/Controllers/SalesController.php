@@ -546,36 +546,39 @@ class SalesController extends Controller
                 $almacenUsers = User::role(['Warehouse', 'Admin'])->get();
                 
                 if ($action === 'confirm') {
+                    $lotAssignments = $request->input('lot_assignments', []);
+                    if (empty($lotAssignments)) {
+                        return response()->json(['success' => false, 'message' => 'Debes seleccionar un lote para cada producto.'], 422);
+                    }
+
                     $sale->almacen_status = 'confirmed';
                     $sale->save();
 
-                    $saleDetails = SaleDetail::where('sale_id', $id)->get();
-                    foreach ($saleDetails as $detail) {
-                        $inventoryQuery = Inventory::where('product_id', $detail->product_id)->lockForUpdate();
-                        
-                        if ($detail->public_batch) {
-                            $inventoryQuery->where('batch', $detail->public_batch);
+                    foreach ($lotAssignments as $assignment) {
+                        $cliId = $assignment['cli_id'];
+                        $quantity = floatval($assignment['quantity']);
+
+                        // Buscar el registro CLI seleccionado
+                        $cliRecord = \App\Models\Cli::where('cli_id', $cliId)->lockForUpdate()->first();
+                        if (!$cliRecord) {
+                            throw new \Exception("Registro de ubicación no encontrado (CLI ID: {$cliId}).");
                         }
-                        
-                        $inventory = $inventoryQuery->first();
-                        
+                        if ($cliRecord->net_weight < $quantity) {
+                            throw new \Exception("Stock insuficiente en la ubicación seleccionada. Disponible: {$cliRecord->net_weight}, Solicitado: {$quantity}");
+                        }
+
+                        // Decrementar el registro CLI (net_weight y quantity proporcional)
+                        $cliRecord->net_weight -= $quantity;
+                        if ($cliRecord->weight_per_unit > 0) {
+                            $cliRecord->quantity = $cliRecord->net_weight / $cliRecord->weight_per_unit;
+                        }
+                        $cliRecord->save();
+
+                        // Decrementar también inventory.stock para la vista general
+                        $inventory = Inventory::where('inventory_id', $cliRecord->inventory_id)->lockForUpdate()->first();
                         if ($inventory) {
-                            if ($inventory->stock < $detail->quantity) {
-                                throw new \Exception("Stock insuficiente para el producto: " . ($detail->public_product_name ?: 'ID '.$detail->product_id));
-                            }
-                            $inventory->stock -= $detail->quantity;
+                            $inventory->stock -= $quantity;
                             $inventory->save();
-                        } else {
-                            $inventoryGeneral = Inventory::where('product_id', $detail->product_id)->lockForUpdate()->first();
-                            if ($inventoryGeneral) {
-                                if ($inventoryGeneral->stock < $detail->quantity) {
-                                    throw new \Exception("Stock insuficiente para el producto: " . ($detail->public_product_name ?: 'ID '.$detail->product_id));
-                                }
-                                $inventoryGeneral->stock -= $detail->quantity;
-                                $inventoryGeneral->save();
-                            } else {
-                                throw new \Exception("Inventario no encontrado para el producto ID: " . $detail->product_id);
-                            }
                         }
                     }
 
@@ -639,5 +642,47 @@ class SalesController extends Controller
             return response()->json(['success' => true]);
         }
         return response()->json(['success' => false], 404);
+    }
+
+    public function getSaleLots($id)
+    {
+        $saleDetails = SaleDetail::where('sale_id', $id)->get();
+        $result = [];
+
+        foreach ($saleDetails as $detail) {
+            $productName = $detail->public_product_name;
+            if (empty($productName)) {
+                $product = \App\Models\Product::find($detail->product_id);
+                $productName = $product ? $product->name : 'Producto ID: ' . $detail->product_id;
+            }
+
+            // Traer registros CLI agrupados por lote+ubicación con stock disponible
+            $cliRecords = DB::table('cli')
+                ->join('inventory', 'inventory.inventory_id', '=', 'cli.inventory_id')
+                ->join('locations', 'locations.location_id', '=', 'cli.location_id')
+                ->where('inventory.product_id', $detail->product_id)
+                ->where('cli.net_weight', '>', 0)
+                ->select(
+                    'cli.cli_id',
+                    'inventory.inventory_id',
+                    'inventory.batch',
+                    'locations.name as location_name',
+                    'cli.location_id',
+                    'cli.net_weight',
+                    'cli.quantity',
+                    'cli.weight_per_unit'
+                )
+                ->get();
+
+            $result[] = [
+                'detail_id' => $detail->sale_detail_id,
+                'product_id' => $detail->product_id,
+                'product_name' => $productName,
+                'quantity_required' => $detail->quantity,
+                'lots' => $cliRecords,
+            ];
+        }
+
+        return response()->json(['products' => $result]);
     }
 }

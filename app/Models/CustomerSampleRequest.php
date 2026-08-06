@@ -28,4 +28,9 @@ class CustomerSampleRequest extends Model
     {
         return $this->product ? $this->product->name : '';
     }
+
+    public function items()
+    {
+        return $this->hasMany(CustomerSampleRequestItem::class, 'customer_sample_request_id');
+    }
 }

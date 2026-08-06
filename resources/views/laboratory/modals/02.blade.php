@@ -2,91 +2,28 @@
   <form id="solicitud-muestras-form" method="POST" action="{{ route('laboratory.pdf2') }}" class="space-y-4">
     @csrf
 
-    {{-- ======= Datos de la muestra ======= --}}
     <div class="border rounded">
-      <div class="px-3 py-2 font-semibold text-white" style="background:#16a34a;">DATOS DE LA MUESTRA</div>
-      <div class="p-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="px-3 py-2 font-semibold text-white" style="background:#16a34a;">DATOS GENERALES</div>
+      <div class="p-3 grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <label class="block text-sm font-semibold">Fecha solicitud</label>
           <input type="date" name="fecha_solicitud" class="w-full border rounded px-2 py-1" value="{{ old('fecha_solicitud') }}">
         </div>
-
-        <div class="mt-3">
-          <label class="block text-sm font-semibold">SKU</label>
-          <input type="text" name="sku" id="sku"
-                 class="w-full border rounded px-2 py-1"
-                 value="{{ old('sku', $model->sku ?? '') }}"
-                 readonly>
-        </div>
-
-        {{-- === Producto === --}}
-        <div>
-          <label for="product_id" class="block text-sm font-medium mb-1">Producto</label>
-          <select name="product_id" id="product_id" required
-                  class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
-            <option value="">— Selecciona un producto —</option>
-            @foreach($products as $p)
-              <option value="{{ $p->product_id }}"
-                      data-sku="{{ $p->sku }}"
-                {{ (int) old('product_id', $model->product_id ?? 0) === (int) $p->product_id ? 'selected' : '' }}>
-                {{ $p->name }}
-              </option>
-            @endforeach
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-sm font-semibold">Unidad de medida (UM)</label>
-          <input type="text" name="um" class="w-full border rounded px-2 py-1" placeholder="p. ej., g, kg, ml" value="{{ old('um') }}">
-        </div>
-
-        <div>
-          <label class="block text-sm font-semibold">Cantidad</label>
-          <input type="text" name="cantidad" class="w-full border rounded px-2 py-1" placeholder="p. ej., 500 g" value="{{ old('cantidad') }}">
-        </div>
-
-        <div class="md:col-span-2 lg:col-span-2">
-          <label class="block text-sm font-semibold">Presentación</label>
-          <div class="flex flex-wrap gap-4 text-sm">
-            <label class="inline-flex items-center gap-2"><input type="checkbox" name="pres_ziploc" value="1" {{ old('pres_ziploc')?'checked':'' }}> Bolsa ziploc</label>
-            <label class="inline-flex items-center gap-2"><input type="checkbox" name="pres_whirlpak" value="1" {{ old('pres_whirlpak')?'checked':'' }}> Bolsa whirlpak</label>
-            <label class="inline-flex items-center gap-2"><input type="checkbox" name="pres_metalizada" value="1" {{ old('pres_metalizada')?'checked':'' }}> Bolsa metalizada</label>
-            <label class="inline-flex items-center gap-2"><input type="checkbox" name="pres_frasco" value="1" {{ old('pres_frasco')?'checked':'' }}> Frasco</label>
-            <label class="inline-flex items-center gap-2"><input type="checkbox" name="pres_bidon" value="1" {{ old('pres_bidon')?'checked':'' }}> Bidón</label>
-            <label class="inline-flex items-center gap-2"><input id="pres_otro_chk" type="checkbox" name="pres_otro" value="1" {{ old('pres_otro')?'checked':'' }}> Otro</label>
-            <input id="pres_otro_txt" type="text" name="pres_otro_txt" class="border rounded px-2 py-1" placeholder="Especifique" value="{{ old('pres_otro_txt') }}" style="min-width:220px;">
-          </div>
-        </div>
-
-        @can('laboratory.update')
-        <div>
-          <label class="block text-sm font-semibold">Lote almacén</label>
-          <select name="lote_almacen" id="lote_almacen" class="w-full border rounded px-2 py-1" >
-            <option value="">— Selecciona un producto primero —</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-sm font-semibold">Lote venta</label>
-          <input type="text" name="lote_venta" class="w-full border rounded px-2 py-1" value="{{ old('lote_venta') }}">
-        </div>
-        @endcan
-
         <div>
           <label class="block text-sm font-semibold">Fecha de recolección</label>
           <input type="date" name="fecha_recoleccion" class="w-full border rounded px-2 py-1" value="{{ old('fecha_recoleccion') }}">
         </div>
+      </div>
+    </div>
 
-        <div class="lg:col-span-3">
-          <label class="block text-sm font-semibold">Documentación solicitada</label>
-          <div class="flex flex-wrap gap-4 text-sm">
-            <label class="inline-flex items-center gap-2"><input type="checkbox" name="docs_cc" value="1" {{ old('docs_cc')?'checked':'' }}> CC</label>
-            <label class="inline-flex items-center gap-2"><input type="checkbox" name="docs_ft" value="1" {{ old('docs_ft')?'checked':'' }}> FT</label>
-            <label class="inline-flex items-center gap-2"><input type="checkbox" name="docs_hs" value="1" {{ old('docs_hs')?'checked':'' }}> HS</label>
-            <label class="inline-flex items-center gap-2"><input id="docs_otro_chk" type="checkbox" name="docs_otro" value="1" {{ old('docs_otro')?'checked':'' }}> Otro</label>
-            <input id="docs_otro_txt" type="text" name="docs_otro_txt" class="border rounded px-2 py-1" placeholder="Especifique" value="{{ old('docs_otro_txt') }}" style="min-width:220px;">
-          </div>
-        </div>
+    {{-- ======= Datos de la muestra (Dynamic) ======= --}}
+    <div class="border rounded">
+      <div class="px-3 py-2 font-semibold text-white flex justify-between items-center" style="background:#16a34a;">
+        <span>DATOS DE LA MUESTRA</span>
+        <button type="button" id="add-sample-btn" class="bg-white text-green-700 hover:bg-gray-100 px-2 py-1 rounded text-xs font-bold shadow">+ Añadir Muestra</button>
+      </div>
+      <div class="p-3" id="samples-container">
+        <!-- Samples will be added here via JS -->
       </div>
     </div>
 
@@ -156,7 +93,7 @@
         </div>
 
         <div class="lg:col-span-4">
-          <label class="block text sm font-semibold">Personal de seguimiento (si aplica)</label>
+          <label class="block text-sm font-semibold">Personal de seguimiento (si aplica)</label>
           <input type="text" name="personal_seguimiento" class="w-full border rounded px-2 py-1" value="{{ old('personal_seguimiento', $model->personal_seguimiento ?? '') }}">
         </div>
 
@@ -167,7 +104,7 @@
             <label class="inline-flex items-center gap-2"><input type="checkbox" name="entrega_personal_empresa" value="1" {{ old('entrega_personal_empresa', $model->entrega_personal_empresa ?? false) ? 'checked' : '' }}> Personal de la empresa</label>
             <label class="inline-flex items-center gap-2"><input type="checkbox" name="entrega_recoleccion_planta" value="1" {{ old('entrega_recoleccion_planta', $model->entrega_recoleccion_planta ?? false) ? 'checked' : '' }}> Recolección en planta</label>
             <label class="inline-flex items-center gap-2"><input id="entrega_otro_chk" type="checkbox" name="entrega_otro" value="1" {{ old('entrega_otro', $model->entrega_otro ?? false) ? 'checked' : '' }}> Otro</label>
-            <input id="entrega_otro_txt" type="text" name="entrega_otro_txt" class="border rounded px-2 py-1" placeholder="Especifique" value="{{ old('entrega_otro_txt', $model->entrega_otro_txt ?? '') }}" style="min-width:220px;">
+            <input id="entrega_otro_txt" type="text" name="entrega_otro_txt" class="border rounded px-2 py-1" placeholder="Especifique" value="{{ old('entrega_otro_txt', $model->entrega_otro_txt ?? '') }}" style="min-width:220px;" disabled>
           </div>
         </div>
       </div>
@@ -213,153 +150,218 @@
         const modalRoot = document.getElementById('02');
         const form = document.getElementById('solicitud-muestras-form');
         const btnSubmit = document.getElementById('solicitud-muestras-submit');
+        const BATCHES_BY_PRODUCT = @json($batchesByProduct ?? []);
+        let sampleIndex = 0;
+
+        // Template for samples
+        function getSampleHtml(idx) {
+            let productsOptions = '<option value="">— Selecciona un producto —</option>';
+            @foreach($products as $p)
+                productsOptions += `<option value="{{ $p->product_id }}" data-sku="{{ $p->sku }}">{{ $p->name }}</option>`;
+            @endforeach
+
+            return `
+            <div class="sample-row border p-3 mb-3 bg-gray-50 rounded relative">
+                <button type="button" class="remove-sample-btn absolute top-2 right-2 text-red-500 hover:text-red-700" title="Eliminar Muestra"><i class="fas fa-trash"></i></button>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div class="lg:col-span-2">
+                        <label class="block text-sm font-medium mb-1">Producto</label>
+                        <select id="product_select_${idx}" name="items[${idx}][product_id]" required class="product-select w-full rounded-md border border-gray-300 px-3 py-2">
+                            ${productsOptions}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold">SKU</label>
+                        <input type="text" name="items[${idx}][sku]" class="sku-input w-full border rounded px-2 py-1 bg-gray-100" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold">Cantidad</label>
+                        <input type="text" name="items[${idx}][cantidad]" class="w-full border rounded px-2 py-1" placeholder="p. ej., 500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold">Unidad de medida (UM)</label>
+                        <input type="text" name="items[${idx}][um]" class="w-full border rounded px-2 py-1" placeholder="p. ej., g, kg">
+                    </div>
+                    
+                    @can('laboratory.update')
+                    <div>
+                        <label class="block text-sm font-semibold">Lote almacén</label>
+                        <select name="items[${idx}][lote_almacen]" class="lote-almacen-select w-full border rounded px-2 py-1" disabled>
+                            <option value="">— Selecciona un producto primero —</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold">Lote venta</label>
+                        <input type="text" name="items[${idx}][lote_venta]" class="w-full border rounded px-2 py-1">
+                    </div>
+                    @endcan
+                    
+                    <div class="md:col-span-2 lg:col-span-4">
+                        <label class="block text-sm font-semibold">Presentación</label>
+                        <div class="flex flex-wrap gap-4 text-sm">
+                            <label><input type="checkbox" name="items[${idx}][pres_ziploc]" value="1"> Ziploc</label>
+                            <label><input type="checkbox" name="items[${idx}][pres_whirlpak]" value="1"> Whirlpak</label>
+                            <label><input type="checkbox" name="items[${idx}][pres_metalizada]" value="1"> Metalizada</label>
+                            <label><input type="checkbox" name="items[${idx}][pres_frasco]" value="1"> Frasco</label>
+                            <label><input type="checkbox" name="items[${idx}][pres_bidon]" value="1"> Bidón</label>
+                            <label><input type="checkbox" name="items[${idx}][pres_otro]" class="pres-otro-chk" value="1"> Otro</label>
+                            <input type="text" name="items[${idx}][pres_otro_txt]" class="pres-otro-txt border rounded px-2 py-1" placeholder="Especifique" disabled>
+                        </div>
+                    </div>
+                    
+                    <div class="lg:col-span-4">
+                        <label class="block text-sm font-semibold">Documentación solicitada</label>
+                        <div class="flex flex-wrap gap-4 text-sm">
+                            <label><input type="checkbox" name="items[${idx}][docs_cc]" value="1"> CC</label>
+                            <label><input type="checkbox" name="items[${idx}][docs_ft]" value="1"> FT</label>
+                            <label><input type="checkbox" name="items[${idx}][docs_hs]" value="1"> HS</label>
+                            <label><input type="checkbox" name="items[${idx}][docs_otro]" class="docs-otro-chk" value="1"> Otro</label>
+                            <input type="text" name="items[${idx}][docs_otro_txt]" class="docs-otro-txt border rounded px-2 py-1" placeholder="Especifique" disabled>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        const samplesContainer = document.getElementById('samples-container');
+        
+        function initSelect2(idx) {
+            if(window.jQuery && $.fn.select2) {
+                $('#product_select_' + idx).select2({
+                    width: '100%'
+                }).on('select2:select', function(e) {
+                    this.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+            }
+        }
+
+        document.getElementById('add-sample-btn')?.addEventListener('click', function() {
+            let currentIdx = sampleIndex++;
+            samplesContainer.insertAdjacentHTML('beforeend', getSampleHtml(currentIdx));
+            initSelect2(currentIdx);
+        });
+
+        samplesContainer.addEventListener('change', function(e) {
+            if(e.target.classList.contains('pres-otro-chk')) {
+                const txt = e.target.closest('.sample-row').querySelector('.pres-otro-txt');
+                txt.disabled = !e.target.checked;
+                if(!e.target.checked) txt.value = '';
+            }
+            if(e.target.classList.contains('docs-otro-chk')) {
+                const txt = e.target.closest('.sample-row').querySelector('.docs-otro-txt');
+                txt.disabled = !e.target.checked;
+                if(!e.target.checked) txt.value = '';
+            }
+            if(e.target.classList.contains('product-select')) {
+                const row = e.target.closest('.sample-row');
+                const opt = e.target.selectedOptions[0];
+                const pid = e.target.value;
+                const skuInp = row.querySelector('.sku-input');
+                if(skuInp) skuInp.value = opt ? (opt.getAttribute('data-sku') || '') : '';
+
+                const loteSel = row.querySelector('.lote-almacen-select');
+                if(loteSel) {
+                    const lotes = BATCHES_BY_PRODUCT[pid] || [];
+                    let html = '';
+                    if (!pid) {
+                        html = '<option value="">— Selecciona un producto primero —</option>';
+                        loteSel.disabled = true;
+                    } else if (!lotes.length) {
+                        html = '<option value="">— No hay lotes disponibles —</option>';
+                        loteSel.disabled = true;
+                    } else {
+                        html = '<option value="">— Selecciona un lote —</option>';
+                        lotes.forEach(lote => { html += `<option value="${lote}">${lote}</option>`; });
+                        loteSel.disabled = false;
+                    }
+                    loteSel.innerHTML = html;
+                }
+            }
+        });
+
+        samplesContainer.addEventListener('click', function(e) {
+            const btn = e.target.closest('.remove-sample-btn');
+            if(btn) {
+                if(samplesContainer.querySelectorAll('.sample-row').length > 1) {
+                    btn.closest('.sample-row').remove();
+                } else {
+                    Swal.fire('Atención', 'Debe haber al menos una muestra.', 'warning');
+                }
+            }
+        });
 
         btnSubmit?.addEventListener('click', function() {
             if (!form) return;
-
-            if (!form.checkValidity()) {
-                form.reportValidity();
+            
+            if(samplesContainer.querySelectorAll('.sample-row').length === 0) {
+                Swal.fire('Error', 'Debe agregar al menos una muestra', 'error');
                 return;
             }
+
+            if (!form.checkValidity()) { form.reportValidity(); return; }
 
             btnSubmit.disabled = true;
             const originalText = btnSubmit.innerHTML;
             btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
 
             const formData = new FormData(form);
-
             fetch("{{ route('laboratory.store2') }}", {
                 method: 'POST',
                 body: formData,
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json'
-                }
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
             })
-            .then(response => {
-                if (!response.ok) return response.json().then(err => { throw err; });
-                return response.json();
-            })
+            .then(r => r.ok ? r.json() : r.json().then(e => { throw e; }))
             .then(res => {
                 if (res.ok) {
                     form.submit();
-                    
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success',
-                            text: 'The record was saved and the PDF is being generated.',
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-                    }
+                    if (typeof Swal !== 'undefined') Swal.fire({icon: 'success', title: 'Éxito', text: 'Solicitud guardada', timer: 2000, showConfirmButton: false});
+                    setTimeout(() => {
+                        form.reset();
+                        samplesContainer.innerHTML = '';
+                        samplesContainer.insertAdjacentHTML('beforeend', getSampleHtml(sampleIndex++));
+                        $('#02').addClass('hidden').hide();
+                        $('#customer-requests-table').DataTable().ajax.reload(null, false);
+                    }, 2000);
                 }
             })
-            .catch(error => {
-                console.error('Error:', error);
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error saving record',
-                        text: error.message || 'There was a problem connecting to the server.'
-                    });
-                } else {
-                    alert('Error saving record: ' + (error.message || 'Unknown error'));
-                }
+            .catch(e => {
+                console.error(e);
+                Swal.fire('Error', e.message || 'Error al guardar.', 'error');
             })
             .finally(() => {
-                setTimeout(() => {
-                    btnSubmit.disabled = false;
-                    btnSubmit.innerHTML = originalText;
-                }, 1000);
+                setTimeout(() => { btnSubmit.disabled = false; btnSubmit.innerHTML = originalText; }, 1000);
             });
         });
 
-        /* ===================== LÓGICA DE CAMPOS "OTRO" ===================== */
-        function toggleText(enable, el) { 
-            if (!el) return; 
-            el.disabled = !enable; 
-            if (!enable) el.value = ''; 
+        // Initialize with one sample
+        if(samplesContainer && samplesContainer.innerHTML.trim() === '') {
+            let currentIdx = sampleIndex++;
+            samplesContainer.insertAdjacentHTML('beforeend', getSampleHtml(currentIdx));
+            initSelect2(currentIdx);
         }
 
-        const setups = [
-            { chk: 'pres_otro_chk', txt: 'pres_otro_txt' },
-            { chk: 'docs_otro_chk', txt: 'docs_otro_txt' },
-            { chk: 'entrega_otro_chk', txt: 'entrega_otro_txt' }
-        ];
-
-        setups.forEach(s => {
-            const checkbox = document.getElementById(s.chk);
-            const input = document.getElementById(s.txt);
-            if (checkbox) {
-                checkbox.addEventListener('change', () => toggleText(checkbox.checked, input));
-                toggleText(checkbox.checked, input); 
-            }
+        const entregaOtroChk = document.getElementById('entrega_otro_chk');
+        const entregaOtroTxt = document.getElementById('entrega_otro_txt');
+        entregaOtroChk?.addEventListener('change', function() {
+            entregaOtroTxt.disabled = !this.checked;
+            if(!this.checked) entregaOtroTxt.value = '';
         });
 
-        /* ===================== PRODUCTOS Y LOTES ===================== */
-        const productSelect = modalRoot?.querySelector('select[name="product_id"]');
-        const skuInput      = modalRoot?.querySelector('input[name="sku"]');
-        const loteSelect    = modalRoot?.querySelector('select[name="lote_almacen"]');
-
-        const BATCHES_BY_PRODUCT = @json($batchesByProduct ?? []);
-        const PREV_LOTE = @json(old('lote_almacen', $model->lote_almacen ?? ''));
-
-        function onProductChange() {
-            const opt = productSelect?.selectedOptions?.[0];
-            const pid = productSelect?.value || '';
-            
-            if (skuInput) skuInput.value = opt ? (opt.getAttribute('data-sku') || '') : '';
-
-            if (!loteSelect) return;
-            const lotes = BATCHES_BY_PRODUCT[pid] || [];
-            let html = '';
-
-            if (!pid) {
-                html = '<option value="">— Selecciona un producto primero —</option>';
-                loteSelect.disabled = true;
-            } else if (!lotes.length) {
-                html = '<option value="">— No hay lotes disponibles —</option>';
-                loteSelect.disabled = true;
-            } else {
-                html = '<option value="">— Selecciona un lote —</option>';
-                lotes.forEach(lote => {
-                    const sel = (String(lote) === String(PREV_LOTE)) ? ' selected' : '';
-                    html += `<option value="${lote}"${sel}>${lote}</option>`;
-                });
-                loteSelect.disabled = false;
-            }
-            loteSelect.innerHTML = html;
-        }
-
-        if (productSelect) {
-            productSelect.addEventListener('change', onProductChange);
-            onProductChange(); 
-        }
-
-        /* ===================== AUTOLLENADO DE CLIENTE ===================== */
-        const customerSelect = modalRoot?.querySelector('select[name="customer_id"]');
-        const customerFields = {
-            name: modalRoot?.querySelector('input[name="cliente_nombre"]'),
-            address: modalRoot?.querySelector('input[name="cliente_direccion"]'),
-            email: modalRoot?.querySelector('input[name="cliente_correo"]'),
-            phone: modalRoot?.querySelector('input[name="cliente_telefono"]')
-        };
-
-        function setCustomerFields() {
-            const opt = customerSelect?.selectedOptions?.[0];
+        const customerSelect = document.getElementById('customer_id');
+        customerSelect?.addEventListener('change', function() {
+            const opt = this.selectedOptions[0];
             if (!opt || !opt.value) return;
+            document.querySelector('input[name="cliente_nombre"]').value = opt.getAttribute('data-name') || '';
+            document.querySelector('input[name="cliente_direccion"]').value = opt.getAttribute('data-address') || '';
+            document.querySelector('input[name="cliente_correo"]').value = opt.getAttribute('data-email') || '';
+            document.querySelector('input[name="cliente_telefono"]').value = opt.getAttribute('data-phone') || '';
+        });
 
-            if (customerFields.name)    customerFields.name.value    = opt.getAttribute('data-name') || '';
-            if (customerFields.address) customerFields.address.value = opt.getAttribute('data-address') || '';
-            if (customerFields.email)   customerFields.email.value   = opt.getAttribute('data-email') || '';
-            if (customerFields.phone)   customerFields.phone.value   = opt.getAttribute('data-phone') || '';
-        }
-
-        if (customerSelect) {
-            customerSelect.addEventListener('change', setCustomerFields);
-            if (!customerFields.name?.value) setCustomerFields();
+        if(window.jQuery && $.fn.select2) {
+            $('#customer_id').select2({ width: '100%' }).on('select2:select', function(e) {
+                this.dispatchEvent(new Event('change', { bubbles: true }));
+            });
         }
     })();
-</script>
+  </script>
 </x-modal>

@@ -1,3 +1,28 @@
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container--default .select2-selection--single {
+        height: 38px;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        display: flex;
+        align-items: center;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: normal;
+        padding-left: 0.75rem;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px;
+    }
+    /* Fix for Select2 width in hidden modals */
+    .select2-container {
+        width: 100% !important;
+    }
+    .select2-container--open {
+        z-index: 99999 !important;
+    }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <section class="col-span-12 w-full flex flex-col items-center px-1">
   <div class="flex flex-col justify-center items-center w-full">
     <div class="mt-6 text-center">
@@ -152,13 +177,8 @@
 
                 $('#edit_id').val(d.id);
                 $('#edit_fecha_solicitud').val(d.fecha_solicitud);
-                $('#edit_product_id').val(d.product_id);
-                $('#edit_sku').val(d.sku);
-                $('#edit_um').val(d.um);
-                $('#edit_cantidad').val(d.cantidad);
-                $('#edit_lote_venta').val(d.lote_venta);
                 $('#edit_fecha_recoleccion').val(d.fecha_recoleccion);
-                $('#edit_customer_id').val(d.customer_id);
+                $('#edit_customer_id').val(d.customer_id).trigger('change');
                 $('#edit_cliente_nombre').val(d.cliente_nombre);
                 $('#edit_cliente_direccion').val(d.cliente_direccion);
                 $('#edit_cliente_correo').val(d.cliente_correo);
@@ -167,22 +187,20 @@
                 $('#edit_paq_guia').val(d.paq_guia);
                 $('#edit_observaciones').val(d.observaciones);
                 $('#edit_solicitante_nombre').val(d.solicitante_nombre);
-                $('#edit_pres_otro_txt').val(d.pres_otro_txt);
-                $('#edit_docs_otro_txt').val(d.docs_otro_txt);
                 $('#edit_entrega_otro_txt').val(d.entrega_otro_txt);
 
-                if (typeof window.fillEditLotes === "function") {
-                    window.fillEditLotes(d.product_id, d.lote_almacen);
+                if (typeof window.renderEditSamples === "function") {
+                    window.renderEditSamples(d.items || []);
                 }
 
                 if(d.cliente_estatus){
                     $(`input[name="cliente_estatus"][value="${d.cliente_estatus}"]`).prop('checked', true);
                 }
 
-                const cbs = ['pres_ziploc','pres_whirlpak','pres_metalizada','pres_frasco','pres_bidon','pres_otro','docs_cc','docs_ft','docs_hs','docs_otro','entrega_paqueteria','entrega_personal_empresa','entrega_recoleccion_planta','entrega_otro'];
+                const cbs = ['entrega_paqueteria','entrega_personal_empresa','entrega_recoleccion_planta','entrega_otro'];
                 cbs.forEach(cb => { $(`#edit_${cb}`).prop('checked', d[cb] == 1); });
 
-                const otros = [{ chk: 'edit_pres_otro_chk', txt: 'edit_pres_otro_txt' }, { chk: 'edit_docs_otro_chk', txt: 'edit_docs_otro_txt' }, { chk: 'edit_entrega_otro_chk', txt: 'edit_entrega_otro_txt' }];
+                const otros = [{ chk: 'edit_entrega_otro_chk', txt: 'edit_entrega_otro_txt' }];
                 otros.forEach(o => {
                     if (typeof window.editToggleText === "function") {
                         window.editToggleText($(`#${o.chk}`).is(':checked'), o.txt);

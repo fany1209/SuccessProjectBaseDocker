@@ -257,25 +257,7 @@ class LaboratoryController extends Controller
     {
         $validated = $request->validate([
             'fecha_solicitud'            => ['nullable', 'date'],
-            'sku'                        => ['nullable', 'string', 'max:100'],
-            'product_id'                 => ['required', 'exists:products,product_id'], 
-            'um'                         => ['nullable', 'string', 'max:20'],
-            'cantidad'                   => ['nullable', 'string', 'max:50'],
-            'pres_ziploc'                => ['nullable'],
-            'pres_whirlpak'              => ['nullable'],
-            'pres_metalizada'            => ['nullable'],
-            'pres_frasco'                => ['nullable'],
-            'pres_bidon'                 => ['nullable'],
-            'pres_otro'                  => ['nullable'],
-            'pres_otro_txt'              => ['nullable', 'string', 'max:255'],
-            'lote_almacen'               => ['nullable', 'string', 'max:100'],
-            'lote_venta'                 => ['nullable', 'string', 'max:100'],
             'fecha_recoleccion'          => ['nullable', 'date'],
-            'docs_cc'                    => ['nullable'],
-            'docs_ft'                    => ['nullable'],
-            'docs_hs'                    => ['nullable'],
-            'docs_otro'                  => ['nullable'],
-            'docs_otro_txt'              => ['nullable', 'string', 'max:255'],
             'cliente_nombre'             => ['required', 'string', 'max:255'],
             'cliente_direccion'          => ['nullable', 'string', 'max:500'],
             'cliente_correo'             => ['nullable', 'email', 'max:255'],
@@ -291,69 +273,74 @@ class LaboratoryController extends Controller
             'paq_guia'                   => ['nullable', 'string', 'max:100'],
             'observaciones'              => ['nullable', 'string', 'max:5000'],
             'solicitante_nombre'         => ['nullable', 'string', 'max:255'],
+            'items'                      => ['required', 'array', 'min:1'],
+            'items.*.product_id'         => ['required', 'exists:products,product_id'],
+            'items.*.sku'                => ['nullable', 'string', 'max:100'],
+            'items.*.um'                 => ['nullable', 'string', 'max:50'],
+            'items.*.cantidad'           => ['nullable', 'string', 'max:100'],
+            'items.*.pres_ziploc'        => ['nullable'],
+            'items.*.pres_whirlpak'      => ['nullable'],
+            'items.*.pres_metalizada'    => ['nullable'],
+            'items.*.pres_frasco'        => ['nullable'],
+            'items.*.pres_bidon'         => ['nullable'],
+            'items.*.pres_otro'          => ['nullable'],
+            'items.*.pres_otro_txt'      => ['nullable', 'string', 'max:255'],
+            'items.*.lote_almacen'       => ['nullable', 'string', 'max:100'],
+            'items.*.lote_venta'         => ['nullable', 'string', 'max:100'],
+            'items.*.docs_cc'            => ['nullable'],
+            'items.*.docs_ft'            => ['nullable'],
+            'items.*.docs_hs'            => ['nullable'],
+            'items.*.docs_otro'          => ['nullable'],
+            'items.*.docs_otro_txt'      => ['nullable', 'string', 'max:255'],
         ]);
 
-        $productoModel = \App\Models\Product::find($request->product_id);
-        $nombreProducto = $productoModel ? $productoModel->name : 'N/A';
-
         $b = fn(string $k) => $request->boolean($k);
-        
-        $validated['pres_ziploc']                = $b('pres_ziploc');
-        $validated['pres_whirlpak']              = $b('pres_whirlpak');
-        $validated['pres_metalizada']            = $b('pres_metalizada');
-        $validated['pres_frasco']                = $b('pres_frasco');
-        $validated['pres_bidon']                 = $b('pres_bidon');
-        $validated['pres_otro']                  = $b('pres_otro');
-        $validated['docs_cc']                    = $b('docs_cc');
-        $validated['docs_ft']                    = $b('docs_ft');
-        $validated['docs_hs']                    = $b('docs_hs');
-        $validated['docs_otro']                  = $b('docs_otro');
-        $validated['entrega_paqueteria']         = $b('entrega_paqueteria');
-        $validated['entrega_personal_empresa']   = $b('entrega_personal_empresa');
-        $validated['entrega_recoleccion_planta'] = $b('entrega_recoleccion_planta');
-        $validated['entrega_otro']               = $b('entrega_otro');
-
-        if (!$validated['pres_otro'])    { $validated['pres_otro_txt'] = null; }
-        if (!$validated['docs_otro'])    { $validated['docs_otro_txt'] = null; }
-        if (!$validated['entrega_otro']) { $validated['entrega_otro_txt'] = null; }
 
         $data = [
             'fecha_solicitud'            => $validated['fecha_solicitud'] ?? '',
-            'sku'                        => $validated['sku'] ?? '',
-            'producto'                   => $nombreProducto,
-            'um'                         => $validated['um'] ?? '',
-            'cantidad'                   => $validated['cantidad'] ?? '',
-            'pres_ziploc'                => $validated['pres_ziploc'],
-            'pres_whirlpak'              => $validated['pres_whirlpak'],
-            'pres_metalizada'            => $validated['pres_metalizada'],
-            'pres_frasco'                => $validated['pres_frasco'],
-            'pres_bidon'                 => $validated['pres_bidon'],
-            'pres_otro'                  => $validated['pres_otro'],
-            'pres_otro_txt'              => $validated['pres_otro_txt'] ?? '',
-            'lote_almacen'               => $validated['lote_almacen'] ?? '',
-            'lote_venta'                 => $validated['lote_venta'] ?? '',
-            'fecha_recoleccion'          => $validated['fecha_recoleccion'] ?? '',
-            'docs_cc'                    => $validated['docs_cc'],
-            'docs_ft'                    => $validated['docs_ft'],
-            'docs_hs'                    => $validated['docs_hs'],
-            'docs_otro'                  => $validated['docs_otro'],
-            'docs_otro_txt'              => $validated['docs_otro_txt'] ?? '',
             'cliente_nombre'             => $validated['cliente_nombre'] ?? '',
             'cliente_direccion'          => $validated['cliente_direccion'] ?? '',
             'cliente_correo'             => $validated['cliente_correo'] ?? '',
             'cliente_telefono'           => $validated['cliente_telefono'] ?? '',
             'cliente_estatus'            => $validated['cliente_estatus'] ?? '',
             'personal_seguimiento'       => $validated['personal_seguimiento'] ?? '',
-            'entrega_paqueteria'         => $validated['entrega_paqueteria'],
-            'entrega_personal_empresa'   => $validated['entrega_personal_empresa'],
-            'entrega_recoleccion_planta' => $validated['entrega_recoleccion_planta'],
-            'entrega_otro'               => $validated['entrega_otro'],
-            'entrega_otro_txt'           => $validated['entrega_otro_txt'] ?? '',
+            'entrega_paqueteria'         => $b('entrega_paqueteria'),
+            'entrega_personal_empresa'   => $b('entrega_personal_empresa'),
+            'entrega_recoleccion_planta' => $b('entrega_recoleccion_planta'),
+            'entrega_otro'               => $b('entrega_otro'),
+            'entrega_otro_txt'           => $b('entrega_otro') ? ($validated['entrega_otro_txt'] ?? '') : null,
             'paq_nombre'                 => $validated['paq_nombre'] ?? '',
             'paq_guia'                   => $validated['paq_guia'] ?? '',
             'observaciones'              => $validated['observaciones'] ?? '',
             'solicitante_nombre'         => $validated['solicitante_nombre'] ?? '',
+            'items'                      => [],
         ];
+
+        foreach ($request->input('items', []) as $itemReq) {
+            $prod = \App\Models\Product::find($itemReq['product_id']);
+            $itemData = [
+                'producto'                   => $prod ? $prod->name : 'N/A',
+                'sku'                        => $itemReq['sku'] ?? '',
+                'um'                         => $itemReq['um'] ?? '',
+                'cantidad'                   => $itemReq['cantidad'] ?? '',
+                'pres_ziploc'                => isset($itemReq['pres_ziploc']) && filter_var($itemReq['pres_ziploc'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0,
+                'pres_whirlpak'              => isset($itemReq['pres_whirlpak']) && filter_var($itemReq['pres_whirlpak'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0,
+                'pres_metalizada'            => isset($itemReq['pres_metalizada']) && filter_var($itemReq['pres_metalizada'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0,
+                'pres_frasco'                => isset($itemReq['pres_frasco']) && filter_var($itemReq['pres_frasco'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0,
+                'pres_bidon'                 => isset($itemReq['pres_bidon']) && filter_var($itemReq['pres_bidon'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0,
+                'pres_otro'                  => isset($itemReq['pres_otro']) && filter_var($itemReq['pres_otro'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0,
+                'pres_otro_txt'              => isset($itemReq['pres_otro']) && filter_var($itemReq['pres_otro'], FILTER_VALIDATE_BOOLEAN) ? ($itemReq['pres_otro_txt'] ?? '') : null,
+                'lote_almacen'               => $itemReq['lote_almacen'] ?? '',
+                'lote_venta'                 => $itemReq['lote_venta'] ?? '',
+                'fecha_recoleccion'          => $validated['fecha_recoleccion'] ?? '',
+                'docs_cc'                    => isset($itemReq['docs_cc']) && filter_var($itemReq['docs_cc'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0,
+                'docs_ft'                    => isset($itemReq['docs_ft']) && filter_var($itemReq['docs_ft'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0,
+                'docs_hs'                    => isset($itemReq['docs_hs']) && filter_var($itemReq['docs_hs'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0,
+                'docs_otro'                  => isset($itemReq['docs_otro']) && filter_var($itemReq['docs_otro'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0,
+                'docs_otro_txt'              => isset($itemReq['docs_otro']) && filter_var($itemReq['docs_otro'], FILTER_VALIDATE_BOOLEAN) ? ($itemReq['docs_otro_txt'] ?? '') : null,
+            ];
+            $data['items'][] = $itemData;
+        }
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('formats.laboratory.02', $data)->setPaper('letter');
         
@@ -368,25 +355,7 @@ class LaboratoryController extends Controller
         $validated = $request->validate([
             'folio'                      => ['nullable', 'string', 'max:50'],
             'fecha_solicitud'            => ['nullable', 'date'],
-            'product_id'                 => ['required', 'exists:products,product_id'],
-            'sku'                        => ['nullable', 'string', 'max:100'],
-            'um'                         => ['nullable', 'string', 'max:50'],
-            'cantidad'                   => ['nullable', 'string', 'max:100'],
-            'pres_ziploc'                => ['nullable'],
-            'pres_whirlpak'              => ['nullable'],
-            'pres_metalizada'            => ['nullable'],
-            'pres_frasco'                => ['nullable'],
-            'pres_bidon'                 => ['nullable'],
-            'pres_otro'                  => ['nullable'],
-            'pres_otro_txt'              => ['nullable', 'string', 'max:255'],
-            'lote_almacen'               => ['nullable', 'string', 'max:100'],
-            'lote_venta'                 => ['nullable', 'string', 'max:100'],
             'fecha_recoleccion'          => ['nullable', 'date'],
-            'docs_cc'                    => ['nullable'],
-            'docs_ft'                    => ['nullable'],
-            'docs_hs'                    => ['nullable'],
-            'docs_otro'                  => ['nullable'],
-            'docs_otro_txt'              => ['nullable', 'string', 'max:255'],
             'customer_id'                => ['nullable', 'integer'],
             'cliente_nombre'             => ['required', 'string', 'max:255'],
             'cliente_direccion'          => ['nullable', 'string', 'max:500'],
@@ -403,6 +372,25 @@ class LaboratoryController extends Controller
             'paq_guia'                   => ['nullable', 'string', 'max:100'],
             'observaciones'              => ['nullable', 'string', 'max:5000'],
             'solicitante_nombre'         => ['nullable', 'string', 'max:255'],
+            'items'                      => ['required', 'array', 'min:1'],
+            'items.*.product_id'         => ['required', 'exists:products,product_id'],
+            'items.*.sku'                => ['nullable', 'string', 'max:100'],
+            'items.*.um'                 => ['nullable', 'string', 'max:50'],
+            'items.*.cantidad'           => ['nullable', 'string', 'max:100'],
+            'items.*.pres_ziploc'        => ['nullable'],
+            'items.*.pres_whirlpak'      => ['nullable'],
+            'items.*.pres_metalizada'    => ['nullable'],
+            'items.*.pres_frasco'        => ['nullable'],
+            'items.*.pres_bidon'         => ['nullable'],
+            'items.*.pres_otro'          => ['nullable'],
+            'items.*.pres_otro_txt'      => ['nullable', 'string', 'max:255'],
+            'items.*.lote_almacen'       => ['nullable', 'string', 'max:100'],
+            'items.*.lote_venta'         => ['nullable', 'string', 'max:100'],
+            'items.*.docs_cc'            => ['nullable'],
+            'items.*.docs_ft'            => ['nullable'],
+            'items.*.docs_hs'            => ['nullable'],
+            'items.*.docs_otro'          => ['nullable'],
+            'items.*.docs_otro_txt'      => ['nullable', 'string', 'max:255'],
         ]);
 
         try {
@@ -425,12 +413,7 @@ class LaboratoryController extends Controller
                 $data['folio'] = $folioFinal;
                 $data['status'] = 0;
 
-                $prod = Product::where('product_id', $request->product_id)->first();
-                $data['producto'] = $prod ? $prod->name : 'N/A';
-
                 $checkboxes = [
-                    'pres_ziploc', 'pres_whirlpak', 'pres_metalizada', 'pres_frasco', 'pres_bidon', 'pres_otro',
-                    'docs_cc', 'docs_ft', 'docs_hs', 'docs_otro',
                     'entrega_paqueteria', 'entrega_personal_empresa', 'entrega_recoleccion_planta', 'entrega_otro'
                 ];
 
@@ -438,11 +421,26 @@ class LaboratoryController extends Controller
                     $data[$field] = $request->boolean($field) ? 1 : 0;
                 }
 
-                if (!$data['pres_otro'])    $data['pres_otro_txt'] = null;
-                if (!$data['docs_otro'])    $data['docs_otro_txt'] = null;
                 if (!$data['entrega_otro']) $data['entrega_otro_txt'] = null;
 
                 $record = CustomerSampleRequest::create($data);
+
+                // Save items
+                $items = $request->input('items', []);
+                foreach ($items as $item) {
+                    $itemData = $item;
+                    $itemCheckboxes = [
+                        'pres_ziploc', 'pres_whirlpak', 'pres_metalizada', 'pres_frasco', 'pres_bidon', 'pres_otro',
+                        'docs_cc', 'docs_ft', 'docs_hs', 'docs_otro'
+                    ];
+                    foreach ($itemCheckboxes as $field) {
+                        $itemData[$field] = isset($item[$field]) && filter_var($item[$field], FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+                    }
+                    if (!$itemData['pres_otro']) $itemData['pres_otro_txt'] = null;
+                    if (!$itemData['docs_otro']) $itemData['docs_otro_txt'] = null;
+
+                    $record->items()->create($itemData);
+                }
 
                 $usersToNotify = User::role(['Admin', 'Laboratory'])->get();
                 Notification::send($usersToNotify, new NewSampleRequestNotification($record));
@@ -464,14 +462,20 @@ class LaboratoryController extends Controller
     
     public function getCustomerRequestsJson() 
     {
-        $data = DB::table('customer_sample_requests')
-            ->leftJoin('products', 'customer_sample_requests.product_id', '=', 'products.product_id')
-            ->select(
-                'customer_sample_requests.*', 
-                'products.name as producto_nombre'
-            )
-            ->orderBy('customer_sample_requests.id', 'desc')
-            ->get();
+        $data = CustomerSampleRequest::with('items.product')->orderBy('id', 'desc')->get();
+        
+        $data = $data->map(function ($req) {
+            $productNames = $req->items->pluck('product.name')->filter()->implode(', ');
+            
+            // To maintain compatibility with existing records during migration
+            if (empty($productNames) && $req->product_id) {
+                $product = \App\Models\Product::find($req->product_id);
+                $productNames = $product ? $product->name : '';
+            }
+
+            $req->producto_nombre = $productNames ?: 'N/A';
+            return $req;
+        });
             
         return response()->json(['data' => $data]);
     }
@@ -494,7 +498,7 @@ class LaboratoryController extends Controller
     public function showCustomerRequest($id)
     {
         try {
-            $record = CustomerSampleRequest::findOrFail($id);
+            $record = CustomerSampleRequest::with('items')->findOrFail($id);
             return response()->json(['data' => $record]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Record not found'], 404);
@@ -505,12 +509,6 @@ class LaboratoryController extends Controller
     {
         $validated = $request->validate([
             'fecha_solicitud'    => 'nullable|date',
-            'product_id'         => 'required|integer',
-            'sku'                => 'nullable|string',
-            'um'                 => 'nullable|string',
-            'cantidad'           => 'nullable|string',
-            'lote_almacen'       => 'nullable|string',
-            'lote_venta'         => 'nullable|string',
             'fecha_recoleccion'  => 'nullable|date',
             'cliente_nombre'     => 'required|string|max:255',
             'cliente_direccion'  => 'nullable|string',
@@ -521,22 +519,35 @@ class LaboratoryController extends Controller
             'paq_guia'           => 'nullable|string',
             'observaciones'      => 'nullable|string',
             'solicitante_nombre' => 'nullable|string',
-            'pres_otro_txt'      => 'nullable|string',
-            'docs_otro_txt'      => 'nullable|string',
             'entrega_otro_txt'   => 'nullable|string',
+            'items'                      => ['required', 'array', 'min:1'],
+            'items.*.product_id'         => ['required', 'exists:products,product_id'],
+            'items.*.sku'                => ['nullable', 'string', 'max:100'],
+            'items.*.um'                 => ['nullable', 'string', 'max:50'],
+            'items.*.cantidad'           => ['nullable', 'string', 'max:100'],
+            'items.*.pres_ziploc'        => ['nullable'],
+            'items.*.pres_whirlpak'      => ['nullable'],
+            'items.*.pres_metalizada'    => ['nullable'],
+            'items.*.pres_frasco'        => ['nullable'],
+            'items.*.pres_bidon'         => ['nullable'],
+            'items.*.pres_otro'          => ['nullable'],
+            'items.*.pres_otro_txt'      => ['nullable', 'string', 'max:255'],
+            'items.*.lote_almacen'       => ['nullable', 'string', 'max:100'],
+            'items.*.lote_venta'         => ['nullable', 'string', 'max:100'],
+            'items.*.docs_cc'            => ['nullable'],
+            'items.*.docs_ft'            => ['nullable'],
+            'items.*.docs_hs'            => ['nullable'],
+            'items.*.docs_otro'          => ['nullable'],
+            'items.*.docs_otro_txt'      => ['nullable', 'string', 'max:255'],
         ]);
 
         try {
             $row = DB::transaction(function () use ($validated, $request, $id) {
                 $record = CustomerSampleRequest::findOrFail($id);
                 $data = $validated;
-
-                $product = Product::find($request->product_id);
-                $data['producto'] = $product ? $product->name : 'N/A';
+                unset($data['items']);
 
                 $checkboxes = [
-                    'pres_ziploc', 'pres_whirlpak', 'pres_metalizada', 'pres_frasco', 'pres_bidon', 'pres_otro',
-                    'docs_cc', 'docs_ft', 'docs_hs', 'docs_otro',
                     'entrega_paqueteria', 'entrega_personal_empresa', 'entrega_recoleccion_planta', 'entrega_otro'
                 ];
 
@@ -545,6 +556,26 @@ class LaboratoryController extends Controller
                 }
 
                 $record->update($data);
+
+                $record->items()->delete();
+                $items = $request->input('items', []);
+                foreach ($items as $item) {
+                    $itemData = $item;
+                    $itemCheckboxes = [
+                        'pres_ziploc', 'pres_whirlpak', 'pres_metalizada', 'pres_frasco', 'pres_bidon', 'pres_otro',
+                        'docs_cc', 'docs_ft', 'docs_hs', 'docs_otro'
+                    ];
+                    foreach ($itemCheckboxes as $field) {
+                        $itemData[$field] = isset($item[$field]) && filter_var($item[$field], FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+                    }
+                    if (!$itemData['pres_otro']) $itemData['pres_otro_txt'] = null;
+                    if (!$itemData['docs_otro']) $itemData['docs_otro_txt'] = null;
+
+                    $record->items()->create($itemData);
+                }
+                
+                // Load items to return in response
+                $record->load('items');
                 return $record;
             });
 
@@ -562,7 +593,7 @@ class LaboratoryController extends Controller
 
     public function reprintPdf2($id) 
     {
-        $record = CustomerSampleRequest::findOrFail($id);
+        $record = CustomerSampleRequest::with('items')->findOrFail($id);
         $pdf = Pdf::loadView('formats.laboratory.02', $record->toArray())->setPaper('letter');
         return $pdf->stream("Solicitud_{$record->folio}.pdf");
     }

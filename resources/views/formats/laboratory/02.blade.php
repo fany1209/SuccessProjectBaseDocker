@@ -79,57 +79,65 @@
     </colgroup>
 
     <tr class="th-green c">
-      <td class="p4" colspan="4">DATOS DE LA MUESTRA</td>
+      <td class="p4" colspan="4">DATOS GENERALES</td>
     </tr>
 
     <tr>
-      <td class="p4" colspan="4"><b>Fecha solicitud:</b> {{ $fecha_solicitud ?? '' }}</td>
-    </tr>
-
-    <tr>
-      <td class="p4" colspan="2"><b>Producto:</b> {{ $producto ?? '' }}</td>
-      <td class="p4" colspan="2"><b>SKU:</b> {{ $sku ?? '' }}</td>
-    </tr>
-
-    <tr>
-      <td class="p4" colspan="2"><b>Cantidad:</b> {{ $cantidad ?? '' }}</td>
-      <td class="p4" colspan="2"><b>UM:</b> {{ $um ?? '' }}</td>
-    </tr>
-
-    <tr>
-      <td class="p4" colspan="4">
-        <b>Presentación:</b>
-        <span class="nowrap">Bolsa ziploc <span class="cb">{{ !empty($pres_ziploc) ? '☑' : '☐' }}</span></span>&nbsp;&nbsp;
-        <span class="nowrap">Bolsa whirlpak <span class="cb">{{ !empty($pres_whirlpak) ? '☑' : '☐' }}</span></span>&nbsp;&nbsp;
-        <span class="nowrap">Bolsa metalizada <span class="cb">{{ !empty($pres_metalizada) ? '☑' : '☐' }}</span></span>&nbsp;&nbsp;
-        <span class="nowrap">Frasco <span class="cb">{{ !empty($pres_frasco) ? '☑' : '☐' }}</span></span>&nbsp;&nbsp;
-        <span class="nowrap">Bidón <span class="cb">{{ !empty($pres_bidon) ? '☑' : '☐' }}</span></span>&nbsp;&nbsp;
-        <span class="nowrap">Otro <span class="cb">{{ !empty($pres_otro) ? '☑' : '☐' }}</span></span>
-        @if(!empty($pres_otro) && !empty($pres_otro_txt))
-          &nbsp;<b>Especifique:</b> {{ $pres_otro_txt }}
-        @endif
-      </td>
-    </tr>
-
-    <tr>
-      <td class="p4" colspan="2"><b>Lote almacén:</b> {{ $lote_almacen ?? '' }}</td>
-      <td class="p4" colspan="2"><b>Lote venta:</b> {{ $lote_venta ?? '' }}</td>
-    </tr>
-
-    <tr>
-      <td class="p4" colspan="2"><b>Fecha de recolección:</b> {{ $fecha_recoleccion ?? '' }}</td>
-      <td class="p4" colspan="2">
-        <b>Documentación solicitada:</b>
-        <span class="nowrap">CC <span class="cb">{{ !empty($docs_cc) ? '☑' : '☐' }}</span></span>&nbsp;&nbsp;
-        <span class="nowrap">FT <span class="cb">{{ !empty($docs_ft) ? '☑' : '☐' }}</span></span>&nbsp;&nbsp;
-        <span class="nowrap">HS <span class="cb">{{ !empty($docs_hs) ? '☑' : '☐' }}</span></span>&nbsp;&nbsp;
-        <span class="nowrap">Otro <span class="cb">{{ !empty($docs_otro) ? '☑' : '☐' }}</span></span>
-        @if(!empty($docs_otro) && !empty($docs_otro_txt))
-          &nbsp;&nbsp;<span class="nowrap"><b>Especifique:</b> {{ $docs_otro_txt }}</span>
-        @endif
-      </td>
+      <td class="p4" colspan="2"><b>Fecha solicitud:</b> {{ $fecha_solicitud ?? '' }}</td>
+      <td class="p4" colspan="2"><b>Fecha recolección:</b> {{ $fecha_recoleccion ?? '' }}</td>
     </tr>
   </table>
+
+  @if(isset($items) && is_array($items) && count($items) > 0)
+    @foreach($items as $index => $item)
+    <table class="tbl b1" style="font-size:10pt; margin-top:10px;">
+      <colgroup>
+        <col> <col> <col> <col>
+      </colgroup>
+      <tr class="th-green c">
+        <td class="p4" colspan="4">MUESTRA #{{ $index + 1 }}</td>
+      </tr>
+      <tr>
+        <td class="p4" colspan="2"><b>Producto:</b> {{ $item['producto'] ?? '' }}</td>
+        <td class="p4" colspan="2"><b>SKU:</b> {{ $item['sku'] ?? '' }}</td>
+      </tr>
+      <tr>
+        <td class="p4" colspan="2"><b>Cantidad:</b> {{ $item['cantidad'] ?? '' }}</td>
+        <td class="p4" colspan="2"><b>UM:</b> {{ $item['um'] ?? '' }}</td>
+      </tr>
+      <tr>
+        <td class="p4" colspan="4">
+          <b>Presentación:</b>
+          <span class="nowrap">Bolsa ziploc <span class="cb">{{ !empty($item['pres_ziploc']) ? '☑' : '☐' }}</span></span>&nbsp;&nbsp;
+          <span class="nowrap">Bolsa whirlpak <span class="cb">{{ !empty($item['pres_whirlpak']) ? '☑' : '☐' }}</span></span>&nbsp;&nbsp;
+          <span class="nowrap">Bolsa metalizada <span class="cb">{{ !empty($item['pres_metalizada']) ? '☑' : '☐' }}</span></span>&nbsp;&nbsp;
+          <span class="nowrap">Frasco <span class="cb">{{ !empty($item['pres_frasco']) ? '☑' : '☐' }}</span></span>&nbsp;&nbsp;
+          <span class="nowrap">Bidón <span class="cb">{{ !empty($item['pres_bidon']) ? '☑' : '☐' }}</span></span>&nbsp;&nbsp;
+          <span class="nowrap">Otro <span class="cb">{{ !empty($item['pres_otro']) ? '☑' : '☐' }}</span></span>
+          @if(!empty($item['pres_otro']) && !empty($item['pres_otro_txt']))
+            &nbsp;<b>Especifique:</b> {{ $item['pres_otro_txt'] }}
+          @endif
+        </td>
+      </tr>
+      <tr>
+        <td class="p4" colspan="2"><b>Lote almacén:</b> {{ $item['lote_almacen'] ?? '' }}</td>
+        <td class="p4" colspan="2"><b>Lote venta:</b> {{ $item['lote_venta'] ?? '' }}</td>
+      </tr>
+      <tr>
+        <td class="p4" colspan="4">
+          <b>Documentación solicitada:</b>
+          <span class="nowrap">CC <span class="cb">{{ !empty($item['docs_cc']) ? '☑' : '☐' }}</span></span>&nbsp;&nbsp;
+          <span class="nowrap">FT <span class="cb">{{ !empty($item['docs_ft']) ? '☑' : '☐' }}</span></span>&nbsp;&nbsp;
+          <span class="nowrap">HS <span class="cb">{{ !empty($item['docs_hs']) ? '☑' : '☐' }}</span></span>&nbsp;&nbsp;
+          <span class="nowrap">Otro <span class="cb">{{ !empty($item['docs_otro']) ? '☑' : '☐' }}</span></span>
+          @if(!empty($item['docs_otro']) && !empty($item['docs_otro_txt']))
+            &nbsp;&nbsp;<span class="nowrap"><b>Especifique:</b> {{ $item['docs_otro_txt'] }}</span>
+          @endif
+        </td>
+      </tr>
+    </table>
+    @endforeach
+  @endif
 
   {{-- ============================== DATOS DEL CLIENTE ============================== --}}
   <table class="tbl b1" style="font-size:10pt; margin-top:12px;">
