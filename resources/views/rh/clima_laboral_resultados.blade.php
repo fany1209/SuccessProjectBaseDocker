@@ -159,7 +159,7 @@
                                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-center">{{ $res->q9_satisfaccion }}</td>
                                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-center">{{ $res->q10_bienestar_carga }}</td>
                                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-center">{{ $res->q11_bienestar_preocupacion }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" title="{{ $res->q12_sugerencias }}">
+                                        <td class="px-4 py-3 text-sm text-gray-600 whitespace-normal min-w-[250px] break-words" title="{{ $res->q12_sugerencias }}">
                                             {{ $res->q12_sugerencias ?? '-' }}
                                         </td>
                                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">

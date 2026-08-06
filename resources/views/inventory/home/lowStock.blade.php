@@ -39,7 +39,7 @@ $(document).ready(function(){
             order: [[1, 'desc']],
             columns: [
                 { data: 'name' },
-                {data: 'stock_min',
+                {data: 'stock',
                     render: function(data, type, row) {
                         let value = parseFloat(data);
                         if (isNaN(value)) {

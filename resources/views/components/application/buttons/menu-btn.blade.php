@@ -4,7 +4,7 @@
     'image' => asset('images/caja.png')
 ])
 
-<a href="{{ $link }}" class="bg-[#198754] p-8 rounded-lg focus:scale-95 transition-transform duration-300">
+<a href="{{ $link }}" {{ $attributes->merge(['class' => 'bg-[#198754] p-8 rounded-lg focus:scale-95 transition-transform duration-300 block']) }}>
     <div class="flex flex-col justify-center items-center">
         <img src="{{ $image }}" width="100" class="mb-3" alt="{{ $module }}">
         <h5 class="text-2xl text-white font-semibold tracking-[3px]">{{ $slot }}</h5>

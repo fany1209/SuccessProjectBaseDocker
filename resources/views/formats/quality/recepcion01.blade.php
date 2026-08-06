@@ -188,7 +188,31 @@
   </p>
 
   <p><strong>Certificado de Calidad:</strong> 
-    {{ $has_certificate ? 'Sí' : 'No' }}
+    @if($has_certificate)
+        @php
+            $certName = '';
+            if (isset($certificate) && $certificate) {
+                $certData = \DB::table('supplier_certificates as sc')
+                    ->join('suppliers as s', 'sc.supplier_id', '=', 's.supplier_id')
+                    ->join('files as f', 'sc.file_id', '=', 'f.file_id')
+                    ->join('products as p', 'f.product_id', '=', 'p.product_id')
+                    ->where('sc.id', $certificate->id)
+                    ->select('s.name as supplier_name', 'p.name as product_name', 'sc.fecha_emision')
+                    ->first();
+                
+                if ($certData) {
+                    $fecha = $certData->fecha_emision ? " (Emitido: {$certData->fecha_emision})" : '';
+                    $certName = "{$certData->supplier_name} - {$certData->product_name}{$fecha}";
+                }
+            }
+        @endphp
+        Sí 
+        @if($certName)
+            <br> <span style="font-size: 10pt; color: #555;">{{ $certName }}</span>
+        @endif
+    @else
+        No
+    @endif
   </p>
 
     @php
