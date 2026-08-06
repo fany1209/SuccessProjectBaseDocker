@@ -747,7 +747,20 @@ class LaboratoryController extends Controller
 
     public function indexMuestras()
     {
-        return view('muestras.index');
+        $products = \App\Models\Product::orderBy('name')->get(['product_id','name','sku']);
+
+        $batchesByProduct = \DB::table('inventory')
+            ->select('product_id','batch')
+            ->whereNotNull('batch')
+            ->whereRaw("TRIM(batch) <> ''")
+            ->distinct()
+            ->orderBy('product_id')
+            ->orderBy('batch')
+            ->get()
+            ->groupBy('product_id')
+            ->map(fn($g) => $g->pluck('batch')->values());
+
+        return view('muestras.index', compact('products', 'batchesByProduct'));
     }
 
     public function getMuestras(Request $request)
@@ -801,7 +814,97 @@ class LaboratoryController extends Controller
 
         } catch (\Exception $e) {
             return response()->json([
-                'error' => 'Ocurrió un error al eliminar el registro.'
+                'error' => 'Hubo un error al eliminar la muestra: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateMuestra(Request $request, $id)
+    {
+        try {
+            $salida = \DB::table('salida_muestras')->where('id', $id)->first();
+
+            if (!$salida) {
+                return response()->json(['error' => 'No se encontró el registro.'], 404);
+            }
+
+            $validated = $request->validate([
+                'product_id' => 'nullable|integer',
+                'fecha_salida' => 'nullable|date',
+                'nombre_comercial' => 'nullable|string|max:255',
+                'lote' => 'nullable|string|max:255',
+                'um' => 'nullable|string|max:20',
+                'cantidad' => 'nullable|string|max:255',
+                'descripcion' => 'nullable|string',
+                'motivo_salida' => 'nullable|string|max:255',
+                'motivo_otro' => 'nullable|string|max:255',
+                'entrega_paqueteria' => 'nullable|boolean',
+                'entrega_recoleccion_planta' => 'nullable|boolean',
+                'entrega_personal_empresa' => 'nullable|boolean',
+                'entrega_otro' => 'nullable|boolean',
+                'entrega_otro_txt' => 'nullable|string|max:255',
+                'paq_empresa' => 'nullable|string|max:255',
+                'paq_guia' => 'nullable|string|max:255',
+                'dest_nombre' => 'nullable|string|max:255',
+                'dest_direccion' => 'nullable|string|max:255',
+                'dest_recibe' => 'nullable|string|max:255',
+                'dest_correo' => 'nullable|email|max:255',
+                'dest_telefono' => 'nullable|string|max:255',
+                'docs_cc' => 'nullable|boolean',
+                'docs_ft' => 'nullable|boolean',
+                'docs_hs' => 'nullable|boolean',
+                'docs_otro' => 'nullable|boolean',
+                'docs_otro_txt' => 'nullable|string|max:255',
+            ]);
+
+            // Obtener sku si hay product_id
+            $sku = $salida->sku;
+            if (isset($validated['product_id']) && $validated['product_id'] != $salida->product_id) {
+                $product = \App\Models\Product::find($validated['product_id']);
+                if ($product) {
+                    $sku = $product->sku;
+                }
+            }
+
+            \DB::table('salida_muestras')->where('id', $id)->update([
+                'product_id' => $validated['product_id'] ?? $salida->product_id,
+                'fecha_salida' => $validated['fecha_salida'] ?? $salida->fecha_salida,
+                'nombre_comercial' => $validated['nombre_comercial'] ?? $salida->nombre_comercial,
+                'sku' => $sku,
+                'lote' => $validated['lote'] ?? $salida->lote,
+                'um' => $validated['um'] ?? $salida->um,
+                'cantidad' => $validated['cantidad'] ?? $salida->cantidad,
+                'descripcion' => $validated['descripcion'] ?? $salida->descripcion,
+                'motivo_salida' => $validated['motivo_salida'] ?? $salida->motivo_salida,
+                'motivo_otro' => $validated['motivo_otro'] ?? $salida->motivo_otro,
+                'entrega_paqueteria' => $request->has('entrega_paqueteria') ? 1 : 0,
+                'entrega_recoleccion_planta' => $request->has('entrega_recoleccion_planta') ? 1 : 0,
+                'entrega_personal_empresa' => $request->has('entrega_personal_empresa') ? 1 : 0,
+                'entrega_otro' => $request->has('entrega_otro') ? 1 : 0,
+                'entrega_otro_txt' => $validated['entrega_otro_txt'] ?? $salida->entrega_otro_txt,
+                'paq_empresa' => $validated['paq_empresa'] ?? $salida->paq_empresa,
+                'paq_guia' => $validated['paq_guia'] ?? $salida->paq_guia,
+                'dest_nombre' => $validated['dest_nombre'] ?? $salida->dest_nombre,
+                'dest_direccion' => $validated['dest_direccion'] ?? $salida->dest_direccion,
+                'dest_recibe' => $validated['dest_recibe'] ?? $salida->dest_recibe,
+                'dest_correo' => $validated['dest_correo'] ?? $salida->dest_correo,
+                'dest_telefono' => $validated['dest_telefono'] ?? $salida->dest_telefono,
+                'docs_cc' => $request->has('docs_cc') ? 1 : 0,
+                'docs_ft' => $request->has('docs_ft') ? 1 : 0,
+                'docs_hs' => $request->has('docs_hs') ? 1 : 0,
+                'docs_otro' => $request->has('docs_otro') ? 1 : 0,
+                'docs_otro_txt' => $validated['docs_otro_txt'] ?? $salida->docs_otro_txt,
+                'updated_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Muestra actualizada correctamente.'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Hubo un error al actualizar la muestra: ' . $e->getMessage()
             ], 500);
         }
     }

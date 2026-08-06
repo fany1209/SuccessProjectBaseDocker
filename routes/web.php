@@ -351,6 +351,7 @@ Route::middleware([
     Route::get('/get-muestras', [LaboratoryController::class, 'getMuestras'])->name('laboratory.getMuestras');
     Route::get('/muestras/reimprimir/{id}', [LaboratoryController::class, 'reimprimirPdf'])->name('laboratory.reimprimirPdf');
     Route::delete('/muestras/{id}', [LaboratoryController::class, 'destroyMuestra'])->name('laboratory.destroyMuestra');
+    Route::put('/muestras/{id}', [LaboratoryController::class, 'updateMuestra'])->name('laboratory.updateMuestra');
     });
         Route::post('/laboratory/pdf2', [LaboratoryController::class, 'pdf2'])->name('laboratory.pdf2');
         Route::post('/laboratory/store2', [LaboratoryController::class, 'store2'])->name('laboratory.store2');
