@@ -554,6 +554,20 @@ class SalesController extends Controller
                     $sale->almacen_status = 'confirmed';
                     $sale->save();
 
+                    // Generar la salida (Output) automáticamente
+                    $output = \App\Models\Output::create([
+                        'customer_id' => $sale->customer_id ?? 1,
+                        'vendedor' => $sale->seller ?? ($sale->user ? $sale->user->name : 'N/A'),
+                        'operator' => null,
+                        'license_number' => null,
+                        'security_seal' => 0,
+                        'security_seal_number' => null,
+                        'unit_plates' => null,
+                        'trailer_plates' => null,
+                        'comments' => 'Salida automática de Venta Folio ' . $sale->folio,
+                        'transport_line_id' => null,
+                    ]);
+
                     foreach ($lotAssignments as $assignment) {
                         $cliId = $assignment['cli_id'];
                         $quantity = floatval($assignment['quantity']);
@@ -579,6 +593,15 @@ class SalesController extends Controller
                         if ($inventory) {
                             $inventory->stock -= $quantity;
                             $inventory->save();
+
+                            // Insertar el producto en la salida generada
+                            \Illuminate\Support\Facades\DB::table('product_outputs')->insert([
+                                'output_id' => $output->output_id,
+                                'product_id' => $inventory->product_id,
+                                'quantity' => $quantity,
+                                'warehouse_batch' => $inventory->batch,
+                                'label_batch' => ''
+                            ]);
                         }
                     }
 
@@ -589,7 +612,7 @@ class SalesController extends Controller
                         Notification::send($almacenUsers, new SaleAlmacenNotification($sale, 'inventory_updated', "El inventario ha sido reducido para la venta Folio " . $sale->folio));
                     }
                     
-                    return response()->json(['success' => true, 'message' => 'Venta confirmada e inventario actualizado.']);
+                    return response()->json(['success' => true, 'message' => 'Venta confirmada e inventario actualizado. Se ha generado la salida automática (ID: ' . $output->output_id . ').']);
                 } 
                 elseif ($action === 'postpone') {
                     $request->validate(['reason' => 'required', 'date' => 'required|date']);
@@ -599,15 +622,27 @@ class SalesController extends Controller
                     $sale->save();
                     
                     if ($userVentas) {
-                        $userVentas->notify(new SaleAlmacenNotification($sale, 'postponed', "Tu venta Folio " . $sale->folio . " fue pospuesta por almacén.", $request->reason, $request->date));
+                        $userVentas->notify(new SaleAlmacenNotification($sale, 'postponed', "Tu venta Folio " . $sale->folio . " fue pospuesta por almacén. Recordatorio: " . $request->date, $request->reason, $request->date));
                     }
-                    return response()->json(['success' => true, 'message' => 'Venta pospuesta.']);
+                    return response()->json(['success' => true, 'message' => 'Venta pospuesta. Se te recordará el ' . $request->date]);
+                }
+                elseif ($action === 'mark_ready') {
+                    // Cambia de postponed a pending para que pueda confirmar la salida
+                    $sale->almacen_status = 'pending';
+                    $sale->almacen_comment = null;
+                    $sale->almacen_postponed_date = null;
+                    $sale->save();
+                    return response()->json(['success' => true, 'message' => 'Venta marcada como lista. Ahora puedes confirmar la salida.']);
                 }
                 elseif ($action === 'cancel') {
                     $request->validate(['reason' => 'required']);
                     $sale->almacen_status = 'cancelled';
                     $sale->almacen_comment = $request->reason;
+                    $sale->sales_status_id = 5; // Cancelada
                     $sale->save();
+                    
+                    // Cancelar en Cuentas por Cobrar
+                    \App\Models\CxcDetail::where('sale_id', $sale->sale_id)->update(['is_canceled' => 1]);
                     
                     if ($userVentas) {
                         $userVentas->notify(new SaleAlmacenNotification($sale, 'cancelled', "Tu venta Folio " . $sale->folio . " fue cancelada por almacén.", $request->reason));
@@ -642,6 +677,23 @@ class SalesController extends Controller
             return response()->json(['success' => true]);
         }
         return response()->json(['success' => false], 404);
+    }
+
+    public function postponedReminders()
+    {
+        $user = Auth::user();
+        if (!$user || !$user->hasAnyRole(['Warehouse', 'Admin'])) {
+            return response()->json(['reminders' => []]);
+        }
+
+        $today = now()->toDateString();
+        $sales = Sale::where('almacen_status', 'postponed')
+            ->whereNotNull('almacen_postponed_date')
+            ->whereDate('almacen_postponed_date', '<=', $today)
+            ->select('sale_id', 'folio', 'almacen_comment', 'almacen_postponed_date')
+            ->get();
+
+        return response()->json(['reminders' => $sales]);
     }
 
     public function getSaleLots($id)

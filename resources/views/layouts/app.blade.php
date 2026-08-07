@@ -139,7 +139,39 @@
                 }
                 
                 fetchUnreadNotifications();
-                setInterval(fetchUnreadNotifications, 30000); // 30 seconds
+                setInterval(fetchUnreadNotifications, 30000); 
+                
+                let shownReminders = [];
+                function fetchPostponedReminders() {
+                    $.get('{{ route("almacen.postponed_reminders") }}', function(res) {
+                        if(res.reminders && res.reminders.length > 0) {
+                            res.reminders.forEach(sale => {
+                                if (shownReminders.includes(sale.sale_id)) return;
+                                shownReminders.push(sale.sale_id);
+
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: '📦 Recordatorio de Venta Pospuesta',
+                                    html: `<p class="text-base mb-2">La venta <strong>Folio ${sale.folio}</strong> fue pospuesta y requiere tu atención.</p>
+                                           <p class="text-sm text-gray-500"><strong>Motivo:</strong> ${sale.almacen_comment || 'Sin motivo'}</p>
+                                           <p class="text-sm text-gray-500"><strong>Fecha recordatorio:</strong> ${sale.almacen_postponed_date}</p>`,
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Ver detalles',
+                                    cancelButtonText: 'Cerrar',
+                                    confirmButtonColor: '#4f46e5',
+                                    cancelButtonColor: '#6b7280',
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        window.location.href = '/sales/' + sale.sale_id + '/almacen';
+                                    }
+                                });
+                            });
+                        }
+                    });
+                }
+
+                fetchPostponedReminders();
+                setInterval(fetchPostponedReminders, 60000); // cada 60 segundos
 
             @endauth
         });
