@@ -53,7 +53,7 @@ Fecha de actualización: 20-01-2026
                     <x-select-1 
                         name="comparative_id" 
                         id="consecutive" 
-                        required 
+                        :required="!auth()->user()->isAdmin()" 
                         class="bg-gray-50 font-bold text-blue-700 border-blue-200 focus:ring-blue-500">
                         <option value="">Cargando folios...</option>
                     </x-select-1>
@@ -124,7 +124,7 @@ Fecha de actualización: 20-01-2026
                         <x-wrapper-form-1>
                             <x-wrapper-form-2>
                                 <x-label for="image_url">Ilustration</x-label>
-                                <x-textarea-1 required name="image_url[]" class="image-url"></x-textarea-1>
+                                <x-textarea-1 name="image_url[]" class="image-url"></x-textarea-1>
                             </x-wrapper-form-2>
                             <div class="flex justify-center items-center w-full gap-2">
                                 <img src="" class="image-ilustration w-1/2" alt="">
@@ -200,7 +200,7 @@ Fecha de actualización: 20-01-2026
             <x-wrapper-form-1>
                 <x-wrapper-form-2>
                     <x-label for="image_url">Ilustration</x-label>
-                    <x-textarea-1 required name="image_url[]" class="image-url"></x-textarea-1>
+                    <x-textarea-1 name="image_url[]" class="image-url"></x-textarea-1>
                 </x-wrapper-form-2>
                 <div class="flex justify-center items-center w-full gap-2">
                     <img src="" class="image-ilustration w-1/2" alt="">

@@ -37,7 +37,7 @@ class StoreRequisitionRequest extends FormRequest
             'unit' => 'array',
             'unit.*' => 'required|string|max:5',
             'image_url' => 'array',
-            'image_url.*' => 'required|string',
+            'image_url.*' => 'nullable|string',
         ];
     }
 }

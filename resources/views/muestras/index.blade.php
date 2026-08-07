@@ -41,6 +41,7 @@
             <tbody class="divide-y divide-gray-100 bg-white text-gray-800 text-sm whitespace-normal break-words"></tbody>
         </table>
     </div>
+    @include('muestras.modals.edit')
 </section>
 
 @push('js')
@@ -54,6 +55,14 @@
         const id = row.id ?? '';
         return `
             <div class="flex gap-1 justify-end">
+                @can('laboratory.update')
+                <button data-id="${id}"
+                        class="edit-muestra-btn text-sm text-white bg-blue-500 hover:bg-blue-600 rounded-sm p-2"
+                        title="Edit">
+                    <img width="18" src="{{ asset('images/editar.png') }}" alt="Edit"/>
+                </button>
+                @endcan
+
                 @can('laboratory.delete')
                 <button data-id="${id}"
                         class="delete-btn text-sm text-white bg-red-500 hover:bg-red-600 rounded-sm p-2"
@@ -169,6 +178,112 @@
                     console.error('Error:', err);
                     Swal.fire('Error', 'Communication failure occurred.', 'error');
                 }
+            }
+        });
+        $(document).on('click', '.edit-muestra-btn', function(){
+            const id = $(this).data('id');
+            const rowData = table.row($(this).closest('tr')).data();
+            
+            if (rowData) {
+                $('#edit-muestra-id').val(rowData.id);
+                $('#edit-folio_muestra').val(rowData.folio_muestra);
+                $('#edit-product_id').val(rowData.product_id);
+                $('#edit-fecha_salida').val(rowData.fecha_salida);
+                $('#edit-nombre_comercial').val(rowData.nombre_comercial);
+                $('#edit-sku').val(rowData.sku);
+                
+                // Need to set product before lote to ensure lists match if necessary
+                if(window.syncEditMuestraForm) window.syncEditMuestraForm();
+
+                setTimeout(() => {
+                    $('#edit-lote').val(rowData.lote);
+                }, 50);
+
+                if (rowData.um) {
+                    $(`input[name="um"][value="${rowData.um}"]`).prop('checked', true);
+                }
+
+                $('#edit-cantidad').val(rowData.cantidad);
+                $('#edit-descripcion').val(rowData.descripcion);
+
+                if (rowData.motivo_salida) {
+                    let validMotivos = ['cliente', 'analisis', 'desarrollo', 'caducado', 'exposicion'];
+                    if (validMotivos.includes(rowData.motivo_salida)) {
+                        $(`input[name="motivo_salida"][value="${rowData.motivo_salida}"]`).prop('checked', true);
+                        $('#edit-mot_otro_txt').val('');
+                    } else {
+                        $('#edit-mot_otro_radio').prop('checked', true);
+                        $('#edit-mot_otro_txt').val(rowData.motivo_otro || rowData.motivo_salida);
+                    }
+                }
+
+                $('#edit-entrega_paqueteria').prop('checked', rowData.entrega_paqueteria == 1);
+                $('#edit-entrega_recoleccion_planta').prop('checked', rowData.entrega_recoleccion_planta == 1);
+                $('#edit-entrega_personal_empresa').prop('checked', rowData.entrega_personal_empresa == 1);
+                $('#edit-entrega_otro_chk').prop('checked', rowData.entrega_otro == 1);
+                $('#edit-entrega_otro_txt').val(rowData.entrega_otro_txt);
+
+                $('#edit-paq_empresa').val(rowData.paq_empresa);
+                $('#edit-paq_guia').val(rowData.paq_guia);
+
+                $('#edit-dest_nombre').val(rowData.dest_nombre);
+                $('#edit-dest_direccion').val(rowData.dest_direccion);
+                $('#edit-dest_recibe').val(rowData.dest_recibe);
+                $('#edit-dest_correo').val(rowData.dest_correo);
+                $('#edit-dest_telefono').val(rowData.dest_telefono);
+
+                $('#edit-docs_cc').prop('checked', rowData.docs_cc == 1);
+                $('#edit-docs_ft').prop('checked', rowData.docs_ft == 1);
+                $('#edit-docs_hs').prop('checked', rowData.docs_hs == 1);
+                $('#edit-docs_otro_chk').prop('checked', rowData.docs_otro == 1);
+                $('#edit-docs_otro_txt').val(rowData.docs_otro_txt);
+
+                if(window.syncEditMuestraForm) window.syncEditMuestraForm();
+                
+                $('#edit-muestra').removeClass('hidden');
+            }
+        });
+
+        $(document).on('click', '.close-modal', function(){
+            $(this).closest('.fixed').addClass('hidden');
+        });
+
+        $('#edit-muestra-form').on('submit', async function(e){
+            e.preventDefault();
+            const id = $('#edit-muestra-id').val();
+            let url = "{{ route('laboratory.updateMuestra', ':id') }}";
+            url = url.replace(':id', id);
+
+            const formData = $(this).serialize();
+
+            try {
+                const resp = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData
+                });
+
+                if (resp.ok) {
+                    $('#edit-muestra').addClass('hidden');
+                    table.ajax.reload(null, false);
+                    Swal.fire({
+                        title: 'Actualizado', 
+                        text: 'El registro ha sido actualizado correctamente.', 
+                        icon: 'success', 
+                        timer: 1500, 
+                        showConfirmButton: false
+                    });
+                } else {
+                    const errorData = await resp.json();
+                    Swal.fire('Error', errorData.error || 'No se pudo actualizar el registro.', 'error');
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                Swal.fire('Error', 'Hubo un error de comunicación.', 'error');
             }
         });
     });
