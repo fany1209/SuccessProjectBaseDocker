@@ -16,10 +16,10 @@ class CuentasPorCobrarController extends Controller
 {
     public function index()
     {
-        // Calculate overdue invoices for the alert
         $sales = DB::table('cxc_details as cxc')
             ->join('sales as s', 's.sale_id', '=', 'cxc.sale_id')
             ->leftJoin('sale_detail as sd', 'sd.sale_id', '=', 's.sale_id')
+            ->where('s.almacen_status', 'confirmed')
             ->select(
                 'cxc.id as cxc_id',
                 's.date as fecha_emision',
@@ -69,10 +69,10 @@ class CuentasPorCobrarController extends Controller
         $selectedYear = $request->input('year', now()->year);
         $targetDate = \Carbon\Carbon::create($selectedYear, $selectedMonth, 1)->endOfMonth();
 
-        // Fetch all sales in finance
         $sales = DB::table('cxc_details as cxc')
             ->join('sales as s', 's.sale_id', '=', 'cxc.sale_id')
             ->leftJoin('sale_detail as sd', 'sd.sale_id', '=', 's.sale_id')
+            ->where('s.almacen_status', 'confirmed')
             ->select(
                 'cxc.id as cxc_id',
                 's.sale_id',
@@ -100,11 +100,10 @@ class CuentasPorCobrarController extends Controller
         $clientesAdeudoSet = [];
         $today = now()->startOfDay();
         
-        // Structure for chart: last 6 months ending in targetDate
         $monthsArray = [];
         for ($i = 5; $i >= 0; $i--) {
             $date = $targetDate->copy()->startOfMonth()->subMonths($i);
-            $key = $date->format('Y-m'); // e.g. "2026-05"
+            $key = $date->format('Y-m');
             $monthsArray[$key] = [
                 'label' => $date->translatedFormat('F Y'),
                 'total_facturado' => 0,
@@ -118,7 +117,6 @@ class CuentasPorCobrarController extends Controller
 
             $saleMonthStr = \Carbon\Carbon::parse($sale->fecha_emision)->format('Y-m');
 
-            // Metrics 1 & 2: Vencidas y Adeudo (Only for the selected month/year)
             $isSelectedMonth = (\Carbon\Carbon::parse($sale->fecha_emision)->month == $selectedMonth && \Carbon\Carbon::parse($sale->fecha_emision)->year == $selectedYear);
 
             if ($isSelectedMonth && !$sale->is_canceled && $sale->estatus !== 'Pagado') {
@@ -127,7 +125,6 @@ class CuentasPorCobrarController extends Controller
                     $clientesAdeudoSet[$clientId] = true;
                 }
 
-                // Check vencida
                 $daysToAdd = 0;
                 if (!empty($sale->term)) {
                     preg_match('/\d+/', $sale->term, $matches);
@@ -142,7 +139,6 @@ class CuentasPorCobrarController extends Controller
                 }
             }
 
-            // Metric 3: Chart Data
             if (!$sale->is_canceled) {
                 if (isset($monthsArray[$saleMonthStr])) {
                     $monthsArray[$saleMonthStr]['total_facturado'] += $sale->total_venta;
@@ -153,7 +149,6 @@ class CuentasPorCobrarController extends Controller
 
         $clientesAdeudo = count($clientesAdeudoSet);
 
-        // Compute percentages for chart
         $chartLabels = [];
         $chartData = [];
         foreach ($monthsArray as $key => $data) {
@@ -162,11 +157,10 @@ class CuentasPorCobrarController extends Controller
                 $pct = ($data['total_cobrado'] / $data['total_facturado']) * 100;
                 $chartData[] = round($pct, 2);
             } else {
-                $chartData[] = 0; // Or null if you don't want to show
+                $chartData[] = 0; 
             }
         }
 
-        // Global percentage for the selected month
         $currentMonthKey = $targetDate->format('Y-m');
         $currentMonthPct = 0;
         if ($monthsArray[$currentMonthKey]['total_facturado'] > 0) {
@@ -194,9 +188,9 @@ class CuentasPorCobrarController extends Controller
         $month = $request->input('month');
         $year = $request->input('year');
 
-        // Query only sales that have a corresponding CxcDetail record
         $query = DB::table('cxc_details as cxc')
-            ->join('sales as s', 's.sale_id', '=', 'cxc.sale_id');
+            ->join('sales as s', 's.sale_id', '=', 'cxc.sale_id')
+            ->where('s.almacen_status', 'confirmed');
 
         if ($month) {
             $query->whereMonth('s.date', $month);
@@ -231,7 +225,6 @@ class CuentasPorCobrarController extends Controller
             ->orderByDesc('s.sale_id')
             ->get();
 
-        // Subquery for payments
         $payments = DB::table('cxc_payments')
             ->select('cxc_detail_id', DB::raw("SUM(amount) as total_pagado"))
             ->groupBy('cxc_detail_id')
@@ -320,7 +313,6 @@ class CuentasPorCobrarController extends Controller
             'comprobante' => $comprobanteName
         ]);
 
-        // Calculate new balance and estatus
         $totalVenta = DB::table('sale_detail')
             ->where('sale_id', $cxc->sale_id)
             ->sum(DB::raw("quantity * cost * IF(has_tax = 1, 1.16, 1)"));
@@ -345,7 +337,6 @@ class CuentasPorCobrarController extends Controller
         $month = $request->input('month');
         $year = $request->input('year');
 
-        // Query exact same data as datatable
         $query = DB::table('cxc_details as cxc')
             ->join('sales as s', 's.sale_id', '=', 'cxc.sale_id');
 
@@ -382,19 +373,16 @@ class CuentasPorCobrarController extends Controller
             ->orderByDesc('s.sale_id')
             ->get();
 
-        // Subquery for payments
         $payments = DB::table('cxc_payments')
             ->select('cxc_detail_id', DB::raw("SUM(amount) as total_pagado"))
             ->groupBy('cxc_detail_id')
             ->get()
             ->keyBy('cxc_detail_id');
 
-        // Initialize Spreadsheet
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Cuentas por Cobrar');
 
-        // Add Main Title
         $sheet->setCellValue('A1', 'Cuentas por cobrar');
         $sheet->mergeCells('A1:K1');
         $sheet->getStyle('A1:K1')->applyFromArray([
@@ -405,7 +393,7 @@ class CuentasPorCobrarController extends Controller
             ],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['argb' => 'FF217346'], // Darker Green for Title
+                'startColor' => ['argb' => 'FF217346'], 
             ],
             'alignment' => [
                 'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
@@ -414,7 +402,6 @@ class CuentasPorCobrarController extends Controller
         ]);
         $sheet->getRowDimension(1)->setRowHeight(30);
 
-        // Headers
         $headers = ['Remisión', 'Fecha Emisión', 'Cliente', 'Asesor', 'Documento', 'Método Pago', 'Estatus', 'Fecha Conclusión', 'Total', 'Monto Abonado', 'Saldo Restante'];
         $columnLetter = 'A';
         foreach ($headers as $header) {
@@ -422,7 +409,6 @@ class CuentasPorCobrarController extends Controller
             $columnLetter++;
         }
 
-        // Header Styling
         $lastCol = chr(ord('A') + count($headers) - 1);
         $headerRange = 'A2:' . $lastCol . '2';
         $sheet->getStyle($headerRange)->applyFromArray([
@@ -432,11 +418,10 @@ class CuentasPorCobrarController extends Controller
             ],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['argb' => 'FF198754'], // Green
+                'startColor' => ['argb' => 'FF198754'],
             ]
         ]);
 
-        // Add Data
         $row = 3;
         foreach ($sales as $sale) {
             $pagado = isset($payments[$sale->cxc_id]) ? $payments[$sale->cxc_id]->total_pagado : 0;

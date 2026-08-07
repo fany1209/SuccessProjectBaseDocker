@@ -29,7 +29,7 @@ public function show($id)
         )
         ->where('output_id', $id)
         ->join('customers', 'customers.customer_id', '=', 'outputs.customer_id')
-        ->join('transport_lines', 'transport_lines.transport_line_id', '=', 'outputs.transport_line_id')
+        ->leftJoin('transport_lines', 'transport_lines.transport_line_id', '=', 'outputs.transport_line_id')
         ->first();
 
     $products = ProductOutputs::where('output_id', $id)

@@ -259,6 +259,7 @@ Route::middleware([
     Route::get('/almacen-notifications/unread', [SalesController::class, 'unreadNotifications'])->name('almacen_notifications.unread');
     Route::post('/almacen-notifications/mark-read/{id}', [SalesController::class, 'markNotificationAsRead'])->name('almacen_notifications.mark_read');
     Route::get('/sales/{id}/almacen/lots', [SalesController::class, 'getSaleLots'])->name('sales.almacen_lots');
+    Route::get('/almacen/postponed-reminders', [SalesController::class, 'postponedReminders'])->name('almacen.postponed_reminders');
     
     //quote
     Route::resource('quotes', QuoteController::class)->names([

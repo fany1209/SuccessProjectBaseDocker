@@ -18,7 +18,7 @@
                 <div class="col-md-6">
                     <strong>Cliente/Prospecto:</strong> {{ $sale->customer ? $sale->customer->name : ($sale->prospect ? $sale->prospect->name : 'N/A') }}<br>
                     @if($sale->almacen_status == 'postponed')
-                        <strong class="text-warning">Pospuesto hasta:</strong> {{ $sale->almacen_postponed_date }}<br>
+                        <strong class="text-warning">Fecha de recordatorio:</strong> {{ $sale->almacen_postponed_date }}<br>
                         <strong class="text-warning">Motivo:</strong> {{ $sale->almacen_comment }}
                     @elseif($sale->almacen_status == 'cancelled')
                         <strong class="text-danger">Motivo Cancelación:</strong> {{ $sale->almacen_comment }}
@@ -55,6 +55,22 @@
                 <button type="button" class="btn btn-success" id="btnConfirmSale">Confirmar y Descontar Inventario</button>
             </div>
             @endif
+
+            @if($sale->almacen_status == 'postponed' && Auth::user()->hasAnyRole(['Warehouse', 'Admin']))
+            <div class="mt-4 p-4 bg-yellow-50 border border-yellow-300 rounded-lg">
+                <p class="text-yellow-800 font-semibold mb-3">
+                    <i class="ri-time-line"></i> Esta venta está pospuesta.
+                    @if($sale->almacen_postponed_date)
+                        Recordatorio programado para: <strong>{{ $sale->almacen_postponed_date }}</strong>
+                    @endif
+                </p>
+                <div class="flex gap-2 justify-end">
+                    <button type="button" class="btn btn-danger open-modal" data-target="cancelModal">Cancelar Venta</button>
+                    <button type="button" class="btn btn-warning open-modal" data-target="postponeModal">Posponer de Nuevo</button>
+                    <button type="button" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 font-semibold" id="btnMarkReady">Mercancía Lista - Confirmar Salida</button>
+                </div>
+            </div>
+            @endif
         </div>
     </div>
 </div>
@@ -68,7 +84,8 @@
       </div>
       <div>
         <div class="mb-3">
-            <label class="block text-sm font-medium text-gray-700">Fecha esperada de confirmación</label>
+            <label class="block text-sm font-medium text-gray-700">Fecha de recordatorio</label>
+            <p class="text-xs text-gray-500 mb-1">Se te notificará en esta fecha para revisar la venta.</p>
             <input type="date" id="postponeDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
         </div>
         <div class="mb-3">
@@ -266,6 +283,24 @@ $(document).ready(function() {
             return Swal.fire('Atención', 'El motivo es obligatorio', 'warning');
         }
         sendAction('cancel', {reason});
+    });
+
+    // Marcar como lista (cambia de postponed → pending para poder confirmar)
+    $('#btnMarkReady').click(function() {
+        Swal.fire({
+            title: '¿Mercancía lista?',
+            text: "La venta pasará a estado pendiente y podrás confirmar la salida del inventario.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sí, está lista',
+            cancelButtonText: 'No aún'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                sendAction('mark_ready');
+            }
+        });
     });
 });
 </script>
