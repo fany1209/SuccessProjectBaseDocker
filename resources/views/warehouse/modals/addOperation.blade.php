@@ -89,6 +89,11 @@ Fecha de actualización: 09/03/2026
                     <x-wrapper-form-1>
                         <x-wrapper-form-2><p class="total"></p></x-wrapper-form-2>
                     </x-wrapper-form-1>
+                    <x-wrapper-form-1 class="bag_numbers_wrapper hidden w-full flex-col mt-2">
+                        <x-label># de Barcina para cada BigBag</x-label>
+                        <div class="bag_numbers_container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-1 w-full">
+                        </div>
+                    </x-wrapper-form-1>
                 </div>
             </div>
         </x-wrapper-form-1>
@@ -149,6 +154,11 @@ Fecha de actualización: 09/03/2026
     <x-wrapper-form-1>
         <x-wrapper-form-2><p class="total"></p></x-wrapper-form-2>
     </x-wrapper-form-1>
+    <x-wrapper-form-1 class="bag_numbers_wrapper hidden w-full flex-col mt-2">
+        <x-label># de Barcina para cada BigBag</x-label>
+        <div class="bag_numbers_container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-1 w-full">
+        </div>
+    </x-wrapper-form-1>
 </div>
 </x-modal>
 @push('js')
@@ -159,6 +169,36 @@ $(function(){
     const inventory = @json($inventory);
     let row_index = 1;
     const father = $('#add-cli');
+
+    function renderBagNumbers(wrapper) {
+        let product_id = wrapper.find('.product_id').val();
+        let quantity = parseFloat(wrapper.find('.quantity').val()) || 0;
+        let container = wrapper.find('.bag_numbers_container');
+        let bag_wrapper = wrapper.find('.bag_numbers_wrapper');
+        
+        if (product_id !== '') {
+            let product = products_inventory.find(i => i.product_id == product_id);
+            // Check if product name includes BGBG
+            if (product && product.name.includes('BGBG')) {
+                bag_wrapper.removeClass('hidden');
+                container.empty();
+                // Number of inputs based on quantity
+                let numInputs = Math.floor(quantity);
+                for (let i = 0; i < numInputs; i++) {
+                    container.append(`
+                        <input type="text" class="bag_number_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Barcina #${i+1}" required>
+                    `);
+                }
+            } else {
+                bag_wrapper.addClass('hidden');
+                container.empty();
+            }
+        } else {
+            bag_wrapper.addClass('hidden');
+            container.empty();
+        }
+    }
+
     function reactiveDoOperation(){
         father.on('click','#clean-form,#close',function(){
             row_index = 1;
@@ -180,6 +220,7 @@ $(function(){
             let quantity = $(this).val();
             let weight_unit = wrapper.find('.weight_per_unit').val();
             wrapper.find('.total').addClass('mt-2 text-sm font-semibold rounded-md tracking-[2px] text-white bg-gray-700 px-2 py-1').text(`Total: ${quantity*weight_unit}`);
+            renderBagNumbers(wrapper);
         });
         
         father.on('change','.inventory_id',function(){
@@ -214,6 +255,7 @@ $(function(){
                         }
                     });
                 }
+                renderBagNumbers(wrapper);
             }else{
                 wrapper.find('.stock').text('Available:');
                 wrapper.find('.unit').text('Unit:');
@@ -221,6 +263,7 @@ $(function(){
                 wrapper.find('.product-name').text('Product:');
                 wrapper.find('.inventory_id').html(`<option value="">Select a product</option>`);
                 wrapper.find('.inventory_id,.quantity,.weight_per_unit').prop('readonly',true).addClass('bg-gray-100').val('');
+                renderBagNumbers(wrapper);
             }
         });
 
@@ -235,6 +278,7 @@ $(function(){
             wrapper.find('.stock').text('Available:');
             wrapper.find('.product-name').text('Product:');
             wrapper.find('.unit').text('Unit:');
+            renderBagNumbers(wrapper);
         });
 
         father.on('change','#warehouse',function(){
@@ -268,6 +312,12 @@ $(function(){
             event.preventDefault();
             var form = $('#add-cli-form')[0];
             var data = new FormData(form);
+            data.delete('bag_number'); // Ensure no stray bag_numbers
+            $('#products .wrapper').each(function(index) {
+                $(this).find('.bag_number_input').each(function() {
+                    data.append('bag_number[' + index + '][]', $(this).val());
+                });
+            });
             $('#save-operation').prop('disabled',true);
             $.ajax({
                 type:'POST',
@@ -290,7 +340,12 @@ $(function(){
                 },
                 error:function(xhr){
                     let message = 'Ocurrió un error inesperado.';
-                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                    if (xhr.responseJSON && xhr.responseJSON.errors) {
+                        let errors = xhr.responseJSON.errors;
+                        message = Object.values(errors).map(e => e.join('\n')).join('\n');
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    } else if (xhr.responseJSON && xhr.responseJSON.error) {
                         message = xhr.responseJSON.error;
                     }
                     Swal.fire({

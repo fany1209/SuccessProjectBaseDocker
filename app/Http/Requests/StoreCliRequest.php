@@ -31,6 +31,9 @@ class StoreCliRequest extends FormRequest
             'quantity.*' => 'required|numeric|min:0.001', // Cambiado de 1 a 0.001
             'weight_per_unit' => 'required|array',
             'weight_per_unit.*' => 'required|numeric|min:0.001', // Cambiado de 1 a 0.001
+            'bag_number' => 'nullable|array',
+            'bag_number.*' => 'nullable|array',
+            'bag_number.*.*' => 'required|string',
         ];
     }
 }

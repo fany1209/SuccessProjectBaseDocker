@@ -63,15 +63,31 @@ class CliController extends Controller
                 $inventories = $request->input('inventory_id');
                 $quantities = $request->input('quantity');
                 $weights = $request->input('weight_per_unit');
+                $bag_numbers = $request->input('bag_number', []);
+
                 foreach($concepts as $index => $concept){
-                    Cli::create([
-                        'location_id' => $request->location_id,
-                        'inventory_id' => $inventories[$index],
-                        'concept_id' => $concept,
-                        'quantity' => $quantities[$index],
-                        'weight_per_unit' => $weights[$index],
-                        'net_weight' => $quantities[$index]*$weights[$index],
-                    ]);
+                    if (isset($bag_numbers[$index]) && is_array($bag_numbers[$index]) && count($bag_numbers[$index]) > 0) {
+                        foreach ($bag_numbers[$index] as $bag_num) {
+                            Cli::create([
+                                'location_id' => $request->location_id,
+                                'inventory_id' => $inventories[$index],
+                                'concept_id' => $concept,
+                                'quantity' => 1,
+                                'weight_per_unit' => $weights[$index],
+                                'net_weight' => 1 * $weights[$index],
+                                'bag_number' => $bag_num,
+                            ]);
+                        }
+                    } else {
+                        Cli::create([
+                            'location_id' => $request->location_id,
+                            'inventory_id' => $inventories[$index],
+                            'concept_id' => $concept,
+                            'quantity' => $quantities[$index],
+                            'weight_per_unit' => $weights[$index],
+                            'net_weight' => $quantities[$index]*$weights[$index],
+                        ]);
+                    }
                 }
                 return response()->json(['message' => 'Operation successfuly make it'], 201);
             });
