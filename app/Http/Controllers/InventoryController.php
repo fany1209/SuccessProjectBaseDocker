@@ -62,7 +62,13 @@ class InventoryController extends Controller
         $trailers = Trailer::select('plate','type')->get();
         $concepts = Concept::select('concept_id','name')->get();
         $warehouses = Warehouse::select('warehouse_id','name')->get();
-        return view('inventory',compact('warehouses','available_locations','concepts','trailers','vehicles','operators','batchs','outputs_products','inputs_products','outputs_dates','inputs_dates','outputs_months','outputs_years','inputs_months','inputs_years','transport_lines','suppliers','customers','products','products_all','quarantine','products_warehouse'));
+
+        $almacen_sales = \App\Models\Sale::with(['customer', 'prospect', 'user'])
+            ->whereNotNull('almacen_status')
+            ->orderBy('sale_id', 'desc')
+            ->get();
+
+        return view('inventory',compact('warehouses','available_locations','concepts','trailers','vehicles','operators','batchs','outputs_products','inputs_products','outputs_dates','inputs_dates','outputs_months','outputs_years','inputs_months','inputs_years','transport_lines','suppliers','customers','products','products_all','quarantine','products_warehouse', 'almacen_sales'));
     }
 
     //Pal inicio de Inventario

@@ -27,6 +27,13 @@ Fecha de actualización: 26-01-2026
             Make Input
         </x-nav-button>
 
+        @hasanyrole('Warehouse|Admin')
+        <x-nav-button data-button="sales" icon="ri-shopping-cart-fill"
+            class="option-btn">
+            Ventas
+        </x-nav-button>
+        @endhasanyrole
+
         <div class="relative w-full">
             <x-nav-button
                 data-button="batch"
@@ -94,6 +101,16 @@ Fecha de actualización: 26-01-2026
             </div>
         </div>
 
+        <div id="sales-layout" class="hidden w-full">
+            <x-tittle-form class="border-s-2 border-green-700 ps-2 ms-2">
+                Ventas
+            </x-tittle-form>
+
+            <div class="w-full overflow-x-auto mt-3">
+                @include('inventory.sales.table')
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -118,7 +135,7 @@ $(function () {
         $(this).addClass('border-2 border-green-500');
 
         inventory_module.find(
-            '#inventory-layout, #make-input-layout, #quarantine-layout, #batch-layout'
+            '#inventory-layout, #make-input-layout, #quarantine-layout, #batch-layout, #sales-layout'
         ).addClass('hidden');
 
         switch (option) {
@@ -140,6 +157,11 @@ $(function () {
             case 'batch':
                 $('#batch-layout').removeClass('hidden');
                 $('#opt-tittle').text('Batch');
+                break;
+                
+            case 'sales':
+                $('#sales-layout').removeClass('hidden');
+                $('#opt-tittle').text('Ventas');
                 break;
         }
     });
