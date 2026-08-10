@@ -30,7 +30,7 @@ Fecha de actualización: 26-01-2026
         @hasanyrole('Warehouse|Admin')
         <x-nav-button data-button="sales" icon="ri-shopping-cart-fill"
             class="option-btn">
-            Ventas
+            Sales
         </x-nav-button>
         @endhasanyrole
 
@@ -103,7 +103,7 @@ Fecha de actualización: 26-01-2026
 
         <div id="sales-layout" class="hidden w-full">
             <x-tittle-form class="border-s-2 border-green-700 ps-2 ms-2">
-                Ventas
+                Sales
             </x-tittle-form>
 
             <div class="w-full overflow-x-auto mt-3">
@@ -161,7 +161,7 @@ $(function () {
                 
             case 'sales':
                 $('#sales-layout').removeClass('hidden');
-                $('#opt-tittle').text('Ventas');
+                $('#opt-tittle').text('Sales');
                 break;
         }
     });
