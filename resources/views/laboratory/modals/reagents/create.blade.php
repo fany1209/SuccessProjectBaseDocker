@@ -76,8 +76,8 @@
               throw new Error(errData.message || 'Error creating record');
           }
 
-          modalRoot.classList.remove('open');
-          modalRoot.style.display = 'none';
+          modalRoot.classList.add('hidden');
+          modalRoot.style.display = '';
           form.reset();
 
           $('#reagent-table').DataTable().ajax.reload(null, false);
@@ -90,8 +90,8 @@
       });
 
       modalRoot.querySelector('.close-modal')?.addEventListener('click', function() {
-          modalRoot.classList.remove('open');
-          modalRoot.style.display = 'none';
+          modalRoot.classList.add('hidden');
+          modalRoot.style.display = '';
           form.reset(); 
       });
     })();
