@@ -53,6 +53,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReagentController;
 use App\Http\Controllers\MaterialController;
+use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\RhController;
 use App\Http\Controllers\RecursosHumanosController;
 use App\Http\Controllers\CuentasPorCobrarController;
@@ -384,6 +385,14 @@ Route::prefix('laboratory/materials')->group(function () {
     Route::get('/{id}/edit', [MaterialController::class, 'edit'])->name('materials.edit');
     Route::put('/{id}', [MaterialController::class, 'update'])->name('materials.update');
     Route::post('/', [MaterialController::class, 'store'])->name('materials.store');
+});
+
+Route::prefix('laboratory/equipments')->group(function () {
+    Route::get('/', [EquipmentController::class, 'index'])->name('equipments.index');
+    Route::delete('/{id}', [EquipmentController::class, 'destroy'])->name('equipments.destroy');
+    Route::get('/{id}/edit', [EquipmentController::class, 'edit'])->name('equipments.edit');
+    Route::put('/{id}', [EquipmentController::class, 'update'])->name('equipments.update');
+    Route::post('/', [EquipmentController::class, 'store'])->name('equipments.store');
 });
     //orders
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');

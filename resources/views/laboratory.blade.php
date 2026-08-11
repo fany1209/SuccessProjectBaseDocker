@@ -66,6 +66,7 @@
 --}}
 @include('laboratory.table_react')
 @include('laboratory.table_materials')
+@include('laboratory.table_equipments')
 @include('muestras.index')
 @include('laboratory.grafica')
 @endcan
