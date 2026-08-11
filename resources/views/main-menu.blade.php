@@ -100,6 +100,10 @@
                 <x-application.buttons.menu-btn module="tasks" link="{{ route('tasks.index') }}" image="{{ asset('images/main-menu/tasks.png') }}">
                     TASKS
                 </x-application.buttons.menu-btn>
+
+                <x-application.buttons.menu-btn module="sistemas-ti" link="{{ route('sistemas-ti.index') }}" image="{{ asset('images/main-menu/sistemas.png') }}">
+                    SISTEMAS TI
+                </x-application.buttons.menu-btn>
                 
                 <x-application.buttons.menu-btn module="muestras" link="{{ route('muestras.index') }}" image="{{ asset('images/laboratory/02.png') }}">
                     Solicitud de muestras
