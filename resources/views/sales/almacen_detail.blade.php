@@ -1,6 +1,11 @@
 @extends('layouts.app')
 @section('content')
 <div class="container mt-4">
+    <div class="mb-3">
+        <a href="{{ route('inventory.index') }}" class="btn btn-secondary">
+            <i class="ri-arrow-left-line"></i> Regresar a Inventario
+        </a>
+    </div>
     <div class="card shadow">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h4 class="mb-0">Validación de Venta: Folio {{ $sale->folio }}</h4>
@@ -50,7 +55,9 @@
 
             @if($sale->almacen_status == 'pending' && Auth::user()->hasAnyRole(['Warehouse', 'Admin']))
             <div class="mt-4 text-end">
-                <button type="button" class="btn btn-danger open-modal" data-target="cancelModal">Cancelar Venta</button>
+                @if(Auth::user()->hasRole('Admin'))
+                    <button type="button" class="btn btn-danger open-modal" data-target="cancelModal">Cancelar Venta</button>
+                @endif
                 <button type="button" class="btn btn-warning open-modal" data-target="postponeModal">Posponer Venta</button>
                 <button type="button" class="btn btn-success" id="btnConfirmSale">Confirmar y Descontar Inventario</button>
             </div>
@@ -65,7 +72,9 @@
                     @endif
                 </p>
                 <div class="flex gap-2 justify-end">
-                    <button type="button" class="btn btn-danger open-modal" data-target="cancelModal">Cancelar Venta</button>
+                    @if(Auth::user()->hasRole('Admin'))
+                        <button type="button" class="btn btn-danger open-modal" data-target="cancelModal">Cancelar Venta</button>
+                    @endif
                     <button type="button" class="btn btn-warning open-modal" data-target="postponeModal">Posponer de Nuevo</button>
                     <button type="button" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 font-semibold" id="btnMarkReady">Mercancía Lista - Confirmar Salida</button>
                 </div>
