@@ -143,13 +143,21 @@
       <input type="hidden" id="docs-cxp-id">
       
       <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Archivo PDF (Opcional, max 10MB)</label>
+        <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+          <div class="flex justify-between items-center mb-2">
+            <label class="block text-sm font-bold text-gray-700">Archivo PDF</label>
+            <a href="#" id="current-pdf-link" target="_blank" class="hidden text-sm text-red-600 hover:text-red-800 font-semibold flex items-center gap-1"><i class="ri-file-pdf-line"></i> Ver PDF Actual</a>
+          </div>
+          <p class="text-xs text-gray-500 mb-2">Subir o actualizar (max 10MB)</p>
           <input type="file" id="docs-pdf" accept=".pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
         </div>
         
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Archivo XML (Opcional, max 10MB)</label>
+        <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+          <div class="flex justify-between items-center mb-2">
+            <label class="block text-sm font-bold text-gray-700">Archivo XML</label>
+            <a href="#" id="current-xml-link" target="_blank" class="hidden text-sm text-green-600 hover:text-green-800 font-semibold flex items-center gap-1"><i class="ri-file-code-line"></i> Ver XML Actual</a>
+          </div>
+          <p class="text-xs text-gray-500 mb-2">Subir o actualizar (max 10MB)</p>
           <input type="file" id="docs-xml" accept=".xml" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
         </div>
       </div>

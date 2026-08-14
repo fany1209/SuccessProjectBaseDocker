@@ -240,6 +240,8 @@ class CuentasPorPagarController extends Controller
                 'cxp.anio',
                 'cxp.estatus',
                 'cxp.is_canceled',
+                'cxp.pdf_path',
+                'cxp.xml_path',
                 'f.factura_id',
                 'f.empresa',
                 'f.folio_factura',

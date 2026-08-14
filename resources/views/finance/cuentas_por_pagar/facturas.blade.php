@@ -160,7 +160,7 @@ $(function(){
           
           return `
             <div class="flex items-center justify-center gap-2">
-              <button type="button" class="btn-docs-cxp p-1.5 rounded bg-orange-100 text-orange-600 hover:bg-orange-200 transition" title="Subir Documentos" data-id="${row.cxp_id}" ${disabledAttr}>
+              <button type="button" class="btn-docs-cxp p-1.5 rounded bg-orange-100 text-orange-600 hover:bg-orange-200 transition" title="Documentos" data-id="${row.cxp_id}" data-row='${escapeHtml(JSON.stringify(row))}' ${disabledAttr}>
                 <i class="ri-file-upload-line text-lg"></i>
               </button>
               <button type="button" class="btn-payments p-1.5 rounded bg-purple-100 text-purple-600 hover:bg-purple-200 transition" title="Abonos" data-row='${escapeHtml(JSON.stringify(row))}' ${disabledAttr}>
@@ -254,11 +254,24 @@ $(function(){
   // Abrir Modal de Documentos
   $(document).on('click', '.btn-docs-cxp', function() {
     const id = $(this).data('id');
+    const row = $(this).data('row');
     $('#docs-cxp-id').val(id);
     
     // Clear previous inputs
     $('#docs-pdf').val('');
     $('#docs-xml').val('');
+    
+    if (row.pdf_path) {
+      $('#current-pdf-link').attr('href', '/' + row.pdf_path).removeClass('hidden');
+    } else {
+      $('#current-pdf-link').addClass('hidden');
+    }
+
+    if (row.xml_path) {
+      $('#current-xml-link').attr('href', '/' + row.xml_path).removeClass('hidden');
+    } else {
+      $('#current-xml-link').addClass('hidden');
+    }
     
     $('#btn-open-docs-cxp').trigger('click');
   });
