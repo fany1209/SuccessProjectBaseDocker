@@ -101,6 +101,11 @@
     </button>
     @include('laboratory.modals.reagents.create')
     
+    <button type="button" class="open-modal {{ $btnBase }} {{ $btnCard }}" data-target="create-equipment">
+        <img src="{{ asset('images/laboratory/material.png') }}" alt="Nuevo Equipo" class="{{ $imgCls }}">
+        <span>Nuevo Equipo</span>
+    </button>
+    @include('laboratory.modals.equipment.create')
     {{--<button type="button" class="open-modal {{ $btnBase }} {{ $btnCard }}" data-target="13">
         <img src="{{ asset('images/laboratory/0013.png') }}" alt="13" class="{{ $imgCls }}">
         <span>13</span>
