@@ -371,6 +371,11 @@ return [
             ],
         ],
         [
+            'text' => 'Stock Tweaks',
+            'url' => 'admin/tweaks',
+            'icon' => 'fas fa-sliders-h',
+        ],
+        [
             'text' => 'Locations',
             'url' => 'admin/locations',
             'icon' => 'fas fa-map-marker-alt',

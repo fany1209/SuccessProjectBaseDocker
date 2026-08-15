@@ -41,8 +41,25 @@ Fecha de actualización: 17-09-2025
         </x-wrapper-form-1>
         <x-wrapper-form-1>
             <x-wrapper-form-2>
+                <x-label for="reason">Motivo</x-label>
+                <x-select-1 required id="reason" name="reason">
+                    <option value="">Selecciona un motivo</option>
+                    <option value="Omisión de registro de salida">Omisión de registro de salida</option>
+                    <option value="Omisión de registro de entrada">Omisión de registro de entrada</option>
+                    <option value="Error de captura">Error de captura</option>
+                    <option value="Devolución no procesada">Devolución no procesada</option>
+                    <option value="Cruce de referencias">Cruce de referencias</option>
+                    <option value="Ajuste por conteo físico">Ajuste por conteo físico</option>
+                    <option value="Diferencia de recepción">Diferencia de recepción</option>
+                    <option value="Merma o daño">Merma o daño</option>
+                    <option value="Extravío">Extravío</option>
+                    <option value="Consumo interno no registrado">Consumo interno no registrado</option>
+                    <option value="Otro">Otro</option>
+                </x-select-1>
+            </x-wrapper-form-2>
+            <x-wrapper-form-2>
                 <x-label for="comments">Comments</x-label>
-                <x-textarea-1 name="comments"></x-textarea-1>
+                <x-textarea-1 id="comments" name="comments" placeholder="Comentarios adicionales (opcional)"></x-textarea-1>
             </x-wrapper-form-2>
         </x-wrapper-form-1>
         <x-wrapper-form-1>
@@ -70,6 +87,7 @@ $(function(){
         $('#product-name').text(``);
         $('#available-stock').text(`Available Stock: 0`);
         $('#total').text(`Total: 0`);
+        $('#reason').val('');
     }
 
     $('#clean-tweak-form').on('click',function(){
@@ -128,6 +146,16 @@ $(function(){
                 }
             });
         });
+
+        $('#reason').on('change', function() {
+            if($(this).val() === 'Otro') {
+                $('#comments').prop('required', true);
+                $('#comments').attr('placeholder', 'Especifique el motivo...');
+            } else {
+                $('#comments').prop('required', false);
+                $('#comments').attr('placeholder', 'Comentarios adicionales (opcional)');
+            }
+        });
         
         $('#quantity').on('input',function(){            
             let quantity = parseFloat($(this).val() || 0);
@@ -156,6 +184,17 @@ $(function(){
             if(!$('#type').is(':checked')){
                 data.append('type', 'Output');
             }
+            
+            let reason = $('#reason').val();
+            let comments = data.get('comments') || '';
+            if(reason && reason !== 'Otro'){
+                let combined = '[' + reason + ']';
+                if(comments.trim() !== '') {
+                    combined += ' ' + comments.trim();
+                }
+                data.set('comments', combined);
+            }
+            
             $('#save-tweak').prop('disabled',true);
             $.ajax({
                 type:'POST',

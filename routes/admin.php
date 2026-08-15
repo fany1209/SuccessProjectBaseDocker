@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\WarehousesController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ComplaintAdminController;
+use App\Http\Controllers\Admin\TweakAdminController;
 
 //Admin
 Route::middleware([
@@ -66,6 +67,8 @@ Route::middleware([
     Route::resource('sales', SaleController::class);
     
     Route::resource('warehouses', WarehousesController::class);
+
+    Route::resource('tweaks', TweakAdminController::class)->only(['index']);
 
     Route::resource('categories/products', CategoryController::class)->names('categories.products');
 

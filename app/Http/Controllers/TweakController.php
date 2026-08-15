@@ -32,7 +32,9 @@ class TweakController extends Controller
     public function store(StoreTweakRequest $request)
     {
         $new_stock = 0;
-        Tweak::create($request->only(['type','quantity','comments','inventory_id']));
+        $data = $request->only(['type','quantity','comments','inventory_id']);
+        $data['user_id'] = auth()->id();
+        Tweak::create($data);
         $stock = Inventory::select('stock')->where('inventory_id',$request->inventory_id)->first();
         if($request->type == 'Input'){
             $new_stock = $stock->stock + $request->quantity;
