@@ -89,6 +89,11 @@
 
         <x-wrapper-form-1>
             <x-wrapper-form-2>
+                <x-label>Departamento</x-label>
+                <x-input-1 id="edit-departamento" name="departamento" placeholder="Ej. Operaciones, TI..."></x-input-1>
+            </x-wrapper-form-2>
+
+            <x-wrapper-form-2>
                 <x-label>Descripción / Observaciones</x-label>
                 <x-input-1 id="edit-descripcion" name="descripcion" placeholder="Ej. Pago de servicios..."></x-input-1>
             </x-wrapper-form-2>

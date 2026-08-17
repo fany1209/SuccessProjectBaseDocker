@@ -77,7 +77,12 @@ Fecha de actualización: 15-01-26
         <x-wrapper-form-1>
             <x-wrapper-form-2>
                 <x-label for="operator">Operator</x-label>
-                <x-input-1 required name="operator" id="operator"></x-input-1>
+                <x-input-1 required name="operator" id="operator" list="operators_list_edit"></x-input-1>
+                <datalist id="operators_list_edit">
+                    @foreach ($operators as $operator)
+                        <option value="{{ $operator->name }}"></option>
+                    @endforeach
+                </datalist>
             </x-wrapper-form-2>
 
             <x-wrapper-form-2>
@@ -105,12 +110,22 @@ Fecha de actualización: 15-01-26
         <x-wrapper-form-1>
             <x-wrapper-form-2>
                 <x-label for="unit_plates">Unit plates</x-label>
-                <x-input-1 required name="unit_plates" id="unit_plates"></x-input-1>
+                <x-input-1 required name="unit_plates" id="unit_plates" list="vehicles_list_edit"></x-input-1>
+                <datalist id="vehicles_list_edit">
+                    @foreach ($vehicles as $vehicle)
+                        <option value="{{ $vehicle->plate }}">{{ $vehicle->type }}</option>
+                    @endforeach
+                </datalist>
             </x-wrapper-form-2>
 
             <x-wrapper-form-2>
                 <x-label for="trailer_plates">Trailer plates</x-label>
-                <x-input-1 required name="trailer_plates" id="trailer_plates"></x-input-1>
+                <x-input-1 required name="trailer_plates" id="trailer_plates" list="trailers_list_edit"></x-input-1>
+                <datalist id="trailers_list_edit">
+                    @foreach ($trailers as $trailer)
+                        <option value="{{ $trailer->plate }}">{{ $trailer->type }}</option>
+                    @endforeach
+                </datalist>
             </x-wrapper-form-2>
         </x-wrapper-form-1>
 
@@ -197,6 +212,17 @@ $(function(){
     const father = $('#edit-transaction');
     const suppliers = @json($suppliers);
     const customers = @json($customers);
+    const operators = @json($operators);
+
+    father.on('input', '#operator', function(){
+        const selectedOperatorName = $(this).val();
+        if(selectedOperatorName) {
+            const found = operators.find(op => op.name === selectedOperatorName);
+            if(found && found.license) {
+                father.find('#license_number').val(found.license);
+            }
+        }
+    });
 
     const ROUTES = {
         inputShow:    @json(route('inputs.show',   ['input'  => '__ID__'])),

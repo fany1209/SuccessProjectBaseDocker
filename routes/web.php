@@ -532,6 +532,7 @@ Route::prefix('laboratory/equipments')->group(function () {
     Route::patch('/tasks/{task}/update-status', [App\Http\Controllers\TaskController::class, 'updateStatus'])->name('tasks.updateStatus');
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
 
+   
     Route::get('/sistemas-ti', function () {
         return view('sistemas-ti');
     })->name('sistemas-ti.index');

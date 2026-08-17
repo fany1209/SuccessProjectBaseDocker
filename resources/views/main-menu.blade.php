@@ -101,9 +101,11 @@
                     TASKS
                 </x-application.buttons.menu-btn>
 
+                @if(auth()->check() && auth()->user()->hasRole(['Admin', 'Sistemas']))
                 <x-application.buttons.menu-btn module="sistemas-ti" link="{{ route('sistemas-ti.index') }}" image="{{ asset('images/main-menu/sistemas.png') }}">
                     SISTEMAS TI
                 </x-application.buttons.menu-btn>
+                @endif
                 
                 <x-application.buttons.menu-btn module="muestras" link="{{ route('muestras.index') }}" image="{{ asset('images/laboratory/02.png') }}">
                     Solicitud de muestras

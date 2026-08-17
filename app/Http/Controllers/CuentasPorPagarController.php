@@ -222,6 +222,7 @@ class CuentasPorPagarController extends Controller
     {
         $month = $request->input('month');
         $year = $request->input('year');
+        $semana = $request->input('semana');
 
         $query = DB::table('cxp_details as cxp')
             ->join('facturas as f', 'f.factura_id', '=', 'cxp.factura_id');
@@ -232,6 +233,9 @@ class CuentasPorPagarController extends Controller
         if ($year) {
             $query->whereYear('f.fecha_factura', $year);
         }
+        if ($semana) {
+            $query->where('cxp.semana', $semana);
+        }
 
         $facturas = $query->select(
                 'cxp.id as cxp_id',
@@ -240,8 +244,11 @@ class CuentasPorPagarController extends Controller
                 'cxp.anio',
                 'cxp.estatus',
                 'cxp.is_canceled',
+                'cxp.pdf_path',
+                'cxp.xml_path',
                 'f.factura_id',
                 'f.empresa',
+                'f.departamento',
                 'f.folio_factura',
                 'f.fecha_factura',
                 'f.descripcion as motivo',
@@ -263,6 +270,7 @@ class CuentasPorPagarController extends Controller
             $factura->total = round($factura->total, 2);
             $factura->saldo = round($factura->total - $pagado, 2);
             $factura->pagado = round($pagado, 2);
+            $factura->is_canceled = (bool) $factura->is_canceled;
         }
 
         return response()->json(['data' => $facturas]);
@@ -275,7 +283,8 @@ class CuentasPorPagarController extends Controller
             'semana' => 'nullable|integer',
             'anio' => 'nullable|integer',
             'banco' => 'nullable|string',
-            'metodo_pago' => 'nullable|string'
+            'metodo_pago' => 'nullable|string',
+            'departamento' => 'nullable|string|max:255'
         ]);
 
         $cxp = CxpDetail::findOrFail($id);
@@ -290,11 +299,13 @@ class CuentasPorPagarController extends Controller
             'anio' => $request->anio
         ]);
 
-        if ($request->has('banco') || $request->has('metodo_pago')) {
-            DB::table('facturas')->where('factura_id', $cxp->factura_id)->update([
-                'banco' => $request->banco,
-                'metodo_pago' => $request->metodo_pago
-            ]);
+        if ($request->has('banco') || $request->has('metodo_pago') || $request->has('departamento')) {
+            $updateFactura = [];
+            if ($request->has('banco')) $updateFactura['banco'] = $request->banco;
+            if ($request->has('metodo_pago')) $updateFactura['metodo_pago'] = $request->metodo_pago;
+            if ($request->has('departamento')) $updateFactura['departamento'] = $request->departamento;
+
+            DB::table('facturas')->where('factura_id', $cxp->factura_id)->update($updateFactura);
         }
 
         return response()->json(['success' => true, 'message' => 'Actualizado correctamente']);
@@ -423,6 +434,7 @@ class CuentasPorPagarController extends Controller
                 'cxp.is_canceled',
                 'f.factura_id',
                 'f.empresa',
+                'f.departamento',
                 'f.folio_factura',
                 'f.fecha_factura',
                 'f.descripcion as motivo',
@@ -444,8 +456,8 @@ class CuentasPorPagarController extends Controller
         $sheet->setTitle('Cuentas por Pagar');
 
         $sheet->setCellValue('A1', 'Cuentas por pagar');
-        $sheet->mergeCells('A1:J1');
-        $sheet->getStyle('A1:J1')->applyFromArray([
+        $sheet->mergeCells('A1:K1');
+        $sheet->getStyle('A1:K1')->applyFromArray([
             'font' => [
                 'bold' => true,
                 'size' => 16,
@@ -462,7 +474,7 @@ class CuentasPorPagarController extends Controller
         ]);
         $sheet->getRowDimension(1)->setRowHeight(30);
 
-        $headers = ['Empresa', 'Factura', 'Motivo', 'Banco/Método', 'Fecha Factura', 'Fecha Pago', 'Estatus', 'Total', 'Monto Pagado', 'Saldo Restante'];
+        $headers = ['Empresa', 'Departamento', 'Factura', 'Motivo', 'Banco/Método', 'Fecha Factura', 'Fecha Pago', 'Estatus', 'Total', 'Monto Pagado', 'Saldo Restante'];
         $columnLetter = 'A';
         foreach ($headers as $header) {
             $sheet->setCellValue($columnLetter . '2', $header);
@@ -488,19 +500,21 @@ class CuentasPorPagarController extends Controller
             $total = round($factura->total, 2);
             $saldo = round($total - $pagado, 2);
             $pagado = round($pagado, 2);
+            $factura->is_canceled = (bool) $factura->is_canceled;
 
             if ($factura->is_canceled) {
                 $saldo = 0;
             }
 
             $sheet->setCellValue('A' . $row, $factura->empresa);
-            $sheet->setCellValue('B' . $row, $factura->folio_factura);
-            $sheet->setCellValue('C' . $row, $factura->motivo);
-            $sheet->setCellValue('D' . $row, $factura->banco . ' / ' . $factura->metodo_pago);
-            $sheet->setCellValue('E' . $row, $factura->fecha_factura);
-            $sheet->setCellValue('F' . $row, $factura->fecha_pago);
+            $sheet->setCellValue('B' . $row, $factura->departamento);
+            $sheet->setCellValue('C' . $row, $factura->folio_factura);
+            $sheet->setCellValue('D' . $row, $factura->motivo);
+            $sheet->setCellValue('E' . $row, $factura->banco . ' / ' . $factura->metodo_pago);
+            $sheet->setCellValue('F' . $row, $factura->fecha_factura);
+            $sheet->setCellValue('G' . $row, $factura->fecha_pago);
             
-            $estatusCell = 'G' . $row;
+            $estatusCell = 'H' . $row;
             if ($factura->is_canceled) {
                 $sheet->setCellValue($estatusCell, 'CANCELADO');
                 $sheet->getStyle($estatusCell)->getFont()->getColor()->setARGB(Color::COLOR_RED);
@@ -516,22 +530,22 @@ class CuentasPorPagarController extends Controller
                 }
             }
 
-            $sheet->setCellValue('H' . $row, $total);
-            $sheet->setCellValue('I' . $row, $pagado);
-            $sheet->setCellValue('J' . $row, $saldo);
+            $sheet->setCellValue('I' . $row, $total);
+            $sheet->setCellValue('J' . $row, $pagado);
+            $sheet->setCellValue('K' . $row, $saldo);
 
-            $sheet->getStyle('H' . $row)->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_CURRENCY_USD);
             $sheet->getStyle('I' . $row)->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_CURRENCY_USD);
             $sheet->getStyle('J' . $row)->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_CURRENCY_USD);
+            $sheet->getStyle('K' . $row)->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_CURRENCY_USD);
             
             if (!$factura->is_canceled) {
                 if ($saldo <= 0) {
-                    $sheet->getStyle('J' . $row)->getFont()->getColor()->setARGB('FF157347');
+                    $sheet->getStyle('K' . $row)->getFont()->getColor()->setARGB('FF157347');
                 } else {
-                    $sheet->getStyle('J' . $row)->getFont()->getColor()->setARGB(Color::COLOR_RED);
+                    $sheet->getStyle('K' . $row)->getFont()->getColor()->setARGB(Color::COLOR_RED);
                 }
             } else {
-                 $sheet->getStyle('J' . $row)->getFont()->getColor()->setARGB(Color::COLOR_RED);
+                 $sheet->getStyle('K' . $row)->getFont()->getColor()->setARGB(Color::COLOR_RED);
             }
 
             $row++;

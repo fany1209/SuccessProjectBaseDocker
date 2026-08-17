@@ -292,6 +292,7 @@ Modificado:
                 $('#edit-pagador').val(res.factura.pagador || '');
                 $('#edit-terminacion').val(res.factura.terminacion || '');
                 $('#edit-fecha_factura').val(res.factura.fecha_factura || '');
+                $('#edit-departamento').val(res.factura.departamento || '');
                 $('#edit-descripcion').val(res.factura.descripcion || '');
 
                 res.detalles.forEach(p => {
