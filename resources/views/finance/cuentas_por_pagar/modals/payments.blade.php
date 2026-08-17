@@ -33,6 +33,11 @@
             <option value="PPD">PPD</option>
           </select>
         </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
+          <input type="text" id="edit-departamento-cxp" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" placeholder="Ej. TI, RH...">
+        </div>
       </div>
 
       <div class="mt-6 flex justify-end gap-3">

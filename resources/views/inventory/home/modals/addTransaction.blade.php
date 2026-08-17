@@ -12,10 +12,17 @@ Fecha de actualización: 15-01-2026
 
         <x-wrapper-form-1>
             <x-tittle-form>Make Transaction</x-tittle-form>
+            @hasrole('Admin')
             <x-toggle-switch id="type" name="type" value="Input" :checked="true"
                 onLabel="Input" offLabel="Output"
                 onColor="emerald-500" offColor="red-700"
                 textColor="white" class=""/>
+            @else
+            <div class="flex items-center gap-2">
+                <span class="bg-emerald-500 text-white font-semibold px-4 py-1 rounded shadow-sm">Input</span>
+                <input type="checkbox" id="type" name="type" value="Input" checked class="hidden" />
+            </div>
+            @endhasrole
         </x-wrapper-form-1>
 
         <x-wrapper-form-1>

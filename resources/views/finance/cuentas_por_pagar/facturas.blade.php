@@ -46,6 +46,15 @@
             @endfor
           </select>
         </div>
+        <div class="flex items-center gap-2">
+          <label for="filter-semana" class="text-sm font-medium text-gray-600">Semana Fiscal:</label>
+          <select id="filter-semana" class="text-sm border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
+            <option value="">Todas</option>
+            @for ($i = 1; $i <= 53; $i++)
+              <option value="{{ $i }}">{{ $i }}</option>
+            @endfor
+          </select>
+        </div>
         <button type="button" id="btn-filter" class="bg-[#198754] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#157347] transition flex items-center gap-1">
           <i class="ri-filter-3-line"></i> Filtrar
         </button>
@@ -63,6 +72,7 @@
             <thead class="bg-gray-50 text-gray-700 uppercase font-semibold text-xs tracking-wider">
               <tr>
                 <th class="px-2 py-2">Empresa</th>
+                <th class="px-2 py-2">Departamento</th>
                 <th class="px-2 py-2">Factura</th>
                 <th class="px-2 py-2">Motivo</th>
                 <th class="px-2 py-2">Banco / Método</th>
@@ -116,6 +126,7 @@ $(function(){
       data: function(d) {
         d.month = $('#filter-month').val();
         d.year = $('#filter-year').val();
+        d.semana = $('#filter-semana').val();
       }
     },
     createdRow: function(row, data, dataIndex) {
@@ -125,6 +136,7 @@ $(function(){
     },
     columns: [
       { data: 'empresa', render: data => `<span class="font-bold text-gray-700">${data}</span>` },
+      { data: 'departamento', render: data => `<span class="text-sm text-gray-600">${data || '—'}</span>` },
       { data: 'folio_factura', render: data => `<span class="font-semibold text-blue-800">${data || '—'}</span>` },
       { data: 'motivo', render: data => `<span class="text-xs truncate max-w-[150px] block" title="${data}">${data || '—'}</span>` },
       { data: null, render: function(row) {
@@ -200,9 +212,11 @@ $(function(){
   $('#btn-export').on('click', function() {
     const m = $('#filter-month').val();
     const y = $('#filter-year').val();
+    const s = $('#filter-semana').val();
     let url = "{{ route('cuentas-por-pagar.export-excel') }}?";
     if (m) url += `month=${m}&`;
-    if (y) url += `year=${y}`;
+    if (y) url += `year=${y}&`;
+    if (s) url += `semana=${s}`;
     window.location.href = url;
   });
 
@@ -247,6 +261,7 @@ $(function(){
     $('#edit-anio').val(row.anio);
     $('#edit-banco').val(row.banco);
     $('#edit-metodo-pago').val(row.metodo_pago);
+    $('#edit-departamento-cxp').val(row.departamento);
     
     $('#btn-open-edit-cxp').trigger('click');
   });
@@ -328,6 +343,7 @@ $(function(){
       anio: $('#edit-anio').val(),
       banco: $('#edit-banco').val(),
       metodo_pago: $('#edit-metodo-pago').val(),
+      departamento: $('#edit-departamento-cxp').val(),
     };
 
     $('#btn-save-cxp').prop('disabled', true).text('Guardando...');
