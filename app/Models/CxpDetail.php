@@ -19,7 +19,8 @@ class CxpDetail extends Model
         'estatus',
         'is_canceled',
         'pdf_path',
-        'xml_path'
+        'xml_path',
+        'comentarios'
     ];
 
     public function payments()

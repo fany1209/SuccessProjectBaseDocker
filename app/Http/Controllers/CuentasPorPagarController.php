@@ -246,6 +246,7 @@ class CuentasPorPagarController extends Controller
                 'cxp.is_canceled',
                 'cxp.pdf_path',
                 'cxp.xml_path',
+                'cxp.comentarios',
                 'f.factura_id',
                 'f.empresa',
                 'f.departamento',
@@ -281,10 +282,9 @@ class CuentasPorPagarController extends Controller
         $request->validate([
             'fecha_pago' => 'nullable|date',
             'semana' => 'nullable|integer',
-            'anio' => 'nullable|integer',
             'banco' => 'nullable|string',
-            'metodo_pago' => 'nullable|string',
-            'departamento' => 'nullable|string|max:255'
+            'departamento' => 'nullable|string|max:255',
+            'comentarios' => 'nullable|string'
         ]);
 
         $cxp = CxpDetail::findOrFail($id);
@@ -296,13 +296,12 @@ class CuentasPorPagarController extends Controller
         $cxp->update([
             'fecha_pago' => $request->fecha_pago,
             'semana' => $request->semana,
-            'anio' => $request->anio
+            'comentarios' => $request->comentarios
         ]);
 
-        if ($request->has('banco') || $request->has('metodo_pago') || $request->has('departamento')) {
+        if ($request->has('banco') || $request->has('departamento')) {
             $updateFactura = [];
             if ($request->has('banco')) $updateFactura['banco'] = $request->banco;
-            if ($request->has('metodo_pago')) $updateFactura['metodo_pago'] = $request->metodo_pago;
             if ($request->has('departamento')) $updateFactura['departamento'] = $request->departamento;
 
             DB::table('facturas')->where('factura_id', $cxp->factura_id)->update($updateFactura);
@@ -325,7 +324,14 @@ class CuentasPorPagarController extends Controller
     public function getPayments($id)
     {
         $cxp = CxpDetail::findOrFail($id);
-        $payments = $cxp->payments()->orderByDesc('date')->get();
+        $payments = $cxp->payments()->orderBy('date', 'desc')->orderBy('created_at', 'desc')->get();
+        // Load user explicitly to avoid missing relationship definition if we don't have it in the model
+        foreach ($payments as $payment) {
+            if ($payment->user_id) {
+                $user = DB::table('users')->where('id', $payment->user_id)->first();
+                $payment->user_name = $user ? $user->name : null;
+            }
+        }
         return response()->json(['success' => true, 'payments' => $payments]);
     }
 
@@ -335,7 +341,9 @@ class CuentasPorPagarController extends Controller
             'amount' => 'required|numeric|min:0.01',
             'date' => 'required|date',
             'comprobante' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:25600',
-            'notas' => 'nullable|string'
+            'notas' => 'nullable|string',
+            'banco' => 'nullable|string',
+            'metodo_pago' => 'nullable|string'
         ]);
 
         $cxp = CxpDetail::findOrFail($id);
@@ -356,7 +364,10 @@ class CuentasPorPagarController extends Controller
             'amount' => $request->amount,
             'date' => $request->date,
             'comprobante' => $comprobantePath,
-            'notas' => $request->notas
+            'notas' => $request->notas,
+            'banco' => $request->banco,
+            'metodo_pago' => $request->metodo_pago,
+            'user_id' => auth()->id()
         ]);
 
         // Calculate new balance
