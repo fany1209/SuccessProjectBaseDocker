@@ -205,6 +205,7 @@ class InventoryController extends Controller
                 'weight_per_unit'      => 'nullable|array',
                 'weight_per_unit.*'    => 'nullable|numeric',
                 'bag_number'           => 'nullable|array',
+                'bag_location_id'      => 'nullable|array',
             ]);
 
             return DB::transaction(function () use ($request) {
@@ -280,31 +281,48 @@ class InventoryController extends Controller
                         ]);
 
                         $locId = $request->location_id[$index] ?? null;
-                        if ($locId && !empty($request->concept_id[$index])) {
+                        
+                        $hasBagLocation = false;
+                        if (isset($request->bag_location_id[$index]) && is_array($request->bag_location_id[$index])) {
+                            foreach ($request->bag_location_id[$index] as $bLoc) {
+                                if (!empty($bLoc)) {
+                                    $hasBagLocation = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (($locId || $hasBagLocation) && !empty($request->concept_id[$index])) {
                             $conceptId = $request->concept_id[$index];
                             $weight = $request->weight_per_unit[$index] ?? 0;
                             
                             if (isset($request->bag_number[$index]) && is_array($request->bag_number[$index]) && count($request->bag_number[$index]) > 0) {
-                                foreach ($request->bag_number[$index] as $bag_num) {
+                                foreach ($request->bag_number[$index] as $b_idx => $bag_num) {
+                                    $bagLocId = $request->bag_location_id[$index][$b_idx] ?? $locId;
+                                    
+                                    if ($bagLocId) {
+                                        Cli::create([
+                                            'location_id' => $bagLocId,
+                                            'inventory_id' => $inventory->inventory_id,
+                                            'concept_id' => $conceptId,
+                                            'quantity' => 1,
+                                            'weight_per_unit' => $weight,
+                                            'net_weight' => 1 * $weight,
+                                            'bag_number' => $bag_num,
+                                        ]);
+                                    }
+                                }
+                            } else {
+                                if ($locId) {
                                     Cli::create([
                                         'location_id' => $locId,
                                         'inventory_id' => $inventory->inventory_id,
                                         'concept_id' => $conceptId,
-                                        'quantity' => 1,
+                                        'quantity' => $qty,
                                         'weight_per_unit' => $weight,
-                                        'net_weight' => 1 * $weight,
-                                        'bag_number' => $bag_num,
+                                        'net_weight' => $qty * $weight,
                                     ]);
                                 }
-                            } else {
-                                Cli::create([
-                                    'location_id' => $locId,
-                                    'inventory_id' => $inventory->inventory_id,
-                                    'concept_id' => $conceptId,
-                                    'quantity' => $qty,
-                                    'weight_per_unit' => $weight,
-                                    'net_weight' => $qty * $weight,
-                                ]);
                             }
                         }
                     }

@@ -108,7 +108,7 @@ Fecha de actualización: 15-01-2026
                             </x-select-1>
                         </x-wrapper-form-2>
 
-                        <x-wrapper-form-2>
+                        <x-wrapper-form-2 class="location-id-wrapper">
                             <x-label for="location">Location</x-label>
                             <x-select-1 name="location_id[]" class="location_id">
                                 <option value="">Select a location</option>
@@ -263,7 +263,7 @@ Fecha de actualización: 15-01-2026
                 </x-select-1>
             </x-wrapper-form-2>
 
-            <x-wrapper-form-2>
+            <x-wrapper-form-2 class="location-id-wrapper">
                 <x-label for="location">Location</x-label>
                 <x-select-1 name="location_id[]" class="location_id" disabled>
                     <option value="">Select a location</option>
@@ -274,7 +274,7 @@ Fecha de actualización: 15-01-2026
         <x-wrapper-form-1>
             <x-wrapper-form-2>
                 <x-label for="warehouse_batch">Warehouse batch</x-label>
-                <x-input-1 name="warehouse_batch[]" class="warehouse_batch" disabled></x-input-1>
+                <x-input-1 name="warehouse_batch[]" class="warehouse_batch" readonly></x-input-1>
             </x-wrapper-form-2>
             <x-wrapper-form-2><p class="total"></p></x-wrapper-form-2>
         </x-wrapper-form-1>
@@ -416,6 +416,7 @@ $(function(){
         let quantity = parseFloat(wrapper.find('.quantity').val()) || 0;
         let container = wrapper.find('.bag_numbers_container');
         let bag_wrapper = wrapper.find('.bag_numbers_wrapper');
+        let locIdWrapper = wrapper.find('.location-id-wrapper');
         
         if (product_id !== '') {
             let idNum = parseInt(product_id);
@@ -425,6 +426,12 @@ $(function(){
                 container.empty();
                 let numInputs = Math.floor(quantity);
                 let movement = getMovement(wrapper.closest('#make-transaction'));
+                
+                if (movement === 'Input') {
+                    locIdWrapper.addClass('hidden').css('display', 'none');
+                } else {
+                    locIdWrapper.removeClass('hidden').css('display', 'block');
+                }
                 
                 let availableBags = [];
                 if (movement === 'Output') {
@@ -448,16 +455,25 @@ $(function(){
                             </select>
                         `);
                     } else {
+                        let locOptions = wrapper.find('.location_id').html();
+                        let locSelectHTML = movement === 'Input' 
+                            ? `<select class="bag_location_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" required>${locOptions}</select>`
+                            : '';
                         container.append(`
-                            <input type="text" class="bag_number_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Barcina #${i+1}" required>
+                            <div class="flex flex-col gap-1 w-full bg-gray-50 p-2 rounded-lg border border-gray-200">
+                                <input type="text" class="bag_number_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Barcina #${i+1}" required>
+                                ${locSelectHTML}
+                            </div>
                         `);
                     }
                 }
             } else {
+                locIdWrapper.removeClass('hidden').css('display', 'block');
                 bag_wrapper.addClass('hidden');
                 container.empty();
             }
         } else {
+            locIdWrapper.removeClass('hidden').css('display', 'block');
             bag_wrapper.addClass('hidden');
             container.empty();
         }
@@ -469,16 +485,26 @@ $(function(){
         const warehouse = parseInt($(this).val());
         
         $locSelect.empty().append('<option value="">Select a location</option>');
+        let optionsHtml = '<option value="">Select a location</option>';
         locations.forEach(location => {
             if(location.warehouse_id == warehouse){
                 $locSelect.append(`<option value="${location.location_id}">${location.name}</option>`);
+                optionsHtml += `<option value="${location.location_id}">${location.name}</option>`;
             }
         });
+
+        const $bagLocSelects = $wrapper.find('.bag_location_input');
+        if ($bagLocSelects.length > 0) {
+            $bagLocSelects.empty().append(optionsHtml);
+        }
     });
 
-    father.on('change', '.location_id', function(){
+    father.on('change', '.location_id, .bag_location_input', function(){
         const wrapper = $(this).closest('.wrapper');
-        const hasLocation = $(this).val() !== '';
+        let hasLocation = wrapper.find('.location_id').val() !== '';
+        wrapper.find('.bag_location_input').each(function() {
+            if ($(this).val() !== '') hasLocation = true;
+        });
         wrapper.find('.concept_id').prop('required', hasLocation);
         wrapper.find('.weight_per_unit').prop('required', hasLocation);
     });
@@ -486,7 +512,10 @@ $(function(){
     father.on('click','#add_product',function(){
         setTimeout(() => {
             father.find('#products .wrapper').each(function() {
-                const hasLocation = $(this).find('.location_id').val() !== '';
+                let hasLocation = $(this).find('.location_id').val() !== '';
+                $(this).find('.bag_location_input').each(function() {
+                    if ($(this).val() !== '') hasLocation = true;
+                });
                 $(this).find('.concept_id').prop('required', hasLocation);
                 $(this).find('.weight_per_unit').prop('required', hasLocation);
             });
@@ -687,9 +716,13 @@ $(function(){
         
         let movement = getMovement(father);
         data.delete('bag_number'); 
+        data.delete('bag_location_id'); 
         $('#make-transaction #products .wrapper').each(function(index) {
             $(this).find('.bag_number_input').each(function() {
                 data.append('bag_number[' + index + '][]', $(this).val());
+            });
+            $(this).find('.bag_location_input').each(function() {
+                data.append('bag_location_id[' + index + '][]', $(this).val());
             });
             
             if (movement === 'Output') {
@@ -722,7 +755,11 @@ $(function(){
             error:function(xhr){
                 let message = 'Ocurrió un error inesperado.';
                 if (xhr.responseJSON && xhr.responseJSON.error) {
-                    message = xhr.responseJSON.error;
+                    if (typeof xhr.responseJSON.error === 'object') {
+                        message = Object.values(xhr.responseJSON.error).flat().join('\\n');
+                    } else {
+                        message = xhr.responseJSON.error;
+                    }
                 }
                 Swal.fire({
                     icon: 'error',
