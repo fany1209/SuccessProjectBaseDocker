@@ -62,13 +62,16 @@ class InventoryController extends Controller
         $trailers = Trailer::select('plate','type')->get();
         $concepts = Concept::select('concept_id','name')->get();
         $warehouses = Warehouse::select('warehouse_id','name')->get();
+        $locations = \App\Models\Location::select('location_id','name','warehouse_id')->get();
 
         $almacen_sales = \App\Models\Sale::with(['customer', 'prospect', 'user'])
             ->whereNotNull('almacen_status')
             ->orderBy('sale_id', 'desc')
             ->get();
 
-        return view('inventory',compact('warehouses','available_locations','concepts','trailers','vehicles','operators','batchs','outputs_products','inputs_products','outputs_dates','inputs_dates','outputs_months','outputs_years','inputs_months','inputs_years','transport_lines','suppliers','customers','products','products_all','quarantine','products_warehouse', 'almacen_sales'));
+        $product_locations = DB::table('cli')->select('inventory_id', 'location_id', 'bag_number')->get();
+
+        return view('inventory',compact('warehouses','locations','available_locations','concepts','trailers','vehicles','operators','batchs','outputs_products','inputs_products','outputs_dates','inputs_dates','outputs_months','outputs_years','inputs_months','inputs_years','transport_lines','suppliers','customers','products','products_all','quarantine','products_warehouse', 'almacen_sales', 'product_locations'));
     }
 
     //Pal inicio de Inventario
@@ -195,6 +198,13 @@ class InventoryController extends Controller
                 'quantity.*'           => 'required|numeric|min:0.001',
                 'warehouse_batch'      => 'required|array|min:1',
                 'warehouse_batch.*'    => 'required|string|max:50',
+                'location_id'          => 'nullable|array',
+                'location_id.*'        => 'nullable|integer',
+                'concept_id'           => 'nullable|array',
+                'concept_id.*'         => 'nullable|integer',
+                'weight_per_unit'      => 'nullable|array',
+                'weight_per_unit.*'    => 'nullable|numeric',
+                'bag_number'           => 'nullable|array',
             ]);
 
             return DB::transaction(function () use ($request) {
@@ -232,13 +242,71 @@ class InventoryController extends Controller
                         $row['warehouse_batch'] = $inventory->batch;
                         $row['label_batch']     = $request->label_batch[$index] ?? null;
                         $inventory->decrement('stock', $qty);
+                        
+                        if (isset($request->bag_number[$index]) && is_array($request->bag_number[$index]) && count($request->bag_number[$index]) > 0) {
+                            foreach ($request->bag_number[$index] as $bag_num) {
+                                $query = Cli::where('inventory_id', $inventory->inventory_id)
+                                   ->where('bag_number', $bag_num);
+                                if (isset($request->output_location_id[$index])) {
+                                    $query->where('location_id', $request->output_location_id[$index]);
+                                } else if (isset($request->location_id[$index])) {
+                                    $query->where('location_id', $request->location_id[$index]);
+                                }
+                                $query->delete();
+                            }
+                        } else {
+                            $loc = $request->output_location_id[$index] ?? ($request->location_id[$index] ?? null);
+                            if ($loc) {
+                                $cli = Cli::where('inventory_id', $inventory->inventory_id)
+                                   ->where('location_id', $loc)
+                                   ->first();
+                                if ($cli) {
+                                    if ($cli->quantity <= $qty) {
+                                        $cli->delete();
+                                    } else {
+                                        $cli->quantity -= $qty;
+                                        $cli->net_weight = $cli->quantity * $cli->weight_per_unit;
+                                        $cli->save();
+                                    }
+                                }
+                            }
+                        }
                     } else {
                         $row['warehouse_batch'] = $request->warehouse_batch[$index];
-                        Inventory::create([
+                        $inventory = Inventory::create([
                             'product_id' => $productId,
                             'stock'      => $qty,
                             'batch'      => $row['warehouse_batch'],
                         ]);
+
+                        $locId = $request->location_id[$index] ?? null;
+                        if ($locId && !empty($request->concept_id[$index])) {
+                            $conceptId = $request->concept_id[$index];
+                            $weight = $request->weight_per_unit[$index] ?? 0;
+                            
+                            if (isset($request->bag_number[$index]) && is_array($request->bag_number[$index]) && count($request->bag_number[$index]) > 0) {
+                                foreach ($request->bag_number[$index] as $bag_num) {
+                                    Cli::create([
+                                        'location_id' => $locId,
+                                        'inventory_id' => $inventory->inventory_id,
+                                        'concept_id' => $conceptId,
+                                        'quantity' => 1,
+                                        'weight_per_unit' => $weight,
+                                        'net_weight' => 1 * $weight,
+                                        'bag_number' => $bag_num,
+                                    ]);
+                                }
+                            } else {
+                                Cli::create([
+                                    'location_id' => $locId,
+                                    'inventory_id' => $inventory->inventory_id,
+                                    'concept_id' => $conceptId,
+                                    'quantity' => $qty,
+                                    'weight_per_unit' => $weight,
+                                    'net_weight' => $qty * $weight,
+                                ]);
+                            }
+                        }
                     }
                     $details[] = $row;
                 }

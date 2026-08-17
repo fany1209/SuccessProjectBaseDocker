@@ -67,6 +67,14 @@ $(document).ready(function(){
                                             ${product.batch}
                                         </p>
                                     </div>
+                                    ${(product.pName.includes('BGBG') && product.bag_number) ? `
+                                    <div class="flex flex-col items-start gap-1 w-full">
+                                        <label class="block mb-1 text-sm font-medium text-gray-700">Barcina #</label>
+                                        <p class="w-full border border-gray-300 text-gray-400 focus:text-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2">
+                                            ${product.bag_number}
+                                        </p>
+                                    </div>
+                                    ` : ''}
                                 </div>
                                 <div class="flex justify-between items-center gap-2 w-full my-1">
                                     <div class="flex flex-col items-start gap-1 w-full">

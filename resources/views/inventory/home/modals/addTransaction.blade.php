@@ -49,6 +49,8 @@ Fecha de actualización: 15-01-2026
             </x-wrapper-form-2>
         </x-wrapper-form-1>
 
+
+
         <x-wrapper-form-1 class="flex-col border-2 border-gray-200 rounded-md p-2">
             <x-wrapper-form-1>
                 <span class="tracking-[3px] bg-blue-500 text-white font-semibold px-2 py-1 rounded-md">Products</span>
@@ -61,6 +63,16 @@ Fecha de actualización: 15-01-2026
 
                     <x-wrapper-form-1>
                         <x-wrapper-form-2>
+                            <x-label for="concept_id">Concept</x-label>
+                            <x-select-1 name="concept_id[]" class="concept_id">
+                                <option value="">Select a concept</option>
+                                @foreach ($concepts as $concept)
+                                    <option value="{{ $concept->concept_id }}">{{ $concept->name }}</option>
+                                @endforeach
+                            </x-select-1>
+                        </x-wrapper-form-2>
+                        
+                        <x-wrapper-form-2>
                             <x-label for="product_id">Product</x-label>
                             <x-input-1 name="product_id[]" list="products_all" class="product_id">Product</x-input-1>
                             <datalist id="products_all">
@@ -70,11 +82,37 @@ Fecha de actualización: 15-01-2026
                             </datalist>
                             <p class="product-name text-sm text-gray-500"></p>
                         </x-wrapper-form-2>
+                    </x-wrapper-form-1>
 
+                    <x-wrapper-form-1>
                         <x-wrapper-form-2>
                             <x-label for="quantity">Quantity</x-label>
-                            <x-input-1 name="quantity[]" class="quantity"></x-input-1>
+                            <x-input-1 type="number" step="any" min="0" name="quantity[]" class="quantity"></x-input-1>
                             <p class="unit text-sm text-gray-500"></p>
+                        </x-wrapper-form-2>
+
+                        <x-wrapper-form-2>
+                            <x-label for="weight_per_unit">Weight per unit</x-label>
+                            <x-input-1 type="number" step="any" min="0" name="weight_per_unit[]" class="weight_per_unit"></x-input-1>
+                        </x-wrapper-form-2>
+                    </x-wrapper-form-1>
+
+                    <x-wrapper-form-1 class="location-assignment-wrapper">
+                        <x-wrapper-form-2>
+                            <x-label for="warehouse">Warehouse (Optional)</x-label>
+                            <x-select-1 name="warehouse[]" class="warehouse">
+                                <option value="">Select a warehouse</option>
+                                @foreach ($warehouses as $warehouse)
+                                    <option value="{{ $warehouse->warehouse_id }}">{{ $warehouse->name }}</option>
+                                @endforeach
+                            </x-select-1>
+                        </x-wrapper-form-2>
+
+                        <x-wrapper-form-2>
+                            <x-label for="location">Location</x-label>
+                            <x-select-1 name="location_id[]" class="location_id">
+                                <option value="">Select a location</option>
+                            </x-select-1>
                         </x-wrapper-form-2>
                     </x-wrapper-form-1>
 
@@ -83,10 +121,18 @@ Fecha de actualización: 15-01-2026
                             <x-label for="warehouse_batch">Warehouse batch</x-label>
                             <x-input-1 name="warehouse_batch[]" class="warehouse_batch"></x-input-1>
                         </x-wrapper-form-2>
+                        <x-wrapper-form-2><p class="total"></p></x-wrapper-form-2>
+                    </x-wrapper-form-1>
+
+                    <x-wrapper-form-1 class="bag_numbers_wrapper hidden w-full flex-col mt-2">
+                        <x-label># de Barcina para cada BigBag</x-label>
+                        <div class="bag_numbers_container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-1 w-full">
+                        </div>
                     </x-wrapper-form-1>
                 </div>
             </div>
         </x-wrapper-form-1>
+
 
         <x-wrapper-form-1>
             <x-wrapper-form-2>
@@ -155,6 +201,8 @@ Fecha de actualización: 15-01-2026
             </x-wrapper-form-2>
         </x-wrapper-form-1>
 
+
+
         <x-wrapper-form-1>
             <x-wrapper-form-2>
                 <x-label for="comments">Comments</x-label>
@@ -175,21 +223,66 @@ Fecha de actualización: 15-01-2026
         <span class="remove-product absolute flex justify-center items-center text-white bg-red-500 hover:bg-red-600 w-6 h-6 top-1 right-1 rounded-full font-bold cursor-pointer p-1">X</span>
         <x-wrapper-form-1>
             <x-wrapper-form-2>
+                <x-label for="concept_id">Concept</x-label>
+                <x-select-1 name="concept_id[]" class="concept_id">
+                    <option value="">Select a concept</option>
+                    @foreach ($concepts as $concept)
+                        <option value="{{ $concept->concept_id }}">{{ $concept->name }}</option>
+                    @endforeach
+                </x-select-1>
+            </x-wrapper-form-2>
+
+            <x-wrapper-form-2>
                 <x-label for="product_id">Product</x-label>
                 <x-input-1 name="product_id[]" list="products_all" class="product_id">Product</x-input-1>
                 <p class="product-name text-sm text-gray-500"></p>
             </x-wrapper-form-2>
+        </x-wrapper-form-1>
+        
+        <x-wrapper-form-1>
             <x-wrapper-form-2>
                 <x-label for="quantity">Quantity</x-label>
-                <x-input-1 name="quantity[]" class="quantity"></x-input-1>
+                <x-input-1 type="number" step="any" min="0" name="quantity[]" class="quantity"></x-input-1>
                 <p class="unit text-sm text-gray-500"></p>
             </x-wrapper-form-2>
+            
+            <x-wrapper-form-2>
+                <x-label for="weight_per_unit">Weight per unit</x-label>
+                <x-input-1 type="number" step="any" min="0" name="weight_per_unit[]" class="weight_per_unit"></x-input-1>
+            </x-wrapper-form-2>
         </x-wrapper-form-1>
+
+        <x-wrapper-form-1 class="location-assignment-wrapper">
+            <x-wrapper-form-2>
+                <x-label for="warehouse">Warehouse (Optional)</x-label>
+                <x-select-1 name="warehouse[]" class="warehouse" disabled>
+                    <option value="">Select a warehouse</option>
+                    @foreach ($warehouses as $warehouse)
+                        <option value="{{ $warehouse->warehouse_id }}">{{ $warehouse->name }}</option>
+                    @endforeach
+                </x-select-1>
+            </x-wrapper-form-2>
+
+            <x-wrapper-form-2>
+                <x-label for="location">Location</x-label>
+                <x-select-1 name="location_id[]" class="location_id" disabled>
+                    <option value="">Select a location</option>
+                </x-select-1>
+            </x-wrapper-form-2>
+        </x-wrapper-form-1>
+        
         <x-wrapper-form-1>
             <x-wrapper-form-2>
                 <x-label for="warehouse_batch">Warehouse batch</x-label>
-                <x-input-1 name="warehouse_batch[]" class="warehouse_batch"></x-input-1>
+                <x-input-1 name="warehouse_batch[]" class="warehouse_batch" disabled></x-input-1>
             </x-wrapper-form-2>
+            <x-wrapper-form-2><p class="total"></p></x-wrapper-form-2>
+        </x-wrapper-form-1>
+        
+        <x-wrapper-form-1 class="bag_numbers_wrapper hidden w-full flex-col mt-2">
+            <x-label># de Barcina para cada BigBag</x-label>
+            <div class="bag_numbers_container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-1 w-full">
+            </div>
         </x-wrapper-form-1>
     </div>
 
@@ -220,6 +313,12 @@ Fecha de actualización: 15-01-2026
                 <x-input-1 name="label_batch[]" class="label_batch"></x-input-1>
             </x-wrapper-form-2>
         </x-wrapper-form-1>
+        
+        <x-wrapper-form-1 class="bag_numbers_wrapper hidden w-full flex-col mt-2">
+            <x-label># de Barcina para cada BigBag</x-label>
+            <div class="bag_numbers_container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-1 w-full">
+            </div>
+        </x-wrapper-form-1>
 
         <x-wrapper-form-1><p class="stock text-sm text-gray-500"></p></x-wrapper-form-1>
     </div>
@@ -235,6 +334,10 @@ $(function(){
     const operators = @json($operators);
     const vehicles = @json($vehicles);
     const trailers = @json($trailers);
+    const warehouses = @json($warehouses ?? []);
+    const locations = @json($locations ?? []);
+    const product_locations = @json($product_locations ?? []);
+    const products_inventory = @json($products_all ?? []); // Using products_all as products list
     let row_index = 1;
 
     function getMovement($modal){
@@ -254,11 +357,14 @@ $(function(){
         const isInput = (movement === 'Input');
         const $supplierWrapper = $modal.find('#supplier-wrapper-wrapper');
         const $customerWrapper = $modal.find('#customer-wrapper-wrapper');
-        const $sellerWrapper   = $modal.find('#seller-wrapper-wrapper'); 
+        const $sellerWrapper   = $modal.find('#seller-wrapper-wrapper');
+        const $locationWrapper = $modal.find('#location-assignment-wrapper');
 
         if(isInput){
 
             $supplierWrapper.removeClass('hidden').css('display','block');
+            $modal.find('.warehouse').prop('disabled', false);
+            $modal.find('.location_id').prop('disabled', false);
             $customerWrapper.addClass('hidden').css('display','none');
             $modal.find('#supplier').prop('disabled', false).removeAttr('disabled').prop('required', true);
             $modal.find('#customer').prop('disabled', true).attr('disabled','disabled').prop('required', false);
@@ -273,6 +379,8 @@ $(function(){
 
             $customerWrapper.removeClass('hidden').css('display','block');
             $supplierWrapper.addClass('hidden').css('display','none');
+            $modal.find('.warehouse').prop('disabled', true);
+            $modal.find('.location_id').prop('disabled', true);
             $modal.find('#customer').prop('disabled', false).removeAttr('disabled').prop('required', true);
             $modal.find('#supplier').prop('disabled', true).attr('disabled','disabled').prop('required', false);
             $modal.find('#supplier').val('');
@@ -302,6 +410,98 @@ $(function(){
       });
 
     initTypeUI();
+
+    function renderBagNumbers(wrapper) {
+        let product_id = wrapper.find('.product_id').val();
+        let quantity = parseFloat(wrapper.find('.quantity').val()) || 0;
+        let container = wrapper.find('.bag_numbers_container');
+        let bag_wrapper = wrapper.find('.bag_numbers_wrapper');
+        
+        if (product_id !== '') {
+            let idNum = parseInt(product_id);
+            let product = products_inventory.find(i => i.product_id == idNum);
+            if (product && product.name.includes('BGBG')) {
+                bag_wrapper.removeClass('hidden');
+                container.empty();
+                let numInputs = Math.floor(quantity);
+                let movement = getMovement(wrapper.closest('#make-transaction'));
+                
+                let availableBags = [];
+                if (movement === 'Output') {
+                    let inventory_id = wrapper.find('.warehouse_batch').val();
+                    let selectedLocId = wrapper.find('.warehouse_batch').find('option:selected').data('location-id');
+                    if (inventory_id) {
+                        availableBags = product_locations.filter(pl => pl.inventory_id == inventory_id && pl.bag_number && (!selectedLocId || pl.location_id == selectedLocId)).map(pl => pl.bag_number);
+                    }
+                }
+
+                for (let i = 0; i < numInputs; i++) {
+                    if (movement === 'Output' && availableBags.length > 0) {
+                        let options = '<option value="">Select a Barcina</option>';
+                        // filter out duplicates just in case
+                        [...new Set(availableBags)].forEach(bag => {
+                            options += `<option value="${bag}">${bag}</option>`;
+                        });
+                        container.append(`
+                            <select class="bag_number_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" required>
+                                ${options}
+                            </select>
+                        `);
+                    } else {
+                        container.append(`
+                            <input type="text" class="bag_number_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Barcina #${i+1}" required>
+                        `);
+                    }
+                }
+            } else {
+                bag_wrapper.addClass('hidden');
+                container.empty();
+            }
+        } else {
+            bag_wrapper.addClass('hidden');
+            container.empty();
+        }
+    }
+
+    father.on('change', '.warehouse', function(){
+        const $wrapper = $(this).closest('.wrapper');
+        const $locSelect = $wrapper.find('.location_id');
+        const warehouse = parseInt($(this).val());
+        
+        $locSelect.empty().append('<option value="">Select a location</option>');
+        locations.forEach(location => {
+            if(location.warehouse_id == warehouse){
+                $locSelect.append(`<option value="${location.location_id}">${location.name}</option>`);
+            }
+        });
+    });
+
+    father.on('change', '.location_id', function(){
+        const wrapper = $(this).closest('.wrapper');
+        const hasLocation = $(this).val() !== '';
+        wrapper.find('.concept_id').prop('required', hasLocation);
+        wrapper.find('.weight_per_unit').prop('required', hasLocation);
+    });
+
+    father.on('click','#add_product',function(){
+        setTimeout(() => {
+            father.find('#products .wrapper').each(function() {
+                const hasLocation = $(this).find('.location_id').val() !== '';
+                $(this).find('.concept_id').prop('required', hasLocation);
+                $(this).find('.weight_per_unit').prop('required', hasLocation);
+            });
+        }, 50);
+    });
+
+    father.on('input','.weight_per_unit, .quantity',function(){
+        const wrapper = $(this).closest('.wrapper');
+        let weight_unit = wrapper.find('.weight_per_unit').val() || 0;
+        let quantity = wrapper.find('.quantity').val() || 0;
+        if(getMovement(father) === 'Input') {
+            wrapper.find('.total').addClass('mt-2 text-sm font-semibold rounded-md tracking-[2px] text-white bg-gray-700 px-2 py-1').text(`Total: ${quantity*weight_unit}`);
+        }
+        renderBagNumbers(wrapper);
+    });
 
     // REACTIVE
     father.on('input','#operator',function(){
@@ -353,15 +553,30 @@ $(function(){
     father.on('change','.warehouse_batch',function(){
         const wrapper = $(this).closest('.wrapper');
         let inventory_id = $(this).val();
+        let location_id = $(this).find('option:selected').data('location-id');
         const batch = batchs.find(x => x.inventory_id == inventory_id);
         wrapper.find('.stock').text((inventory_id && batch) ? `Available: ${batch.stock}` : `Available: 0`);
+        
+        let movement = getMovement(father);
+        if (movement === 'Output' && location_id) {
+            let locationObj = locations.find(l => l.location_id == location_id);
+            if (locationObj) {
+                wrapper.find('.warehouse').val(locationObj.warehouse_id).trigger('change');
+                setTimeout(() => {
+                    wrapper.find('.location_id').val(locationObj.location_id).trigger('change');
+                }, 100);
+            }
+        }
+        renderBagNumbers(wrapper);
     });
 
-    father.on('input','.product_id',function(){
+    father.on('change','.product_id',function(){
         let movement = getMovement(father);
 
         const wrapper = $(this).closest('.wrapper');
         let id = $(this).val();
+
+        renderBagNumbers(wrapper);
 
         let date = new Date();
         let day = String(date.getDate()).padStart(2, '0');
@@ -384,10 +599,27 @@ $(function(){
                         if(batch){
                             wrapper.find('.label_batch').val(`${batch.batch_code}${code}`);
                         }
-                        wrapper.find('.warehouse_batch').html('<option value="">Select a batch</option>');
+                        wrapper.find('.warehouse_batch').html('<option value="">Select a batch / location</option>');
                         batchs.forEach(b => {
-                            if(b.product_id == id){
-                                wrapper.find('.warehouse_batch').append(`<option value="${b.inventory_id}">${b.batch}</option>`);
+                            if(b.product_id == id && parseFloat(b.stock) > 0){
+                                let locs = product_locations.filter(pl => pl.inventory_id == b.inventory_id);
+                                if (locs.length > 0) {
+                                    let locGroups = {};
+                                    locs.forEach(pl => {
+                                        if(!locGroups[pl.location_id]) locGroups[pl.location_id] = 0;
+                                        locGroups[pl.location_id]++;
+                                    });
+                                    for(let loc_id in locGroups) {
+                                        let count = locGroups[loc_id];
+                                        let locationObj = locations.find(l => l.location_id == loc_id);
+                                        let locName = locationObj ? locationObj.name : 'Unknown';
+                                        let whObj = locationObj ? warehouses.find(w => w.warehouse_id == locationObj.warehouse_id) : null;
+                                        let whName = whObj ? whObj.name : '';
+                                        wrapper.find('.warehouse_batch').append(`<option value="${b.inventory_id}" data-location-id="${loc_id}">${b.batch} - ${whName} ${locName} (${count} bags)</option>`);
+                                    }
+                                } else {
+                                    wrapper.find('.warehouse_batch').append(`<option value="${b.inventory_id}">${b.batch} - (No location mapped)</option>`);
+                                }
                             }
                         });
                     }else{
@@ -452,6 +684,21 @@ $(function(){
         event.preventDefault();
         var form = father.find('#make-transaction-form')[0];
         var data = new FormData(form);
+        
+        let movement = getMovement(father);
+        data.delete('bag_number'); 
+        $('#make-transaction #products .wrapper').each(function(index) {
+            $(this).find('.bag_number_input').each(function() {
+                data.append('bag_number[' + index + '][]', $(this).val());
+            });
+            
+            if (movement === 'Output') {
+                let loc_id = $(this).find('.warehouse_batch').find('option:selected').data('location-id');
+                if (loc_id) {
+                    data.append('output_location_id[' + index + ']', loc_id);
+                }
+            }
+        });
 
         father.find('#save-transaction').prop('disabled',true);
 
