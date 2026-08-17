@@ -18,25 +18,6 @@
         </div>
 
         <div class="flex flex-col gap-2">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                <div>
-                    <p class="text-[10px] uppercase text-gray-400 font-bold">Método de Pago</p>
-                    <p class="text-sm font-semibold text-gray-700" id="show-metodo-pago"></p>
-                    
-                    <p id="show-terminacion-pago" class="text-xs text-blue-600 font-bold mt-1" style="display: none;">
-                        <i class="fas fa-credit-card mr-1"></i> Terminación: **** <span id="show-terminacion-numero"></span>
-                    </p>
-                </div>
-                <div>
-                    <p class="text-[10px] uppercase text-gray-400 font-bold">Banco</p>
-                    <p class="text-sm font-semibold text-gray-700" id="show-banco"></p>
-                </div>
-                <div>
-                    <p class="text-[10px] uppercase text-gray-400 font-bold">Pagador</p>
-                    <p class="text-sm font-semibold text-gray-700" id="show-pagador"></p>
-                </div>
-            </div>
-
             <div class="bg-blue-50/50 p-3 rounded-lg border border-blue-100 hidden" id="show-descripcion-container">
                 <p class="text-[10px] uppercase text-gray-400 font-bold">Descripción / Observaciones</p>
                 <p class="text-sm text-gray-700 mt-1" id="show-descripcion"></p>

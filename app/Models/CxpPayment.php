@@ -16,7 +16,10 @@ class CxpPayment extends Model
         'amount',
         'date',
         'comprobante',
-        'notas'
+        'notas',
+        'banco',
+        'metodo_pago',
+        'user_id'
     ];
 
     public function detail()

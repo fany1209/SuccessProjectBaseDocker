@@ -16,27 +16,18 @@
         </div>
         
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Año</label>
-          <input type="number" id="edit-anio" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
-        </div>
-
-        <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Banco</label>
           <input type="text" id="edit-banco" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
         </div>
         
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Método de Pago</label>
-          <select id="edit-metodo-pago" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
-            <option value="N/A">N/A</option>
-            <option value="PUE">PUE</option>
-            <option value="PPD">PPD</option>
-          </select>
-        </div>
-
-        <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
           <input type="text" id="edit-departamento-cxp" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" placeholder="Ej. TI, RH...">
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
+          <textarea id="edit-comentarios-cxp" rows="2" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" placeholder="Comentarios adicionales..."></textarea>
         </div>
       </div>
 
@@ -73,13 +64,16 @@
       <!-- Listado de Pagos -->
       <div class="md:col-span-2">
         <h3 class="text-md font-bold text-gray-800 mb-3 border-b pb-2">Historial de Abonos</h3>
-        <div class="bg-white border border-gray-200 rounded-lg overflow-hidden max-h-[300px] overflow-y-auto">
+        <div class="bg-white border border-gray-200 rounded-lg overflow-x-auto max-h-[300px] overflow-y-auto">
           <table class="w-full text-sm text-left">
             <thead class="bg-gray-50 text-gray-600 text-xs uppercase font-semibold">
               <tr>
                 <th class="px-4 py-2">ID</th>
                 <th class="px-4 py-2">Fecha</th>
+                <th class="px-4 py-2">Banco/Método</th>
+                <th class="px-4 py-2">Registrado por</th>
                 <th class="px-4 py-2">Notas</th>
+                <th class="px-4 py-2">Comprobante</th>
                 <th class="px-4 py-2 text-right">Monto</th>
               </tr>
             </thead>
@@ -106,6 +100,23 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Fecha del Pago</label>
               <input type="date" id="pay-date" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" required>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Banco</label>
+                  <input type="text" id="pay-banco" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754] text-sm" placeholder="Ej. BBVA">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Método</label>
+                  <select id="pay-metodo" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754] text-sm">
+                    <option value="">N/A</option>
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Transferencia">Transferencia</option>
+                    <option value="Tarjeta">Tarjeta</option>
+                    <option value="Cheque">Cheque</option>
+                  </select>
+                </div>
             </div>
 
             <div>

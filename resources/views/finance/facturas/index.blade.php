@@ -201,17 +201,6 @@ Modificado:
                     insumoBadge.addClass('bg-orange-100 text-orange-700 border-orange-200');
                 }
 
-                $('#show-metodo-pago').text(f.metodo_pago);
-                $('#show-banco').text(f.banco || '-');
-                $('#show-pagador').text(f.pagador || '-');
-
-                if(f.metodo_pago && f.metodo_pago.includes('Tarjeta') && f.terminacion){
-                    $('#show-terminacion-pago').show();
-                    $('#show-terminacion-numero').text(f.terminacion);
-                } else {
-                    $('#show-terminacion-pago').hide();
-                }
-
                 if(f.descripcion){
                     $('#show-descripcion-container').removeClass('hidden');
                     $('#show-descripcion').text(f.descripcion);
@@ -287,10 +276,6 @@ Modificado:
                 $('#edit-insumo').val(res.factura.insumo); 
                 $('#edit-empresa').val(res.factura.empresa);
                 $('#edit-folio_factura').val(res.factura.folio_factura);
-                $('#edit-metodo_pago').val(res.factura.metodo_pago).trigger('change');
-                $('#edit-banco').val(res.factura.banco || '');
-                $('#edit-pagador').val(res.factura.pagador || '');
-                $('#edit-terminacion').val(res.factura.terminacion || '');
                 $('#edit-fecha_factura').val(res.factura.fecha_factura || '');
                 $('#edit-departamento').val(res.factura.departamento || '');
                 $('#edit-descripcion').val(res.factura.descripcion || '');

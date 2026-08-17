@@ -72,15 +72,15 @@
             <thead class="bg-gray-50 text-gray-700 uppercase font-semibold text-xs tracking-wider">
               <tr>
                 <th class="px-2 py-2">Empresa</th>
-                <th class="px-2 py-2">Departamento</th>
-                <th class="px-2 py-2">Factura</th>
-                <th class="px-2 py-2">Motivo</th>
-                <th class="px-2 py-2">Banco / Método</th>
-                <th class="px-2 py-2">Fechas (Fac/Pago)</th>
-                <th class="px-2 py-2">Semana/Año</th>
-                <th class="px-2 py-2">Estatus</th>
                 <th class="px-2 py-2 text-right">Cantidad</th>
-                <th class="px-2 py-2 text-right">Saldo Restante</th>
+                <th class="px-2 py-2">Motivo</th>
+                <th class="px-2 py-2">Banco</th>
+                <th class="px-2 py-2">Factura</th>
+                <th class="px-2 py-2">Fecha de factura</th>
+                <th class="px-2 py-2">Fecha de pago</th>
+                <th class="px-2 py-2">Estatus</th>
+                <th class="px-2 py-2">Comentarios</th>
+                <th class="px-2 py-2">Departamento</th>
                 <th class="px-2 py-2 text-center">Acciones</th>
               </tr>
             </thead>
@@ -136,20 +136,12 @@ $(function(){
     },
     columns: [
       { data: 'empresa', render: data => `<span class="font-bold text-gray-700">${data}</span>` },
-      { data: 'departamento', render: data => `<span class="text-sm text-gray-600">${data || '—'}</span>` },
-      { data: 'folio_factura', render: data => `<span class="font-semibold text-blue-800">${data || '—'}</span>` },
+      { data: 'total', className: 'text-right font-medium', render: formatCurrency },
       { data: 'motivo', render: data => `<span class="text-xs truncate max-w-[150px] block" title="${data}">${data || '—'}</span>` },
-      { data: null, render: function(row) {
-          return `<span class="px-2 py-1 bg-gray-100 rounded text-xs font-medium">${row.banco || '—'}</span><br>
-                  <span class="px-2 py-1 bg-gray-50 rounded text-xs text-gray-500">${row.metodo_pago || '—'}</span>`;
-      }},
-      { data: null, render: function(row) {
-          return `<span class="text-xs text-gray-500">F: ${formatDate(row.fecha_factura)}</span><br>
-                  <span class="text-xs text-gray-800 font-medium">P: ${formatDate(row.fecha_pago)}</span>`;
-      }},
-      { data: null, render: function(row) {
-          return `Sem ${row.semana || '—'} / ${row.anio || '—'}`;
-      }},
+      { data: 'banco', render: data => `<span class="px-2 py-1 bg-gray-100 rounded text-xs font-medium">${data || '—'}</span>` },
+      { data: 'folio_factura', render: data => `<span class="font-semibold text-blue-800">${data || '—'}</span>` },
+      { data: 'fecha_factura', render: data => `<span class="text-xs text-gray-500">${formatDate(data)}</span>` },
+      { data: 'fecha_pago', render: data => `<span class="text-xs text-gray-800 font-medium">${formatDate(data)}</span>` },
       { data: 'estatus', render: function(data, type, row){
           if (row.is_canceled) return '<span class="font-bold text-red-600">CANCELADO</span>';
           let color = 'bg-gray-100 text-gray-800';
@@ -158,11 +150,8 @@ $(function(){
           if(data === 'PARCIAL') color = 'bg-yellow-100 text-yellow-800';
           return `<span class="px-2 py-1 rounded text-xs font-semibold uppercase ${color}">${data}</span>`;
       }},
-      { data: 'total', className: 'text-right font-medium', render: formatCurrency },
-      { data: 'saldo', className: 'text-right font-bold', render: function(data, type, row){
-          if(row.is_canceled) return `<span class="text-red-600">${formatCurrency(0)}</span>`;
-          return `<span class="${data <= 0 ? 'text-green-600' : 'text-red-600'}">${formatCurrency(data)}</span>`;
-      }},
+      { data: 'comentarios', render: data => `<span class="text-xs text-gray-600 break-words max-w-[150px] block" title="${data}">${data || '—'}</span>` },
+      { data: 'departamento', render: data => `<span class="text-sm text-gray-600">${data || '—'}</span>` },
       {
         data: null,
         orderable: false,
@@ -258,10 +247,9 @@ $(function(){
     $('#edit-cxp-id').val(row.cxp_id);
     $('#edit-fecha-pago').val(toInputDate(row.fecha_pago));
     $('#edit-semana').val(row.semana);
-    $('#edit-anio').val(row.anio);
     $('#edit-banco').val(row.banco);
-    $('#edit-metodo-pago').val(row.metodo_pago);
     $('#edit-departamento-cxp').val(row.departamento);
+    $('#edit-comentarios-cxp').val(row.comentarios);
     
     $('#btn-open-edit-cxp').trigger('click');
   });
@@ -337,13 +325,13 @@ $(function(){
   $('#edit-cxp-form').on('submit', function(e) {
     e.preventDefault();
     const id = $('#edit-cxp-id').val();
-    const payload = {
+    const data = {
+      _token: CSRF_TOKEN,
       fecha_pago: $('#edit-fecha-pago').val(),
       semana: $('#edit-semana').val(),
-      anio: $('#edit-anio').val(),
       banco: $('#edit-banco').val(),
-      metodo_pago: $('#edit-metodo-pago').val(),
       departamento: $('#edit-departamento-cxp').val(),
+      comentarios: $('#edit-comentarios-cxp').val(),
     };
 
     $('#btn-save-cxp').prop('disabled', true).text('Guardando...');
@@ -399,10 +387,13 @@ $(function(){
           $('#no-payments-msg').removeClass('hidden');
         } else {
           res.payments.forEach(p => {
+            const bancoMetodo = `${p.banco || ''} ${p.metodo_pago || ''}`.trim() || '—';
             tbody.append(`
               <tr>
                 <td class="px-4 py-2 text-gray-500">#${p.id}</td>
                 <td class="px-4 py-2">${formatDate(p.date)}</td>
+                <td class="px-4 py-2"><span class="text-xs font-semibold bg-gray-100 rounded px-2 py-1">${escapeHtml(bancoMetodo)}</span></td>
+                <td class="px-4 py-2"><span class="text-xs text-gray-700">${escapeHtml(p.user_name || '—')}</span></td>
                 <td class="px-4 py-2 truncate max-w-[150px]" title="${escapeHtml(p.notas)}">${escapeHtml(p.notas) || '—'}</td>
                 <td class="px-4 py-2">
                   ${p.comprobante ? `<a href="/${p.comprobante}" target="_blank" class="text-blue-600 hover:underline"><i class="ri-file-text-line"></i> Ver</a>` : '<span class="text-gray-400">N/A</span>'}
@@ -424,6 +415,8 @@ $(function(){
     formData.append('amount', $('#pay-amount').val());
     formData.append('date', $('#pay-date').val());
     formData.append('notas', $('#pay-notas').val());
+    formData.append('banco', $('#pay-banco').val());
+    formData.append('metodo_pago', $('#pay-metodo').val());
     
     const fileInput = document.getElementById('pay-comprobante');
     if (fileInput.files[0]) {

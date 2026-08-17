@@ -40,49 +40,9 @@
                 <x-input-1 type="date" required name="fecha_factura" value="{{ date('Y-m-d') }}"></x-input-1>
             </x-wrapper-form-2>
 
-            <x-wrapper-form-2>
-                <x-label>Método de Pago</x-label>
-                <select name="metodo_pago" class="w-full border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500 text-sm py-2 px-3 bg-white">
-                    <option value="Efectivo">Efectivo</option>
-                    <option value="Transferencia">Transferencia</option>
-                    <option value="Tarjeta de Crédito">Tarjeta</option>
-                </select>
-            </x-wrapper-form-2>
         </x-wrapper-form-1>
 
-        <x-wrapper-form-1>
-            <x-wrapper-form-2>
-                <x-label for="banco">Banco</x-label>
-                <x-select-1 name="banco">
-                    <option value="">Selecciona un banco</option>
-                    <option value="BBVA">BBVA</option>
-                    <option value="Banamex">Banamex</option>
-                    <option value="Banorte">Banorte</option>
-                    <option value="Santander">Santander</option>
-                    <option value="HSBC">HSBC</option>
-                    <option value="Scotiabank">Scotiabank</option>
-                    <option value="Inbursa">Inbursa</option>
-                    <option value="Afirme">Afirme</option>
-                    <option value="BanBajío">BanBajío</option>
-                    <option value="BanRegio">BanRegio</option>
-                    <option value="Hey Banco">Hey Banco</option>
-                    <option value="Nu">Nu</option>
-                    <option value="Otro">Otro</option>
-                </x-select-1>
-            </x-wrapper-form-2>
 
-            <x-wrapper-form-2>
-                <x-label>¿Quién paga? (Pagador)</x-label>
-                <x-input-1 name="pagador" placeholder="Nombre de la persona"></x-input-1>
-            </x-wrapper-form-2>
-
-            <div id="wrapper-terminacion" style="display: none;" class="w-full">
-                <x-wrapper-form-2>
-                    <x-label>Terminación (4 dígitos)</x-label>
-                    <x-input-1 name="terminacion" maxlength="4" placeholder="1234"></x-input-1>
-                </x-wrapper-form-2>
-            </div>
-        </x-wrapper-form-1>
 
         <x-wrapper-form-1>
             <x-wrapper-form-2>
@@ -462,14 +422,7 @@ $(function(){
     });
 
 
-   $('select[name="metodo_pago"]').on('change', function() {
-    const valor = $(this).val();
-    if (valor && valor.includes('Tarjeta')) {
-        $('#wrapper-terminacion').fadeIn().find('input').prop('required', true);
-    } else {
-        $('#wrapper-terminacion').fadeOut().find('input').prop('required', false).val('');
-    }
-}).trigger('change');
+
 
 });
 </script>
