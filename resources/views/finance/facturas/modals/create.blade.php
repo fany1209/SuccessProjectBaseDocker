@@ -39,17 +39,9 @@
                 <x-label>Fecha Factura</x-label>
                 <x-input-1 type="date" required name="fecha_factura" value="{{ date('Y-m-d') }}"></x-input-1>
             </x-wrapper-form-2>
-
         </x-wrapper-form-1>
 
-
-
         <x-wrapper-form-1>
-            <x-wrapper-form-2>
-                <x-label>Departamento</x-label>
-                <x-input-1 name="departamento" placeholder="Ej. Operaciones, TI..."></x-input-1>
-            </x-wrapper-form-2>
-
             <x-wrapper-form-2>
                 <x-label>Descripción / Observaciones</x-label>
                 <x-input-1 name="descripcion" placeholder="Ej. Pago de servicios correspondientes al mes de..."></x-input-1>
@@ -82,46 +74,50 @@
                     </div>
                     <div class="md:col-span-1">
                         <x-label>Cant.</x-label>
-                        <input name="productos[0][cantidad]" type="number" min="1" class="w-full border rounded px-2 py-1 text-sm cantidad" required>
+                        <input name="productos[0][cantidad]" type="number" step="any" min="0.000001" class="w-full border rounded px-2 py-1 text-sm cantidad" required>
                     </div>
                     <div class="md:col-span-1">
                         <x-label>P. Unit</x-label>
-                        <input name="productos[0][precio_unitario]" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm precio-unitario" required>
+                        <input name="productos[0][precio_unitario]" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm precio-unitario" required>
                     </div>
                     <div class="md:col-span-2">
                         <x-label>Importe Base</x-label>
-                        <input name="productos[0][precio]" type="number" step="0.00001" readonly class="w-full border border-gray-300 rounded px-2 py-1 text-sm precio bg-gray-200 font-bold text-right" required>
+                        <input name="productos[0][precio]" type="number" step="any" readonly class="w-full border border-gray-300 rounded px-2 py-1 text-sm precio bg-gray-200 font-bold text-right" required>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 md:grid-cols-8 gap-2 items-end pt-2 border-t border-gray-200">
+                <div class="grid grid-cols-2 md:grid-cols-9 gap-2 items-end pt-2 border-t border-gray-200">
                     <div class="flex flex-col">
                         <x-label class="text-orange-600">Desc. $</x-label>
-                        <input name="productos[0][descuento]" type="number" step="0.00001" value="0" class="w-full border rounded px-2 py-1 text-sm descuento text-orange-600 font-semibold" placeholder="$">
+                        <input name="productos[0][descuento]" type="number" step="any" value="0" class="w-full border rounded px-2 py-1 text-sm descuento text-orange-600 font-semibold" placeholder="$">
+                    </div>
+                    <div class="flex flex-col">
+                        <x-label class="text-green-600">Base IVA</x-label>
+                        <input name="productos[0][base_iva]" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm base-iva text-center font-semibold text-green-600" placeholder="Auto">
                     </div>
                     <div class="flex flex-col">
                         <x-label>% IVA</x-label>
-                        <input name="productos[0][iva_porcentaje]" value="16" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm iva-pct text-center">
+                        <input name="productos[0][iva_porcentaje]" value="16" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm iva-pct text-center">
                     </div>
                     <div class="flex flex-col">
                         <x-label>% Otro</x-label>
-                        <input name="productos[0][otro_impuesto]" value="0" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm otro-pct text-center">
+                        <input name="productos[0][otro_impuesto]" value="0" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm otro-pct text-center">
                     </div>
                     <div class="flex flex-col">
                         <x-label class="text-blue-600">Trasl. $</x-label>
-                        <input name="productos[0][traslado]" value="0" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm traslado text-center font-semibold text-blue-600">
+                        <input name="productos[0][traslado]" value="0" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm traslado text-center font-semibold text-blue-600">
                     </div>
                     <div class="flex flex-col">
                         <x-label class="text-purple-600">ILC $</x-label>
-                        <input name="productos[0][ilc]" value="0" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm ilc text-center font-semibold text-purple-600">
+                        <input name="productos[0][ilc]" value="0" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm ilc text-center font-semibold text-purple-600">
                     </div>
                     <div class="flex flex-col">
                         <x-label class="text-red-600">Reten. $</x-label>
-                        <input name="productos[0][retencion]" value="0" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm retencion text-center font-semibold text-red-600">
+                        <input name="productos[0][retencion]" value="0" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm retencion text-center font-semibold text-red-600">
                     </div>
                     <div class="flex flex-col">
                         <x-label class="text-red-800">ISR $</x-label>
-                        <input name="productos[0][isr]" value="0" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm isr text-center font-semibold text-red-800">
+                        <input name="productos[0][isr]" value="0" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm isr text-center font-semibold text-red-800">
                     </div>
                     
                     <div class="flex justify-center md:justify-end pb-1 h-full">
@@ -221,14 +217,24 @@ $(function(){
             const descuento = parseFloat(row.find('.descuento').val()) || 0;
             
             const importeBase = cantidad * pUnitario;
-            row.find('.precio').val(importeBase.toFixed(5));
+            row.find('.precio').val(importeBase.toFixed(6));
 
             const baseImpuestos = importeBase - descuento;
+
+            const baseIvaInput = row.find('.base-iva');
+            let baseIvaVal = parseFloat(baseIvaInput.val());
+            let baseParaIva = baseImpuestos;
+
+            if (!isNaN(baseIvaVal)) {
+                baseParaIva = baseIvaVal;
+            } else {
+                baseIvaInput.attr('placeholder', baseImpuestos.toFixed(2));
+            }
 
             const ivaPct  = parseFloat(row.find('.iva-pct').val()) || 0;
             const otroPct = parseFloat(row.find('.otro-pct').val()) || 0;
             
-            const montoIva  = baseImpuestos * (ivaPct / 100);
+            const montoIva  = baseParaIva * (ivaPct / 100);
             const montoOtro = baseImpuestos * (otroPct / 100);
 
             const trasladoManual  = parseFloat(row.find('.traslado').val()) || 0;
@@ -248,18 +254,18 @@ $(function(){
 
         const granTotal = subtotalGeneral - totalDescuentos + totalIvaCalculado + totalTrasladoMasIlc - totalRetenciones - totalIsr;
 
-        $('#factura-subtotal').val(subtotalGeneral.toFixed(5));
-        $('#factura-descuentos').val(totalDescuentos.toFixed(5));
-        $('#factura-iva-calc').val(totalIvaCalculado.toFixed(5));
-        $('#factura-traslados-manual').val(totalTrasladoMasIlc.toFixed(5));
-        $('#factura-retenciones').val(totalRetenciones.toFixed(5));
-        $('#factura-isr').val(totalIsr.toFixed(5));
-        $('#factura-total').val(granTotal.toFixed(5));
+        $('#factura-subtotal').val(subtotalGeneral.toFixed(6));
+        $('#factura-descuentos').val(totalDescuentos.toFixed(6));
+        $('#factura-iva-calc').val(totalIvaCalculado.toFixed(6));
+        $('#factura-traslados-manual').val(totalTrasladoMasIlc.toFixed(6));
+        $('#factura-retenciones').val(totalRetenciones.toFixed(6));
+        $('#factura-isr').val(totalIsr.toFixed(6));
+        $('#factura-total').val(granTotal.toFixed(6));
     }
 
     $(document).on(
         'input change',
-        '.cantidad, .precio-unitario, .descuento, .traslado, .ilc, .retencion, .isr, .iva-pct, .otro-pct',
+        '.cantidad, .precio-unitario, .descuento, .base-iva, .traslado, .ilc, .retencion, .isr, .iva-pct, .otro-pct',
         calcularTotales
     );
 
@@ -287,46 +293,50 @@ $(function(){
                     </div>
                     <div class="md:col-span-1">
                         <label class="text-sm font-medium text-gray-700">Cant.</label>
-                        <input name="productos[${index}][cantidad]" type="number" min="1" class="w-full border rounded px-2 py-1 text-sm cantidad" required>
+                        <input name="productos[${index}][cantidad]" type="number" step="any" min="0.000001" class="w-full border rounded px-2 py-1 text-sm cantidad" required>
                     </div>
                     <div class="md:col-span-1">
                         <label class="text-sm font-medium text-gray-700">P. Unit</label>
-                        <input name="productos[${index}][precio_unitario]" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm precio-unitario" required>
+                        <input name="productos[${index}][precio_unitario]" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm precio-unitario" required>
                     </div>
                     <div class="md:col-span-2">
                         <label class="text-sm font-medium text-gray-700">Importe Base</label>
-                        <input name="productos[${index}][precio]" type="number" step="0.00001" readonly class="w-full border border-gray-300 rounded px-2 py-1 text-sm precio bg-gray-200 font-bold text-right" required>
+                        <input name="productos[${index}][precio]" type="number" step="any" readonly class="w-full border border-gray-300 rounded px-2 py-1 text-sm precio bg-gray-200 font-bold text-right" required>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 md:grid-cols-8 gap-2 items-end pt-2 border-t border-gray-200">
+                <div class="grid grid-cols-2 md:grid-cols-9 gap-2 items-end pt-2 border-t border-gray-200">
                     <div class="flex flex-col">
                         <label class="text-sm font-medium text-orange-600">Desc. $</label>
-                        <input name="productos[${index}][descuento]" type="number" step="0.00001" value="0" class="w-full border rounded px-2 py-1 text-sm descuento text-orange-600 font-semibold">
+                        <input name="productos[${index}][descuento]" type="number" step="any" value="0" class="w-full border rounded px-2 py-1 text-sm descuento text-orange-600 font-semibold">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-sm font-medium text-green-600">Base IVA</label>
+                        <input name="productos[${index}][base_iva]" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm base-iva text-center font-semibold text-green-600" placeholder="Auto">
                     </div>
                     <div class="flex flex-col">
                         <label class="text-sm font-medium text-gray-700">% IVA</label>
-                        <input name="productos[${index}][iva_porcentaje]" value="16" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm iva-pct text-center">
+                        <input name="productos[${index}][iva_porcentaje]" value="16" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm iva-pct text-center">
                     </div>
                     <div class="flex flex-col">
                         <label class="text-sm font-medium text-gray-700">% Otro</label>
-                        <input name="productos[${index}][otro_impuesto]" value="0" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm otro-pct text-center">
+                        <input name="productos[${index}][otro_impuesto]" value="0" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm otro-pct text-center">
                     </div>
                     <div class="flex flex-col">
                         <label class="text-sm font-medium text-blue-600">Trasl. $</label>
-                        <input name="productos[${index}][traslado]" value="0" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm traslado text-center font-semibold text-blue-600">
+                        <input name="productos[${index}][traslado]" value="0" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm traslado text-center font-semibold text-blue-600">
                     </div>
                     <div class="flex flex-col">
                         <label class="text-sm font-medium text-purple-600">ILC $</label>
-                        <input name="productos[${index}][ilc]" value="0" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm ilc text-center font-semibold text-purple-600">
+                        <input name="productos[${index}][ilc]" value="0" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm ilc text-center font-semibold text-purple-600">
                     </div>
                     <div class="flex flex-col">
                         <label class="text-sm font-medium text-red-600">Reten. $</label>
-                        <input name="productos[${index}][retencion]" value="0" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm retencion text-center font-semibold text-red-600">
+                        <input name="productos[${index}][retencion]" value="0" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm retencion text-center font-semibold text-red-600">
                     </div>
                     <div class="flex flex-col">
                         <label class="text-sm font-medium text-red-800">ISR $</label>
-                        <input name="productos[${index}][isr]" value="0" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm isr text-center font-semibold text-red-800">
+                        <input name="productos[${index}][isr]" value="0" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm isr text-center font-semibold text-red-800">
                     </div>
                     
                     <div class="flex justify-center md:justify-end pb-1 h-full">
@@ -346,7 +356,7 @@ $(function(){
         } else {
             const row = $(this).closest('.producto-row');
             row.find('input[type="text"], input[type="number"]').not('.iva-pct').val('');
-            row.find('.precio, .descuento, .traslado, .ilc, .retencion, .isr').val(0);
+            row.find('.precio, .descuento, .base-iva, .traslado, .ilc, .retencion, .isr').val(0);
             row.find('.iva-pct').val(16);
             calcularTotales();
         }
@@ -420,9 +430,6 @@ $(function(){
             }
         });
     });
-
-
-
 
 });
 </script>

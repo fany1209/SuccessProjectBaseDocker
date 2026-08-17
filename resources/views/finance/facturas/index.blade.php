@@ -72,6 +72,22 @@ Modificado:
 <script>
     $(function() {
 
+        // =========================
+        // MANEJO DE MODALES
+        // =========================
+        $(document).on('click', '.open-modal', function() {
+            const target = $(this).data('target');
+            if (target) $('#' + target).removeClass('hidden');
+        });
+        $(document).on('click', '.close-modal', function() {
+            $(this).closest('.fixed').addClass('hidden');
+        });
+        $(document).on('click', '.fixed', function(e) {
+            if ($(e.target).hasClass('fixed')) {
+                $(this).addClass('hidden');
+            }
+        });
+
         const Toast = Swal.mixin({
             toast: true,
             position: 'top-end',
@@ -277,7 +293,6 @@ Modificado:
                 $('#edit-empresa').val(res.factura.empresa);
                 $('#edit-folio_factura').val(res.factura.folio_factura);
                 $('#edit-fecha_factura').val(res.factura.fecha_factura || '');
-                $('#edit-departamento').val(res.factura.departamento || '');
                 $('#edit-descripcion').val(res.factura.descripcion || '');
 
                 res.detalles.forEach(p => {
@@ -312,10 +327,14 @@ Modificado:
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-2 md:grid-cols-8 gap-2 items-end pt-2 border-t border-gray-200">
+                            <div class="grid grid-cols-2 md:grid-cols-9 gap-2 items-end pt-2 border-t border-gray-200">
                                 <div class="flex flex-col">
                                     <label class="text-sm font-medium text-orange-600">Desc. $</label>
                                     <input name="productos[${editIndex}][descuento]" type="number" step="0.00001" value="${p.descuento || 0}" class="w-full border rounded px-2 py-1 text-sm descuento text-orange-600 font-semibold">
+                                </div>
+                                <div class="flex flex-col">
+                                    <label class="text-sm font-medium text-green-600">Base IVA</label>
+                                    <input name="productos[${editIndex}][base_iva]" type="number" step="0.00001" value="${p.base_iva || ''}" class="w-full border rounded px-2 py-1 text-sm base-iva text-center font-semibold text-green-600" placeholder="Auto">
                                 </div>
                                 <div class="flex flex-col">
                                     <label class="text-sm font-medium text-gray-700">% IVA</label>
@@ -381,7 +400,17 @@ Modificado:
 
                 const baseGravable = importeBase - descLinea;
 
-                const ivaCalculado = baseGravable * (ivaPct / 100);
+                const baseIvaInput = row.find('.base-iva');
+                let baseIvaVal = parseFloat(baseIvaInput.val());
+                let baseParaIva = baseGravable;
+
+                if (!isNaN(baseIvaVal)) {
+                    baseParaIva = baseIvaVal;
+                } else {
+                    baseIvaInput.attr('placeholder', baseGravable.toFixed(2));
+                }
+
+                const ivaCalculado = baseParaIva * (ivaPct / 100);
                 const otroImpCalculado = baseGravable * (otroPct / 100);
 
                 subtotalG += importeBase;
