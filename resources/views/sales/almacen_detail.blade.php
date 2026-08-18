@@ -37,7 +37,10 @@
                     <thead>
                         <tr>
                             <th>Producto</th>
-                            <th>Lote</th>
+                            <th>Lote Venta</th>
+                            @if(isset($output) && $output)
+                                <th>Lote Salida (Inventario)</th>
+                            @endif
                             <th>Cantidad</th>
                         </tr>
                     </thead>
@@ -46,6 +49,14 @@
                         <tr>
                             <td>{{ $product->pivot->public_product_name ?: $product->name }}</td>
                             <td>{{ $product->pivot->public_batch ?: 'N/A' }}</td>
+                            @if(isset($output) && $output)
+                                <td>
+                                    @php
+                                        $outProd = $output->products->where('product_id', $product->product_id)->first();
+                                    @endphp
+                                    {{ $outProd ? ($outProd->pivot->warehouse_batch ?: 'N/A') : 'N/A' }}
+                                </td>
+                            @endif
                             <td>{{ $product->pivot->quantity }}</td>
                         </tr>
                         @endforeach

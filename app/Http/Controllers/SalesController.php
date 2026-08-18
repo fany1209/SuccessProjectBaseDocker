@@ -533,7 +533,14 @@ class SalesController extends Controller
             abort(403, 'No tienes permiso para ver esta vista.');
         }
 
-        return view('sales.almacen_detail', compact('sale'));
+        $output = null;
+        if (in_array($sale->almacen_status, ['confirmed'])) {
+            $output = \App\Models\Output::with('products')
+                ->where('comments', 'Salida automática de Venta Folio ' . $sale->folio)
+                ->first();
+        }
+
+        return view('sales.almacen_detail', compact('sale', 'output'));
     }
 
     public function almacenAction(Request $request, $id)
