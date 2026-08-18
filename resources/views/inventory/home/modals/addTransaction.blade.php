@@ -12,7 +12,7 @@ Fecha de actualización: 15-01-2026
 
         <x-wrapper-form-1>
             <x-tittle-form>Make Transaction</x-tittle-form>
-            @hasrole('Admin')
+            @hasanyrole('Admin|Warehouse')
             <x-toggle-switch id="type" name="type" value="Input" :checked="true"
                 onLabel="Input" offLabel="Output"
                 onColor="emerald-500" offColor="red-700"
@@ -22,7 +22,7 @@ Fecha de actualización: 15-01-2026
                 <span class="bg-emerald-500 text-white font-semibold px-4 py-1 rounded shadow-sm">Input</span>
                 <input type="checkbox" id="type" name="type" value="Input" checked class="hidden" />
             </div>
-            @endhasrole
+            @endhasanyrole
         </x-wrapper-form-1>
 
         <x-wrapper-form-1>
@@ -359,6 +359,19 @@ $(function(){
         const $customerWrapper = $modal.find('#customer-wrapper-wrapper');
         const $sellerWrapper   = $modal.find('#seller-wrapper-wrapper');
         const $locationWrapper = $modal.find('#location-assignment-wrapper');
+
+        let filteredProducts = products_inventory;
+        @hasrole('Warehouse')
+        if (!isInput) {
+            filteredProducts = products_inventory.filter(p => p.category_id == 17);
+        }
+        @endhasrole
+
+        let optionsHtml = '';
+        filteredProducts.forEach(product => {
+            optionsHtml += `<option value='${product.product_id}'>${product.name}</option>`;
+        });
+        $('#products_all').empty().append(optionsHtml);
 
         if(isInput){
 

@@ -43,7 +43,10 @@ class InventoryController extends Controller
         )->get();
         $quarantine = Quarantine::all();
         $transport_lines = TransportLine::all();
-        $products_all = DB::table('products')->select('product_id','name')->get();
+        $products_all = DB::table('products')
+            ->leftJoin('categories', 'categories.category_id', '=', 'products.category_id')
+            ->select('products.product_id', 'products.name', 'products.category_id', 'categories.name as category_name')
+            ->get();
         $products = DB::table('inventory')->leftJoin('products','products.product_id','=','inventory.product_id')->select('products.product_id','products.name')->orderBy('products.product_id')->distinct()->get();
         $suppliers = DB::table('suppliers')->select('supplier_id','name')->get();
         $customers = DB::table('customers')->select('customer_id','name')->get();
@@ -209,6 +212,23 @@ class InventoryController extends Controller
             ]);
 
             return DB::transaction(function () use ($request) {
+                if ($request->type === 'Output' && auth()->user()->hasRole('Warehouse')) {
+                    $invalidProducts = DB::table('products')
+                        ->leftJoin('categories', 'products.category_id', '=', 'categories.category_id')
+                        ->whereIn('products.product_id', $request->product_id)
+                        ->where(function($query) {
+                            $query->whereNull('categories.name')
+                                  ->orWhere('categories.name', 'not like', '%insumo%');
+                        })
+                        ->exists();
+
+                    if ($invalidProducts) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'product_id' => 'El almacenista solo puede dar salida a insumos.'
+                        ]);
+                    }
+                }
+
                 $data = $request->only([
                     'operator', 'license_number', 'security_seal', 
                     'security_seal_number', 'unit_plates', 'trailer_plates', 'comments'
