@@ -247,6 +247,7 @@ class CuentasPorPagarController extends Controller
                 'cxp.pdf_path',
                 'cxp.xml_path',
                 'cxp.comentarios',
+                'cxp.comentario_img',
                 'f.factura_id',
                 'f.empresa',
                 'f.departamento',
@@ -280,11 +281,11 @@ class CuentasPorPagarController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'fecha_pago' => 'nullable|date',
             'semana' => 'nullable|integer',
             'banco' => 'nullable|string',
             'departamento' => 'nullable|string|max:255',
-            'comentarios' => 'nullable|string'
+            'comentarios' => 'nullable|string',
+            'comentario_img' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:20480'
         ]);
 
         $cxp = CxpDetail::findOrFail($id);
@@ -294,10 +295,16 @@ class CuentasPorPagarController extends Controller
         }
 
         $cxp->update([
-            'fecha_pago' => $request->fecha_pago,
             'semana' => $request->semana,
             'comentarios' => $request->comentarios
         ]);
+
+        if ($request->hasFile('comentario_img')) {
+            $file = $request->file('comentario_img');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $path = $file->move(public_path('uploads/comentarios_cxp'), $filename);
+            $cxp->update(['comentario_img' => 'uploads/comentarios_cxp/' . $filename]);
+        }
 
         if ($request->has('banco') || $request->has('departamento')) {
             $updateFactura = [];

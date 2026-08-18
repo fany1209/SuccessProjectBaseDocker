@@ -6,18 +6,32 @@
       
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Programada de Pago</label>
-          <input type="date" id="edit-fecha-pago" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Semana</label>
-          <input type="number" id="edit-semana" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Semana Fiscal</label>
+          <select id="edit-semana" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
+            <option value="">Selecciona una semana</option>
+            @for ($i = 1; $i <= 53; $i++)
+                <option value="{{ $i }}">Semana {{ $i }}</option>
+            @endfor
+          </select>
         </div>
         
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Banco</label>
-          <input type="text" id="edit-banco" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
+          <select id="edit-banco" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
+            <option value="">Selecciona un banco</option>
+            <option value="Banbajío">Banbajío</option>
+            <option value="BBVA">BBVA</option>
+            <option value="Banamex">Banamex</option>
+            <option value="Santander">Santander</option>
+            <option value="Banorte">Banorte</option>
+            <option value="HSBC">HSBC</option>
+            <option value="Scotiabank">Scotiabank</option>
+            <option value="Inbursa">Inbursa</option>
+            <option value="Afirme">Afirme</option>
+            <option value="Banregio">Banregio</option>
+            <option value="Hey Banco">Hey Banco</option>
+            <option value="Nu">Nu</option>
+          </select>
         </div>
         
         <div>
@@ -25,9 +39,15 @@
           <input type="text" id="edit-departamento-cxp" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" placeholder="Ej. TI, RH...">
         </div>
 
-        <div class="md:col-span-2">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
-          <textarea id="edit-comentarios-cxp" rows="2" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" placeholder="Comentarios adicionales..."></textarea>
+        <div class="md:col-span-2 space-y-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
+            <textarea id="edit-comentarios-cxp" rows="2" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" placeholder="Comentarios adicionales..."></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Adjuntar Imagen o PDF (Opcional)</label>
+            <input type="file" id="edit-comentario-img" accept=".jpg,.jpeg,.png,.pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#e8f5e9] file:text-[#198754] hover:file:bg-[#c8e6c9]">
+          </div>
         </div>
       </div>
 
@@ -59,10 +79,75 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="space-y-6">
       
+      <!-- Nuevo Pago -->
+      <div class="bg-gray-50 p-4 rounded-xl border border-gray-200" id="add-payment-container">
+        <h3 class="text-md font-bold text-gray-800 mb-3">Registrar Abono</h3>
+        <form id="add-payment-form" enctype="multipart/form-data">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Monto ($)</label>
+              <input type="number" step="0.01" min="0.01" id="pay-amount" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" required>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Fecha del Pago</label>
+              <input type="date" id="pay-date" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" required>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Banco</label>
+                  <select id="pay-banco" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754] text-sm">
+                    <option value="">Selecciona</option>
+                    <option value="Banbajío">Banbajío</option>
+                    <option value="BBVA">BBVA</option>
+                    <option value="Banamex">Banamex</option>
+                    <option value="Santander">Santander</option>
+                    <option value="Banorte">Banorte</option>
+                    <option value="HSBC">HSBC</option>
+                    <option value="Scotiabank">Scotiabank</option>
+                    <option value="Inbursa">Inbursa</option>
+                    <option value="Afirme">Afirme</option>
+                    <option value="Banregio">Banregio</option>
+                    <option value="Hey Banco">Hey Banco</option>
+                    <option value="Nu">Nu</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Método</label>
+                  <select id="pay-metodo" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754] text-sm">
+                    <option value="">N/A</option>
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Transferencia">Transferencia</option>
+                    <option value="Tarjeta">Tarjeta</option>
+                    <option value="Cheque">Cheque</option>
+                  </select>
+                </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Comprobante</label>
+              <input type="file" id="pay-comprobante" class="w-full border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-[#e8f5e9] file:text-[#198754] hover:file:bg-[#c8e6c9] text-sm">
+            </div>
+
+            <div class="lg:col-span-3">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+              <textarea id="pay-notas" rows="1" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754] text-sm" placeholder="Opcional"></textarea>
+            </div>
+
+            <div class="lg:col-span-1 flex items-end h-full">
+              <button type="submit" id="btn-save-payment" class="w-full bg-[#198754] hover:bg-[#157347] text-white py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2">
+                <i class="ri-save-line"></i> Registrar
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
       <!-- Listado de Pagos -->
-      <div class="md:col-span-2">
+      <div class="w-full">
         <h3 class="text-md font-bold text-gray-800 mb-3 border-b pb-2">Historial de Abonos</h3>
         <div class="bg-white border border-gray-200 rounded-lg overflow-x-auto max-h-[300px] overflow-y-auto">
           <table class="w-full text-sm text-left">
@@ -87,58 +172,6 @@
         </div>
       </div>
 
-      <!-- Nuevo Pago -->
-      <div class="md:col-span-1 bg-gray-50 p-4 rounded-xl border border-gray-200">
-        <h3 class="text-md font-bold text-gray-800 mb-3">Registrar Abono</h3>
-        <form id="add-payment-form" enctype="multipart/form-data">
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Monto ($)</label>
-              <input type="number" step="0.01" min="0.01" id="pay-amount" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" required>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Fecha del Pago</label>
-              <input type="date" id="pay-date" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" required>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Banco</label>
-                  <input type="text" id="pay-banco" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754] text-sm" placeholder="Ej. BBVA">
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Método</label>
-                  <select id="pay-metodo" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754] text-sm">
-                    <option value="">N/A</option>
-                    <option value="Efectivo">Efectivo</option>
-                    <option value="Transferencia">Transferencia</option>
-                    <option value="Tarjeta">Tarjeta</option>
-                    <option value="Cheque">Cheque</option>
-                  </select>
-                </div>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Comprobante</label>
-              <input type="file" id="pay-comprobante" accept=".jpg,.jpeg,.png,.pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Notas</label>
-              <textarea id="pay-notas" rows="2" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754] text-sm" placeholder="Opcional"></textarea>
-            </div>
-          </div>
-
-          <div class="mt-5">
-            <button type="submit" id="btn-save-payment" class="w-full bg-[#198754] text-white px-4 py-2 rounded-lg hover:bg-[#157347] transition font-medium flex justify-center items-center gap-2">
-              <i class="ri-add-line"></i> Guardar Abono
-            </button>
-          </div>
-        </form>
-      </div>
-
-    </div>
     </div>
   </div>
 </x-modal>

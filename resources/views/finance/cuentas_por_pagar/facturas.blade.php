@@ -74,10 +74,11 @@
                 <th class="px-2 py-2">Empresa</th>
                 <th class="px-2 py-2 text-right">Cantidad</th>
                 <th class="px-2 py-2">Motivo</th>
-                <th class="px-2 py-2">Banco</th>
                 <th class="px-2 py-2">Factura</th>
                 <th class="px-2 py-2">Fecha de factura</th>
                 <th class="px-2 py-2">Fecha de pago</th>
+                <th class="px-2 py-2 text-center">Semana fiscal</th>
+                <th class="px-2 py-2">Banco</th>
                 <th class="px-2 py-2">Estatus</th>
                 <th class="px-2 py-2">Comentarios</th>
                 <th class="px-2 py-2">Departamento</th>
@@ -118,6 +119,32 @@ $(function(){
   };
   const toInputDate = (dateStr) => dateStr ? dateStr.slice(0, 10) : '';
 
+  const renderBancoBadge = (banco) => {
+    if (!banco || banco === '—' || banco === 'N/A') return `<span class="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">—</span>`;
+    
+    let bgColor = 'bg-gray-100';
+    let textColor = 'text-gray-800';
+    let iconClass = 'ri-bank-line';
+
+    const b = banco.toLowerCase();
+    if (b.includes('bbva')) { bgColor = 'bg-[#072146]'; textColor = 'text-white'; }
+    else if (b.includes('santander')) { bgColor = 'bg-[#ec0000]'; textColor = 'text-white'; }
+    else if (b.includes('banorte')) { bgColor = 'bg-[#eb0029]'; textColor = 'text-white'; }
+    else if (b.includes('banamex') || b.includes('citi')) { bgColor = 'bg-[#00529b]'; textColor = 'text-white'; }
+    else if (b.includes('hsbc')) { bgColor = 'bg-[#db0011]'; textColor = 'text-white'; }
+    else if (b.includes('scotiabank')) { bgColor = 'bg-[#ec111a]'; textColor = 'text-white'; }
+    else if (b.includes('inbursa')) { bgColor = 'bg-[#005596]'; textColor = 'text-white'; }
+    else if (b.includes('afirme')) { bgColor = 'bg-[#009b3e]'; textColor = 'text-white'; }
+    else if (b.includes('banbajio') || b.includes('banbajío')) { bgColor = 'bg-[#004b87]'; textColor = 'text-white'; }
+    else if (b.includes('banregio')) { bgColor = 'bg-[#e24a2c]'; textColor = 'text-white'; }
+    else if (b.includes('hey')) { bgColor = 'bg-[#000000]'; textColor = 'text-white'; }
+    else if (b.includes('nu')) { bgColor = 'bg-[#8A05BE]'; textColor = 'text-white'; }
+
+    return `<span class="px-2 py-1 ${bgColor} ${textColor} rounded text-[10px] font-bold shadow-sm uppercase tracking-wider inline-flex items-center gap-1">
+              <i class="${iconClass}"></i> ${banco}
+            </span>`;
+  };
+
   // Datatable Init
   const table = $('#cxp-table').DataTable({
     ajax: {
@@ -138,10 +165,11 @@ $(function(){
       { data: 'empresa', render: data => `<span class="font-bold text-gray-700">${data}</span>` },
       { data: 'total', className: 'text-right font-medium', render: formatCurrency },
       { data: 'motivo', render: data => `<span class="text-xs truncate max-w-[150px] block" title="${data}">${data || '—'}</span>` },
-      { data: 'banco', render: data => `<span class="px-2 py-1 bg-gray-100 rounded text-xs font-medium">${data || '—'}</span>` },
       { data: 'folio_factura', render: data => `<span class="font-semibold text-blue-800">${data || '—'}</span>` },
       { data: 'fecha_factura', render: data => `<span class="text-xs text-gray-500">${formatDate(data)}</span>` },
       { data: 'fecha_pago', render: data => `<span class="text-xs text-gray-800 font-medium">${formatDate(data)}</span>` },
+      { data: 'semana', className: 'text-center', render: data => data ? `<span class="px-2 py-1 bg-gray-100 rounded text-xs font-semibold">Semana ${data}</span>` : '—' },
+      { data: 'banco', render: renderBancoBadge },
       { data: 'estatus', render: function(data, type, row){
           if (row.is_canceled) return '<span class="font-bold text-red-600">CANCELADO</span>';
           let color = 'bg-gray-100 text-gray-800';
@@ -150,7 +178,13 @@ $(function(){
           if(data === 'PARCIAL') color = 'bg-yellow-100 text-yellow-800';
           return `<span class="px-2 py-1 rounded text-xs font-semibold uppercase ${color}">${data}</span>`;
       }},
-      { data: 'comentarios', render: data => `<span class="text-xs text-gray-600 break-words max-w-[150px] block" title="${data}">${data || '—'}</span>` },
+      { data: 'comentarios', render: function(data, type, row) {
+          let html = `<span class="text-xs text-gray-600 break-words max-w-[150px] block" title="${data}">${data || '—'}</span>`;
+          if (row.comentario_img) {
+            html += `<a href="/${row.comentario_img}" target="_blank" class="text-[10px] text-blue-600 hover:underline flex items-center gap-1 mt-1"><i class="ri-attachment-line"></i> Ver adjunto</a>`;
+          }
+          return html;
+      }},
       { data: 'departamento', render: data => `<span class="text-sm text-gray-600">${data || '—'}</span>` },
       {
         data: null,
@@ -245,11 +279,11 @@ $(function(){
   $(document).on('click', '.btn-edit-cxp', function() {
     const row = $(this).data('row');
     $('#edit-cxp-id').val(row.cxp_id);
-    $('#edit-fecha-pago').val(toInputDate(row.fecha_pago));
     $('#edit-semana').val(row.semana);
     $('#edit-banco').val(row.banco);
     $('#edit-departamento-cxp').val(row.departamento);
     $('#edit-comentarios-cxp').val(row.comentarios);
+    $('#edit-comentario-img').val('');
     
     $('#btn-open-edit-cxp').trigger('click');
   });
@@ -325,21 +359,25 @@ $(function(){
   $('#edit-cxp-form').on('submit', function(e) {
     e.preventDefault();
     const id = $('#edit-cxp-id').val();
-    const data = {
-      _token: CSRF_TOKEN,
-      fecha_pago: $('#edit-fecha-pago').val(),
-      semana: $('#edit-semana').val(),
-      banco: $('#edit-banco').val(),
-      departamento: $('#edit-departamento-cxp').val(),
-      comentarios: $('#edit-comentarios-cxp').val(),
-    };
+    
+    const formData = new FormData();
+    formData.append('_token', CSRF_TOKEN);
+    formData.append('semana', $('#edit-semana').val());
+    formData.append('banco', $('#edit-banco').val());
+    formData.append('departamento', $('#edit-departamento-cxp').val());
+    formData.append('comentarios', $('#edit-comentarios-cxp').val());
+
+    const imgFile = $('#edit-comentario-img')[0].files[0];
+    if (imgFile) formData.append('comentario_img', imgFile);
 
     $('#btn-save-cxp').prop('disabled', true).text('Guardando...');
 
     $.ajax({
       url: `/cuentas-por-pagar/${id}/update`,
       method: 'POST',
-      data: payload,
+      data: formData,
+      processData: false,
+      contentType: false,
       headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
       success: function(res) {
         if(res.success) {
@@ -368,8 +406,18 @@ $(function(){
     // Clear form
     $('#pay-amount').val('');
     $('#pay-date').val(new Date().toISOString().split('T')[0]);
+    $('#pay-banco').val('');
+    $('#pay-metodo').val('');
     $('#pay-comprobante').val('');
     $('#pay-notas').val('');
+    
+    if (parseFloat(row.saldo) <= 0) {
+      $('#add-payment-container input, #add-payment-container select, #add-payment-container textarea, #add-payment-container button').prop('disabled', true);
+      $('#btn-save-payment').text('Cuenta Pagada').removeClass('hover:bg-[#157347]').addClass('opacity-50 cursor-not-allowed');
+    } else {
+      $('#add-payment-container input, #add-payment-container select, #add-payment-container textarea, #add-payment-container button').prop('disabled', false);
+      $('#btn-save-payment').html('<i class="ri-save-line"></i> Registrar').removeClass('opacity-50 cursor-not-allowed').addClass('hover:bg-[#157347]');
+    }
 
     loadPayments(row.cxp_id);
     $('#btn-open-payments').trigger('click');
@@ -387,12 +435,12 @@ $(function(){
           $('#no-payments-msg').removeClass('hidden');
         } else {
           res.payments.forEach(p => {
-            const bancoMetodo = `${p.banco || ''} ${p.metodo_pago || ''}`.trim() || '—';
+            const bancoMetodo = `${renderBancoBadge(p.banco)} <span class="text-gray-500 ml-1">${p.metodo_pago || ''}</span>`;
             tbody.append(`
               <tr>
                 <td class="px-4 py-2 text-gray-500">#${p.id}</td>
                 <td class="px-4 py-2">${formatDate(p.date)}</td>
-                <td class="px-4 py-2"><span class="text-xs font-semibold bg-gray-100 rounded px-2 py-1">${escapeHtml(bancoMetodo)}</span></td>
+                <td class="px-4 py-2">${bancoMetodo}</td>
                 <td class="px-4 py-2"><span class="text-xs text-gray-700">${escapeHtml(p.user_name || '—')}</span></td>
                 <td class="px-4 py-2 truncate max-w-[150px]" title="${escapeHtml(p.notas)}">${escapeHtml(p.notas) || '—'}</td>
                 <td class="px-4 py-2">
