@@ -19,6 +19,7 @@
         "nesbot/carbon": "^3.10",
         "phpoffice/phpspreadsheet": "^5.2",
         "pusher/pusher-php-server": "*",
+        "spatie/laravel-activitylog": "^4.12",
         "spatie/laravel-permission": "^6.20",
         "yajra/laravel-datatables-oracle": "^12.4"
     },

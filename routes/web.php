@@ -63,7 +63,7 @@ use App\Http\Middleware\RedirectIfClientUnauthenticated;
 use App\Http\Controllers\PortalUserController;
 use App\Http\Controllers\ItEquipmentController;
 use App\Http\Controllers\ItInspectionController;
-
+use App\Http\Controllers\ActivityLogController;
 Route::get('/', function () {
     return view('home');
 })->name('home');
@@ -141,6 +141,10 @@ Route::middleware([
         Route::post('/profile/delete', [ProfileController::class, 'deleteUser'])
             ->name('profile.delete');
     });
+
+    // Activity Log
+    Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity-log.index');
+
 
     //Inventory
     Route::resource('/inventory', InventoryController::class)->middleware('can:inventory.show');

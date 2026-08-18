@@ -332,6 +332,11 @@ return [
             'icon' => 'fas fa-users',
         ],
         [
+            'text' => 'Bitácora de Movimientos',
+            'url' => 'activity-log',
+            'icon' => 'fas fa-history',
+        ],
+        [
             'text' => 'Roles',
             'url' => 'admin/roles',
             'icon' => 'fas fa-user-tag',
