@@ -82,6 +82,11 @@
                     PRODUCTION
                 </x-application.buttons.menu-btn>
             @endcan
+            
+            <x-application.buttons.menu-btn module="maintenance" link="{{ route('maintenance.index') }}" image="{{ asset('images/main-menu/sistemas.png') }}">
+                MAINTENANCE
+            </x-application.buttons.menu-btn>
+
             @can('id.show')
                 <x-application.buttons.menu-btn module="i+d" link="#" image="{{ asset('images/main-menu/i+d.png') }}">
                     I+D

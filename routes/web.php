@@ -63,6 +63,7 @@ use App\Http\Middleware\RedirectIfClientUnauthenticated;
 use App\Http\Controllers\PortalUserController;
 use App\Http\Controllers\ItEquipmentController;
 use App\Http\Controllers\ItInspectionController;
+use App\Http\Controllers\MaintenanceController;
 
 Route::get('/', function () {
     return view('home');
@@ -201,8 +202,8 @@ Route::middleware([
     Route::post('/gPurchaseOrder', [PurchaseController::class, 'gPurchaseOrder'])->name('purchases.gPurchaseOrder');
 
     // Purchase Orders
-    Route::get('/purchases/orders', [PurchasesController::class, 'orders'])->name('purchases.orders');
-    Route::get('/purchases/get-orders', [PurchasesController::class, 'getPurchaseOrders']) ->name('purchases.getPurchaseOrders');
+    Route::get('/purchases/orders', [PurchaseController::class, 'orders'])->name('purchases.orders');
+    Route::get('/purchases/get-orders', [PurchaseController::class, 'getPurchaseOrders']) ->name('purchases.getPurchaseOrders');
     Route::resource('purchases', PurchaseController::class);
     Route::get('/purchases/order-pdf/{id}', [PurchaseController::class, 'streamPdf'])->name('purchases.streamPdf');
     Route::get('/purchases/orders/{id}/edit', [PurchaseController::class, 'edit'])->name('purchases.editOrder');
@@ -559,6 +560,19 @@ Route::prefix('laboratory/equipments')->group(function () {
         Route::get('/tasks/{task}/edit', [TaskController::class, 'edit'])->name('tasks.edit');
         Route::put('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
         Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+        
+        Route::post('/maintenance', [MaintenanceController::class, 'store'])->name('maintenance.store');
+        Route::post('/maintenance/{id}/confirm-admin', [MaintenanceController::class, 'confirmAdmin'])->name('maintenance.confirmAdmin');
+    });
+
+    Route::middleware([
+        'auth:sanctum',
+        config('jetstream.auth_session'),
+        'verified',
+    ])->group(function () {
+        Route::get('/maintenance', [MaintenanceController::class, 'index'])->name('maintenance.index');
+        Route::get('/maintenance/{id}', [MaintenanceController::class, 'show'])->name('maintenance.show');
+        Route::post('/maintenance/{id}/confirm-department', [MaintenanceController::class, 'confirmDepartment'])->name('maintenance.confirmDepartment');
     });
 
     // Ruta para marcar todas las notificaciones como leídas
