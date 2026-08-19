@@ -506,6 +506,7 @@ Route::prefix('laboratory/equipments')->group(function () {
         Route::get('/{id}/payments', [\App\Http\Controllers\CuentasPorPagarController::class, 'getPayments'])->name('cuentas-por-pagar.payments.list');
         Route::post('/{id}/payments', [\App\Http\Controllers\CuentasPorPagarController::class, 'addPayment'])->name('cuentas-por-pagar.payments.add');
         Route::post('/{id}/documents', [\App\Http\Controllers\CuentasPorPagarController::class, 'uploadDocuments'])->name('cuentas-por-pagar.documents.upload');
+        Route::delete('/{id}/comentario-img', [\App\Http\Controllers\CuentasPorPagarController::class, 'deleteComentarioImg'])->name('cuentas-por-pagar.delete-img');
     });
 
     //production y i+d

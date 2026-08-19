@@ -20,7 +20,8 @@ class CxpDetail extends Model
         'is_canceled',
         'pdf_path',
         'xml_path',
-        'comentarios'
+        'comentarios',
+        'comentario_img'
     ];
 
     public function payments()

@@ -181,7 +181,21 @@ $(function(){
       { data: 'comentarios', render: function(data, type, row) {
           let html = `<span class="text-xs text-gray-600 break-words max-w-[150px] block" title="${data}">${data || '—'}</span>`;
           if (row.comentario_img) {
-            html += `<a href="/${row.comentario_img}" target="_blank" class="text-[10px] text-blue-600 hover:underline flex items-center gap-1 mt-1"><i class="ri-attachment-line"></i> Ver adjunto</a>`;
+            const ext = row.comentario_img.split('.').pop().toLowerCase();
+            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+
+            html += `<div class="mt-2 flex flex-col items-start gap-1">`;
+            if (isImage) {
+               html += `<a href="/${row.comentario_img}" target="_blank" class="block border border-gray-200 rounded p-1 hover:border-[#198754] transition bg-white">
+                          <img src="/${row.comentario_img}" class="h-10 w-10 object-cover rounded" alt="Adjunto">
+                        </a>`;
+            } else {
+               html += `<a href="/${row.comentario_img}" target="_blank" class="text-[10px] text-blue-600 hover:underline flex items-center gap-1"><i class="ri-attachment-line"></i> Ver adjunto</a>`;
+            }
+            html += `<button type="button" class="btn-delete-img text-[10px] text-red-500 hover:text-red-700 flex items-center gap-1" data-id="${row.cxp_id}">
+                       <i class="ri-delete-bin-line"></i> Eliminar
+                     </button>
+                     </div>`;
           }
           return html;
       }},
@@ -236,11 +250,7 @@ $(function(){
     const m = $('#filter-month').val();
     const y = $('#filter-year').val();
     const s = $('#filter-semana').val();
-    let url = "{{ route('cuentas-por-pagar.export-excel') }}?";
-    if (m) url += `month=${m}&`;
-    if (y) url += `year=${y}&`;
-    if (s) url += `semana=${s}`;
-    window.location.href = url;
+    window.location.href = `{{ route('cuentas-por-pagar.export-excel') }}?month=${m}&year=${y}&semana=${s}`;
   });
 
   // Cancelar
@@ -355,6 +365,37 @@ $(function(){
     });
   });
 
+  // Eliminar Imagen de Comentario
+  $(document).on('click', '.btn-delete-img', function() {
+    const id = $(this).data('id');
+    Swal.fire({
+      title: '¿Eliminar adjunto?',
+      text: 'Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc3545'
+    }).then((result) => {
+      if(result.isConfirmed) {
+        $.ajax({
+          url: `/cuentas-por-pagar/${id}/comentario-img`,
+          method: 'DELETE',
+          headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
+          success: function(res) {
+            if(res.success) {
+              Swal.fire('Eliminado', res.message, 'success');
+              table.ajax.reload(null, false);
+            }
+          },
+          error: function(xhr) {
+            Swal.fire('Error', xhr.responseJSON?.message || 'Error al eliminar', 'error');
+          }
+        });
+      }
+    });
+  });
+
   // Guardar Edición
   $('#edit-cxp-form').on('submit', function(e) {
     e.preventDefault();
@@ -435,6 +476,10 @@ $(function(){
           $('#no-payments-msg').removeClass('hidden');
         } else {
           res.payments.forEach(p => {
+            if (p.notas === 'nullable|string') p.notas = null;
+            if (p.banco === 'nullable|string') p.banco = null;
+            if (p.metodo_pago === 'nullable|string') p.metodo_pago = null;
+
             const bancoMetodo = `${renderBancoBadge(p.banco)} <span class="text-gray-500 ml-1">${p.metodo_pago || ''}</span>`;
             tbody.append(`
               <tr>

@@ -317,6 +317,19 @@ class CuentasPorPagarController extends Controller
         return response()->json(['success' => true, 'message' => 'Actualizado correctamente']);
     }
 
+    public function deleteComentarioImg($id)
+    {
+        $cxp = CxpDetail::findOrFail($id);
+        
+        if ($cxp->comentario_img && file_exists(public_path($cxp->comentario_img))) {
+            unlink(public_path($cxp->comentario_img));
+        }
+
+        $cxp->update(['comentario_img' => null]);
+
+        return response()->json(['success' => true, 'message' => 'Imagen eliminada correctamente']);
+    }
+
     public function cancel($id)
     {
         $cxp = CxpDetail::findOrFail($id);
@@ -432,6 +445,7 @@ class CuentasPorPagarController extends Controller
     {
         $month = $request->input('month');
         $year = $request->input('year');
+        $semana = $request->input('semana');
 
         $query = DB::table('cxp_details as cxp')
             ->join('facturas as f', 'f.factura_id', '=', 'cxp.factura_id');
@@ -442,6 +456,9 @@ class CuentasPorPagarController extends Controller
         if ($year) {
             $query->whereYear('f.fecha_factura', $year);
         }
+        if ($semana) {
+            $query->where('cxp.semana', $semana);
+        }
 
         $facturas = $query->select(
                 'cxp.id as cxp_id',
@@ -450,6 +467,8 @@ class CuentasPorPagarController extends Controller
                 'cxp.anio',
                 'cxp.estatus',
                 'cxp.is_canceled',
+                'cxp.comentarios',
+                'cxp.comentario_img',
                 'f.factura_id',
                 'f.empresa',
                 'f.departamento',
@@ -463,36 +482,37 @@ class CuentasPorPagarController extends Controller
             ->orderByDesc('f.factura_id')
             ->get();
 
-        $payments = DB::table('cxp_payments')
-            ->select('cxp_detail_id', DB::raw("SUM(amount) as total_pagado"))
-            ->groupBy('cxp_detail_id')
-            ->get()
-            ->keyBy('cxp_detail_id');
-
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Cuentas por Pagar');
 
-        $sheet->setCellValue('A1', 'Cuentas por pagar');
-        $sheet->mergeCells('A1:K1');
-        $sheet->getStyle('A1:K1')->applyFromArray([
+        // Dynamic Title
+        $titleStr = 'PROGRAMACION DE PAGOS';
+        if ($semana && $year) {
+            $titleStr .= ' SEMANA ' . $semana . '-' . $year;
+        }
+
+        $sheet->setCellValue('A1', $titleStr);
+        $sheet->mergeCells('A1:J1');
+        $sheet->getStyle('A1:J1')->applyFromArray([
             'font' => [
                 'bold' => true,
-                'size' => 16,
-                'color' => ['argb' => Color::COLOR_WHITE],
+                'size' => 14,
+                'color' => ['argb' => \PhpOffice\PhpSpreadsheet\Style\Color::COLOR_BLACK],
             ],
             'fill' => [
-                'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['argb' => 'FF217346'],
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'FF92D050'], // Light green
             ],
             'alignment' => [
                 'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
                 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
             ]
         ]);
-        $sheet->getRowDimension(1)->setRowHeight(30);
+        $sheet->getRowDimension(1)->setRowHeight(25);
 
-        $headers = ['Empresa', 'Departamento', 'Factura', 'Motivo', 'Banco/Método', 'Fecha Factura', 'Fecha Pago', 'Estatus', 'Total', 'Monto Pagado', 'Saldo Restante'];
+        // Header Row (Row 2)
+        $headers = ['Empresa', 'Cantidad', 'Motivo', 'Banco', 'Factura', 'Fecha de factura', 'Fecha de pago', 'Estatus', 'Comentarios', 'Departamento'];
         $columnLetter = 'A';
         foreach ($headers as $header) {
             $sheet->setCellValue($columnLetter . '2', $header);
@@ -504,38 +524,37 @@ class CuentasPorPagarController extends Controller
         $sheet->getStyle($headerRange)->applyFromArray([
             'font' => [
                 'bold' => true,
-                'color' => ['argb' => Color::COLOR_WHITE],
+                'italic' => true,
+                'color' => ['argb' => \PhpOffice\PhpSpreadsheet\Style\Color::COLOR_BLACK],
             ],
             'fill' => [
-                'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['argb' => 'FF198754'],
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'FFA9D08E'], // Slightly darker green
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
             ]
         ]);
+        $sheet->getRowDimension(2)->setRowHeight(20);
 
         $row = 3;
         foreach ($facturas as $factura) {
-            $pagado = isset($payments[$factura->cxp_id]) ? $payments[$factura->cxp_id]->total_pagado : 0;
             $total = round($factura->total, 2);
-            $saldo = round($total - $pagado, 2);
-            $pagado = round($pagado, 2);
             $factura->is_canceled = (bool) $factura->is_canceled;
 
-            if ($factura->is_canceled) {
-                $saldo = 0;
-            }
-
             $sheet->setCellValue('A' . $row, $factura->empresa);
-            $sheet->setCellValue('B' . $row, $factura->departamento);
-            $sheet->setCellValue('C' . $row, $factura->folio_factura);
-            $sheet->setCellValue('D' . $row, $factura->motivo);
-            $sheet->setCellValue('E' . $row, $factura->banco . ' / ' . $factura->metodo_pago);
+            $sheet->setCellValue('B' . $row, $total);
+            $sheet->setCellValue('C' . $row, $factura->motivo);
+            $sheet->setCellValue('D' . $row, $factura->banco . ($factura->metodo_pago ? ' / ' . $factura->metodo_pago : ''));
+            $sheet->setCellValue('E' . $row, $factura->folio_factura);
             $sheet->setCellValue('F' . $row, $factura->fecha_factura);
             $sheet->setCellValue('G' . $row, $factura->fecha_pago);
             
             $estatusCell = 'H' . $row;
             if ($factura->is_canceled) {
                 $sheet->setCellValue($estatusCell, 'CANCELADO');
-                $sheet->getStyle($estatusCell)->getFont()->getColor()->setARGB(Color::COLOR_RED);
+                $sheet->getStyle($estatusCell)->getFont()->getColor()->setARGB(\PhpOffice\PhpSpreadsheet\Style\Color::COLOR_RED);
                 $sheet->getStyle($estatusCell)->getFont()->setBold(true);
             } else {
                 $sheet->setCellValue($estatusCell, strtoupper($factura->estatus));
@@ -548,32 +567,77 @@ class CuentasPorPagarController extends Controller
                 }
             }
 
-            $sheet->setCellValue('I' . $row, $total);
-            $sheet->setCellValue('J' . $row, $pagado);
-            $sheet->setCellValue('K' . $row, $saldo);
+            // Comentarios and Image Injection
+            $comentariosText = $factura->comentarios;
+            $sheet->setCellValue('I' . $row, $comentariosText);
 
-            $sheet->getStyle('I' . $row)->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_CURRENCY_USD);
-            $sheet->getStyle('J' . $row)->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_CURRENCY_USD);
-            $sheet->getStyle('K' . $row)->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_CURRENCY_USD);
-            
-            if (!$factura->is_canceled) {
-                if ($saldo <= 0) {
-                    $sheet->getStyle('K' . $row)->getFont()->getColor()->setARGB('FF157347');
-                } else {
-                    $sheet->getStyle('K' . $row)->getFont()->getColor()->setARGB(Color::COLOR_RED);
+            if ($factura->comentario_img) {
+                $ext = strtolower(pathinfo($factura->comentario_img, PATHINFO_EXTENSION));
+                if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+                    $imagePath = public_path($factura->comentario_img);
+                    if (file_exists($imagePath)) {
+                        $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+                        $drawing->setName('Comentario Adjunto');
+                        $drawing->setDescription('Imagen del comentario');
+                        $drawing->setPath($imagePath);
+                        $drawing->setCoordinates('I' . $row);
+                        
+                        // Set image size and row height
+                        $drawing->setHeight(60); 
+                        
+                        // Adjust offset so it doesn't overlap the text if text exists
+                        if ($comentariosText) {
+                            $drawing->setOffsetY(20);
+                            $sheet->getRowDimension($row)->setRowHeight(80);
+                        } else {
+                            $drawing->setOffsetY(5);
+                            $sheet->getRowDimension($row)->setRowHeight(70);
+                        }
+                        
+                        // Center horizontally (approximate offset for width 30)
+                        $drawing->setOffsetX(60);
+
+                        $drawing->setWorksheet($sheet);
+                    }
                 }
-            } else {
-                 $sheet->getStyle('K' . $row)->getFont()->getColor()->setARGB(Color::COLOR_RED);
             }
+
+            $sheet->setCellValue('J' . $row, $factura->departamento);
+
+            $sheet->getStyle('B' . $row)->getNumberFormat()->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_CURRENCY_USD);
+
+            // Add basic borders to all cells in the row
+            $sheet->getStyle('A'.$row.':J'.$row)->applyFromArray([
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                        'color' => ['argb' => 'FFCCCCCC'],
+                    ],
+                ]
+            ]);
+
+            // Alignment
+            $sheet->getStyle('A'.$row.':J'.$row)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+            $sheet->getStyle('A'.$row.':H'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('J'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('I'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('I'.$row)->getAlignment()->setWrapText(true);
 
             $row++;
         }
 
-        foreach (range('A', $lastCol) as $columnID) {
-            $sheet->getColumnDimension($columnID)->setAutoSize(true);
+        // Set column widths
+        foreach (range('A', 'J') as $col) {
+            if ($col === 'I') {
+                $sheet->getColumnDimension($col)->setWidth(30); // Comentarios wider for image
+            } elseif ($col === 'A' || $col === 'C') {
+                $sheet->getColumnDimension($col)->setWidth(25); // Empresa and Motivo
+            } else {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
         }
 
-        $writer = new Xlsx($spreadsheet);
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
         $fileName = 'Cuentas_Por_Pagar_' . date('Y-m-d') . '.xlsx';
 
         if (ob_get_length()) {
