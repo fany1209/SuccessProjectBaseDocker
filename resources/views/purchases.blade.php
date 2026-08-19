@@ -41,12 +41,15 @@ Fecha de actualización: 18-02-2026
         <x-nav-button data-target="g-supplier-evaluation" class="open-modal" icon="ri-checkbox-multiple-fill">Supplier evaluation</x-nav-button>
         @include('purchases.modals.gSupplierEvaluation')
 
-        <x-nav-button data-target="g-warehouse" class="open-modal" icon="ri-checkbox-multiple-fill">Product entry warehouse</x-nav-button>
-        @include('purchases.modals.gWarehouse')
-
         <x-nav-button data-target="add-supplier" class="open-modal" icon="ri-file-list-3-fill">Directory Suppliers</x-nav-button>
         @include('purchases.directory.modals.create')
     @endcan
+
+    @canany(['purchases.admin', 'quality.purchases'])
+        <x-nav-button data-target="g-warehouse" class="open-modal" icon="ri-checkbox-multiple-fill">Product entry warehouse</x-nav-button>
+        @include('purchases.modals.gWarehouse')
+    @endcanany
+
 </div>
 
     <div class="flex flex-col items-start bg-white shadow-md rounded-lg w-full lg:w-[85%] p-2">

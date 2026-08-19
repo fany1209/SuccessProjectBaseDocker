@@ -64,7 +64,9 @@ use App\Http\Controllers\PortalUserController;
 use App\Http\Controllers\ItEquipmentController;
 use App\Http\Controllers\ItInspectionController;
 use App\Http\Controllers\MaintenanceController;
+use App\Http\Controllers\ContratoController;
 
+use App\Http\Controllers\ActivityLogController;
 Route::get('/', function () {
     return view('home');
 })->name('home');
@@ -142,6 +144,10 @@ Route::middleware([
         Route::post('/profile/delete', [ProfileController::class, 'deleteUser'])
             ->name('profile.delete');
     });
+
+    // Activity Log
+    Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity-log.index');
+
 
     //Inventory
     Route::resource('/inventory', InventoryController::class)->middleware('can:inventory.show');
@@ -613,6 +619,10 @@ Route::prefix('laboratory/equipments')->group(function () {
     // Cursos
     Route::post('/rh/cursos', [\App\Http\Controllers\RecursosHumanosController::class, 'storeCurso'])->name('rh.cursos.store');
     Route::get('/rh/cursos/resultados', [\App\Http\Controllers\RecursosHumanosController::class, 'indexCursos'])->name('rh.cursos.resultados');
+
+    // Contratos
+    Route::get('/rh/contratos', [ContratoController::class, 'index'])->name('rh.contratos.index');
+    Route::post('/rh/contratos/update', [ContratoController::class, 'update'])->name('rh.contratos.update');
 
     //portal users
     Route::get('admin/get-json-portal-users', [PortalUserController::class, 'getPortalUsers'])

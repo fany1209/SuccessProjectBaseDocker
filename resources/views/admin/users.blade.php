@@ -74,16 +74,26 @@ stefany
                 </div>
             </div>
 
-            {{-- Role --}}
-            <div class="form-group">
-                <label>Role</label>
-                <select class="form-control" name="role_id">
-                    @foreach ($roles as $role)
-                        <option value="{{ $role->id }}" {{ (old('role_id', $user->roles->first()->id ?? '') == $role->id) ? 'selected' : '' }}>
-                            {{ $role->name }}
-                        </option>
-                    @endforeach
-                </select>
+            <div class="row">
+                {{-- Role --}}
+                <div class="form-group col-6">
+                    <label>Role</label>
+                    <select class="form-control" name="role_id">
+                        @foreach ($roles as $role)
+                            <option value="{{ $role->id }}" {{ (old('role_id', $user->roles->first()->id ?? '') == $role->id) ? 'selected' : '' }}>
+                                {{ $role->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                {{-- Status --}}
+                <div class="form-group col-6">
+                    <label>Status</label>
+                    <select class="form-control" name="status">
+                        <option value="Activo" {{ old('status', $user->status ?? 'Activo') == 'Activo' ? 'selected' : '' }}>Activo</option>
+                        <option value="Inactivo" {{ old('status', $user->status ?? 'Activo') == 'Inactivo' ? 'selected' : '' }}>Inactivo</option>
+                    </select>
+                </div>
             </div>
 
             {{-- Upload new photo --}}
@@ -144,6 +154,7 @@ stefany
                     <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
+                    <th>Status</th>
                     <th>Since</th>
                     <th>Photo</th>
                     <th>Actions</th>
@@ -156,6 +167,13 @@ stefany
                         <td>{{ $user->name }}</td>
                         <td>{{ $user->email }}</td>
                         <td><span class="badge badge-info">{{ $user->getRoleNames()->first() }}</span></td>
+                        <td>
+                            @if($user->status == 'Activo')
+                                <span class="badge badge-success">Activo</span>
+                            @else
+                                <span class="badge badge-danger">Inactivo</span>
+                            @endif
+                        </td>
                         <td> {{ $user->created_at ? $user->created_at->format('Y-m-d') : 'N/A' }}</td>
                         <td>
                             @if ($user->profile_photo_path)
