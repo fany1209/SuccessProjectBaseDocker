@@ -21,6 +21,9 @@
             <option value="">Selecciona un banco</option>
             <option value="Banbajío">Banbajío</option>
             <option value="BBVA">BBVA</option>
+            <option value="Efectivo William" style="color: #198754; font-weight: 600;">Efectivo William</option>
+            <option value="Efectivo Manola" style="color: #198754; font-weight: 600;">Efectivo Manola</option>
+            <option value="Efectivo Rocio" style="color: #198754; font-weight: 600;">Efectivo Rocio</option>
             <option value="Banamex">Banamex</option>
             <option value="Santander">Santander</option>
             <option value="Banorte">Banorte</option>
@@ -101,35 +104,15 @@
               <input type="date" id="pay-date" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" required>
             </div>
 
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Banco</label>
-                  <select id="pay-banco" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754] text-sm">
-                    <option value="">Selecciona</option>
-                    <option value="Banbajío">Banbajío</option>
-                    <option value="BBVA">BBVA</option>
-                    <option value="Banamex">Banamex</option>
-                    <option value="Santander">Santander</option>
-                    <option value="Banorte">Banorte</option>
-                    <option value="HSBC">HSBC</option>
-                    <option value="Scotiabank">Scotiabank</option>
-                    <option value="Inbursa">Inbursa</option>
-                    <option value="Afirme">Afirme</option>
-                    <option value="Banregio">Banregio</option>
-                    <option value="Hey Banco">Hey Banco</option>
-                    <option value="Nu">Nu</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Método</label>
-                  <select id="pay-metodo" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754] text-sm">
-                    <option value="">N/A</option>
-                    <option value="Efectivo">Efectivo</option>
-                    <option value="Transferencia">Transferencia</option>
-                    <option value="Tarjeta">Tarjeta</option>
-                    <option value="Cheque">Cheque</option>
-                  </select>
-                </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Método</label>
+              <select id="pay-metodo" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754] text-sm">
+                <option value="">N/A</option>
+                <option value="Efectivo">Efectivo</option>
+                <option value="Transferencia">Transferencia</option>
+                <option value="Tarjeta">Tarjeta</option>
+                <option value="Cheque">Cheque</option>
+              </select>
             </div>
 
             <div>
@@ -160,11 +143,12 @@
               <tr>
                 <th class="px-4 py-2">ID</th>
                 <th class="px-4 py-2">Fecha</th>
-                <th class="px-4 py-2">Banco/Método</th>
+                <th class="px-4 py-2">Método</th>
                 <th class="px-4 py-2">Registrado por</th>
                 <th class="px-4 py-2">Notas</th>
                 <th class="px-4 py-2">Comprobante</th>
                 <th class="px-4 py-2 text-right">Monto</th>
+                <th class="px-4 py-2 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody id="payments-list" class="divide-y divide-gray-100">
@@ -220,6 +204,63 @@
         <button type="button" class="close-modal px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">Cancelar</button>
         <button type="submit" id="btn-save-docs" class="px-4 py-2 bg-[#198754] text-white rounded-lg hover:bg-[#157347] transition flex items-center gap-2">
           <i class="ri-upload-cloud-2-line"></i> Subir Documentos
+        </button>
+      </div>
+    </form>
+  </div>
+</x-modal>
+
+<!-- Edit Payment Modal -->
+<x-modal id="edit-payment-modal">
+  <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+    <h3 class="text-lg font-bold text-gray-800" id="edit-payment-title">Editar Abono</h3>
+    <button type="button" class="close-modal text-gray-400 hover:text-gray-600">
+      <i class="ri-close-line text-2xl"></i>
+    </button>
+  </div>
+  
+  <div class="p-6">
+    <form id="edit-payment-form" enctype="multipart/form-data">
+      <input type="hidden" id="edit-pay-id">
+      <input type="hidden" id="edit-pay-cxp-id">
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Monto ($)</label>
+          <input type="number" step="0.01" min="0.01" id="edit-pay-amount" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" required>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Fecha del Pago</label>
+          <input type="date" id="edit-pay-date" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" required>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Método</label>
+          <select id="edit-pay-metodo" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
+            <option value="">N/A</option>
+            <option value="Efectivo">Efectivo</option>
+            <option value="Transferencia">Transferencia</option>
+            <option value="Tarjeta">Tarjeta</option>
+            <option value="Cheque">Cheque</option>
+          </select>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Actualizar Comprobante</label>
+          <input type="file" id="edit-pay-comprobante" class="w-full border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-[#e8f5e9] file:text-[#198754] hover:file:bg-[#c8e6c9] text-sm">
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+          <textarea id="edit-pay-notas" rows="2" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" placeholder="Opcional"></textarea>
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-end gap-3">
+        <button type="button" class="close-modal px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">Cancelar</button>
+        <button type="submit" id="btn-save-edit-payment" class="px-4 py-2 bg-[#198754] text-white rounded-lg hover:bg-[#157347] transition font-medium flex items-center gap-2">
+          <i class="ri-save-line"></i> Guardar Cambios
         </button>
       </div>
     </form>

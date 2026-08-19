@@ -22,6 +22,7 @@
     <button id="btn-open-edit-cxp" type="button" class="open-modal hidden" data-target="edit-cxp"></button>
     <button id="btn-open-payments" type="button" class="open-modal hidden" data-target="payments-cxp"></button>
     <button id="btn-open-docs-cxp" type="button" class="open-modal hidden" data-target="documents-cxp"></button>
+    <button id="btn-open-edit-payment" type="button" class="open-modal hidden" data-target="edit-payment-modal"></button>
 
     <!-- Filtros -->
     <div class="mb-2 mt-6 flex justify-end w-full">
@@ -108,6 +109,7 @@
 @push('js')
 <script>
 $(function(){
+
   const CSRF_TOKEN = $('meta[name="csrf-token"]').attr('content');
 
   // Format Helpers
@@ -139,6 +141,7 @@ $(function(){
     else if (b.includes('banregio')) { bgColor = 'bg-[#e24a2c]'; textColor = 'text-white'; }
     else if (b.includes('hey')) { bgColor = 'bg-[#000000]'; textColor = 'text-white'; }
     else if (b.includes('nu')) { bgColor = 'bg-[#8A05BE]'; textColor = 'text-white'; }
+    else if (b.includes('efectivo')) { bgColor = 'bg-green-100 border border-green-300'; textColor = 'text-[#198754]'; iconClass = 'ri-cash-line'; }
 
     return `<span class="px-2 py-1 ${bgColor} ${textColor} rounded text-[10px] font-bold shadow-sm uppercase tracking-wider inline-flex items-center gap-1">
               <i class="${iconClass}"></i> ${banco}
@@ -226,6 +229,20 @@ $(function(){
               <button type="button" class="btn-cancel-cxp p-1.5 rounded bg-red-100 text-red-600 hover:bg-red-200 transition" title="Cancelar Cuenta" data-id="${row.cxp_id}" ${disabledAttr}>
                 <i class="ri-close-circle-line text-lg"></i>
               </button>
+            </div>
+            
+            <div class="mt-2 flex justify-center gap-1.5 items-center">
+              <div class="flex items-center justify-center w-6 h-6 rounded-full border ${row.pdf_path ? 'bg-red-500 border-red-500 text-white' : 'border-gray-300 text-gray-400 bg-transparent'} text-xs font-bold" title="Documento PDF">
+                <i class="ri-file-pdf-line"></i>
+              </div>
+              
+              <div class="flex items-center justify-center w-6 h-6 rounded-full border ${row.xml_path ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 text-gray-400 bg-transparent'} text-xs font-bold" title="Documento XML">
+                <i class="ri-file-code-line"></i>
+              </div>
+              
+              <div class="flex items-center justify-center min-w-[1.5rem] h-6 px-1 rounded-full border ${row.comprobantes_count > 0 ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 text-gray-400 bg-transparent'} text-xs font-bold" title="Comprobantes Cargados">
+                ${row.comprobantes_count > 0 ? row.comprobantes_count : '<i class="ri-receipt-line"></i>'}
+              </div>
             </div>
           `;
         }
@@ -472,7 +489,7 @@ $(function(){
   });
 
   function loadPayments(id) {
-    $('#payments-list').html('<tr><td colspan="4" class="text-center py-4">Cargando...</td></tr>');
+    $('#payments-list').html('<tr><td colspan="8" class="text-center py-4">Cargando...</td></tr>');
     $('#no-payments-msg').addClass('hidden');
 
     $.get(`/cuentas-por-pagar/${id}/payments`, function(res) {
@@ -487,7 +504,7 @@ $(function(){
             if (p.banco === 'nullable|string') p.banco = null;
             if (p.metodo_pago === 'nullable|string') p.metodo_pago = null;
 
-            const bancoMetodo = `${renderBancoBadge(p.banco)} <span class="text-gray-500 ml-1">${p.metodo_pago || ''}</span>`;
+            const bancoMetodo = `<span class="text-gray-800">${p.metodo_pago || '—'}</span>`;
             tbody.append(`
               <tr>
                 <td class="px-4 py-2 text-gray-500">#${p.id}</td>
@@ -499,6 +516,16 @@ $(function(){
                   ${p.comprobante ? `<a href="/${p.comprobante}" target="_blank" class="text-blue-600 hover:underline"><i class="ri-file-text-line"></i> Ver</a>` : '<span class="text-gray-400">N/A</span>'}
                 </td>
                 <td class="px-4 py-2 text-right font-semibold text-green-700">${formatCurrency(p.amount)}</td>
+                <td class="px-4 py-2 text-center">
+                  <div class="flex items-center justify-center gap-2">
+                    <button type="button" class="btn-edit-payment p-1 rounded bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Editar" data-payment='${escapeHtml(JSON.stringify(p))}'>
+                      <i class="ri-edit-2-line"></i>
+                    </button>
+                    <button type="button" class="btn-delete-payment p-1 rounded bg-red-100 text-red-600 hover:bg-red-200 transition" title="Eliminar" data-id="${p.id}">
+                      <i class="ri-delete-bin-line"></i>
+                    </button>
+                  </div>
+                </td>
               </tr>
             `);
           });
@@ -510,12 +537,12 @@ $(function(){
   // Guardar Abono
   $('#add-payment-form').on('submit', function(e) {
     e.preventDefault();
-    const id = $('#pay-cxp-id').val();
+    const cxpId = $('#pay-cxp-id').val();
+    
     const formData = new FormData(this);
     formData.append('amount', $('#pay-amount').val());
     formData.append('date', $('#pay-date').val());
     formData.append('notas', $('#pay-notas').val());
-    formData.append('banco', $('#pay-banco').val());
     formData.append('metodo_pago', $('#pay-metodo').val());
     
     const fileInput = document.getElementById('pay-comprobante');
@@ -523,10 +550,10 @@ $(function(){
       formData.append('comprobante', fileInput.files[0]);
     }
 
-    $('#btn-save-payment').prop('disabled', true);
+    $('#btn-save-payment').prop('disabled', true).html('<i class="ri-loader-4-line animate-spin"></i> Guardando...');
 
     $.ajax({
-      url: `/cuentas-por-pagar/${id}/payments`,
+      url: `/cuentas-por-pagar/${cxpId}/payments`,
       method: 'POST',
       data: formData,
       processData: false,
@@ -534,26 +561,154 @@ $(function(){
       headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
       success: function(res) {
         if(res.success) {
-          Swal.fire({
-            toast: true, position: 'top-end', showConfirmButton: false, timer: 3000,
-            icon: 'success', title: res.message
-          });
-          loadPayments(id);
+          Swal.fire('Guardado', res.message, 'success');
+          
+          $('#pay-amount').val('');
+          $('#pay-date').val(new Date().toISOString().split('T')[0]);
+          $('#pay-metodo').val('');
+          $('#pay-comprobante').val('');
+          $('#pay-notas').val('');
+          
+          loadPayments(cxpId);
           table.ajax.reload(null, false);
           
-          const currentSaldo = parseFloat($('#pay-saldo').text().replace(/[^0-9.-]+/g,""));
-          const newSaldo = currentSaldo - parseFloat(payload.amount);
-          $('#pay-saldo').text(formatCurrency(newSaldo));
-          $('#pay-amount').val('');
+          $.get(`/cuentas-por-pagar/datatable?semana=&month=&year=`, function(dataResponse) {
+             const cxpRow = dataResponse.data.find(r => r.cxp_id == cxpId);
+             if (cxpRow) {
+                 $('#pay-saldo').text(formatCurrency(cxpRow.saldo));
+                 if (parseFloat(cxpRow.saldo) <= 0) {
+                     $('#add-payment-container input, #add-payment-container select, #add-payment-container textarea, #add-payment-container button').prop('disabled', true);
+                     $('#btn-save-payment').text('Cuenta Pagada').removeClass('hover:bg-[#157347]').addClass('opacity-50 cursor-not-allowed');
+                 } else {
+                     $('#add-payment-container input, #add-payment-container select, #add-payment-container textarea, #add-payment-container button').prop('disabled', false);
+                 }
+             }
+          });
         }
       },
       error: function(xhr) {
-        Swal.fire('Error', xhr.responseJSON?.message || 'Error al añadir abono', 'error');
+        Swal.fire('Error', xhr.responseJSON?.message || 'Error al registrar el abono', 'error');
       },
       complete: function() {
-        $('#btn-save-payment').prop('disabled', false);
+        $('#btn-save-payment').prop('disabled', false).html('<i class="ri-save-line"></i> Registrar');
       }
     });
+  });
+
+  $(document).on('click', '.btn-edit-payment', function() {
+      const p = $(this).data('payment');
+      const cxpId = $('#pay-cxp-id').val();
+      
+      $('#edit-pay-id').val(p.id);
+      $('#edit-pay-cxp-id').val(cxpId);
+      $('#edit-pay-amount').val(p.amount);
+      $('#edit-pay-date').val(toInputDate(p.date));
+      $('#edit-pay-metodo').val(p.metodo_pago || '');
+      $('#edit-pay-notas').val(p.notas || '');
+      $('#edit-pay-comprobante').val('');
+      
+      $('#edit-payment-title').text('Editar Abono #' + p.id);
+      $('#btn-open-edit-payment').trigger('click');
+  });
+
+  $('#edit-payment-form').on('submit', function(e) {
+      e.preventDefault();
+      const paymentId = $('#edit-pay-id').val();
+      const cxpId = $('#edit-pay-cxp-id').val();
+      
+      const formData = new FormData(this);
+      formData.append('amount', $('#edit-pay-amount').val());
+      formData.append('date', $('#edit-pay-date').val());
+      formData.append('notas', $('#edit-pay-notas').val());
+      formData.append('metodo_pago', $('#edit-pay-metodo').val());
+      formData.append('_method', 'PUT'); // For Laravel put method
+      
+      const fileInput = document.getElementById('edit-pay-comprobante');
+      if (fileInput.files[0]) {
+        formData.append('comprobante', fileInput.files[0]);
+      }
+      
+      $('#btn-save-edit-payment').prop('disabled', true).html('<i class="ri-loader-4-line animate-spin"></i> Guardando...');
+
+      $.ajax({
+        url: `/cuentas-por-pagar/payments/${paymentId}`,
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
+        success: function(res) {
+          if(res.success) {
+            Swal.fire('Guardado', res.message, 'success');
+            $('#edit-payment-modal').find('.close-modal').trigger('click');
+            
+            loadPayments(cxpId);
+            table.ajax.reload(null, false);
+            
+            $.get(`/cuentas-por-pagar/datatable?semana=&month=&year=`, function(dataResponse) {
+               const cxpRow = dataResponse.data.find(r => r.cxp_id == cxpId);
+               if (cxpRow) {
+                   $('#pay-saldo').text(formatCurrency(cxpRow.saldo));
+                   if (parseFloat(cxpRow.saldo) <= 0) {
+                       $('#add-payment-container input, #add-payment-container select, #add-payment-container textarea, #add-payment-container button').prop('disabled', true);
+                       $('#btn-save-payment').text('Cuenta Pagada').removeClass('hover:bg-[#157347]').addClass('opacity-50 cursor-not-allowed');
+                   } else {
+                       $('#add-payment-container input, #add-payment-container select, #add-payment-container textarea, #add-payment-container button').prop('disabled', false);
+                       $('#btn-save-payment').html('<i class="ri-save-line"></i> Registrar').removeClass('opacity-50 cursor-not-allowed').addClass('hover:bg-[#157347]');
+                   }
+               }
+            });
+          }
+        },
+        error: function(xhr) {
+          Swal.fire('Error', xhr.responseJSON?.message || 'Error al guardar el abono', 'error');
+        },
+        complete: function() {
+          $('#btn-save-edit-payment').prop('disabled', false).html('<i class="ri-save-line"></i> Guardar Cambios');
+        }
+      });
+  });
+
+  $(document).on('click', '.btn-delete-payment', function() {
+      const paymentId = $(this).data('id');
+      const cxpId = $('#pay-cxp-id').val();
+      
+      Swal.fire({
+          title: '¿Eliminar abono?',
+          text: 'Esta acción no se puede deshacer.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#dc3545',
+          confirmButtonText: 'Sí, eliminar',
+          cancelButtonText: 'Cancelar'
+      }).then((result) => {
+          if(result.isConfirmed) {
+              $.ajax({
+                  url: `/cuentas-por-pagar/payments/${paymentId}`,
+                  method: 'DELETE',
+                  headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
+                  success: function(res) {
+                      if(res.success) {
+                          Swal.fire('Eliminado', res.message, 'success');
+                          loadPayments(cxpId);
+                          table.ajax.reload(null, false);
+                          
+                          $.get(`/cuentas-por-pagar/datatable?semana=&month=&year=`, function(dataResponse) {
+                             const cxpRow = dataResponse.data.find(r => r.cxp_id == cxpId);
+                             if (cxpRow) {
+                                 $('#pay-saldo').text(formatCurrency(cxpRow.saldo));
+                                 $('#add-payment-container input, #add-payment-container select, #add-payment-container textarea, #add-payment-container button').prop('disabled', false);
+                                 $('#btn-save-payment').html('<i class="ri-save-line"></i> Registrar').removeClass('opacity-50 cursor-not-allowed').addClass('hover:bg-[#157347]');
+                             }
+                          });
+                      }
+                  },
+                  error: function(xhr) {
+                      Swal.fire('Error', xhr.responseJSON?.message || 'Error al eliminar el abono', 'error');
+                  }
+              });
+          }
+      });
   });
 
 });

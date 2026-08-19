@@ -505,6 +505,8 @@ Route::prefix('laboratory/equipments')->group(function () {
         Route::post('/{id}/cancel', [\App\Http\Controllers\CuentasPorPagarController::class, 'cancel'])->name('cuentas-por-pagar.cancel');
         Route::get('/{id}/payments', [\App\Http\Controllers\CuentasPorPagarController::class, 'getPayments'])->name('cuentas-por-pagar.payments.list');
         Route::post('/{id}/payments', [\App\Http\Controllers\CuentasPorPagarController::class, 'addPayment'])->name('cuentas-por-pagar.payments.add');
+        Route::put('/payments/{payment_id}', [\App\Http\Controllers\CuentasPorPagarController::class, 'updatePayment'])->name('cuentas-por-pagar.payments.update');
+        Route::delete('/payments/{payment_id}', [\App\Http\Controllers\CuentasPorPagarController::class, 'deletePayment'])->name('cuentas-por-pagar.payments.delete');
         Route::post('/{id}/documents', [\App\Http\Controllers\CuentasPorPagarController::class, 'uploadDocuments'])->name('cuentas-por-pagar.documents.upload');
         Route::delete('/{id}/comentario-img', [\App\Http\Controllers\CuentasPorPagarController::class, 'deleteComentarioImg'])->name('cuentas-por-pagar.delete-img');
     });

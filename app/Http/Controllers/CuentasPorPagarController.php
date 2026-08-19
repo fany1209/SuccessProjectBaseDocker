@@ -298,17 +298,21 @@ class CuentasPorPagarController extends Controller
             ->get();
 
         $payments = DB::table('cxp_payments')
-            ->select('cxp_detail_id', DB::raw("SUM(amount) as total_pagado"))
+            ->select('cxp_detail_id', DB::raw("SUM(amount) as total_pagado"), DB::raw("COUNT(comprobante) as comprobantes_count"))
             ->groupBy('cxp_detail_id')
             ->get()
             ->keyBy('cxp_detail_id');
 
         foreach ($facturas as $factura) {
-            $pagado = isset($payments[$factura->cxp_id]) ? $payments[$factura->cxp_id]->total_pagado : 0;
+            $paymentInfo = isset($payments[$factura->cxp_id]) ? $payments[$factura->cxp_id] : null;
+            $pagado = $paymentInfo ? $paymentInfo->total_pagado : 0;
+            $comprobantes_count = $paymentInfo ? $paymentInfo->comprobantes_count : 0;
+            
             $factura->total = round($factura->total, 2);
             $factura->saldo = round($factura->total - $pagado, 2);
             $factura->pagado = round($pagado, 2);
             $factura->is_canceled = (bool) $factura->is_canceled;
+            $factura->comprobantes_count = $comprobantes_count;
         }
 
         return response()->json(['data' => $facturas]);
@@ -444,6 +448,80 @@ class CuentasPorPagarController extends Controller
         $cxp->update(['estatus' => $newEstatus]);
 
         return response()->json(['success' => true, 'message' => 'Abono añadido correctamente']);
+    }
+
+    public function updatePayment(Request $request, $payment_id)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'date' => 'required|date',
+            'comprobante' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:25600',
+            'notas' => 'nullable|string',
+            'banco' => 'nullable|string',
+            'metodo_pago' => 'nullable|string'
+        ]);
+
+        $payment = \App\Models\CxpPayment::findOrFail($payment_id);
+        $cxp = CxpDetail::findOrFail($payment->cxp_detail_id);
+
+        if ($cxp->is_canceled) {
+            return response()->json(['success' => false, 'message' => 'No se pueden editar pagos de una cuenta cancelada.'], 403);
+        }
+
+        if ($request->hasFile('comprobante')) {
+            $file = $request->file('comprobante');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(base_path('public/uploads/cxp/payments'), $filename);
+            $payment->comprobante = 'uploads/cxp/payments/' . $filename;
+        }
+
+        $payment->update([
+            'amount' => $request->amount,
+            'date' => $request->date,
+            'notas' => $request->notas,
+            'banco' => $request->banco,
+            'metodo_pago' => $request->metodo_pago,
+        ]);
+
+        $factura = DB::table('facturas')->where('factura_id', $cxp->factura_id)->first();
+        $pagado = $cxp->payments()->sum('amount');
+        $saldo = round($factura->total - $pagado, 2);
+
+        $newEstatus = 'PENDIENTE';
+        if ($saldo <= 0) {
+            $newEstatus = 'PAGADO';
+        } elseif ($pagado > 0) {
+            $newEstatus = 'PARCIAL';
+        }
+        $cxp->update(['estatus' => $newEstatus]);
+
+        return response()->json(['success' => true, 'message' => 'Abono actualizado correctamente']);
+    }
+
+    public function deletePayment($payment_id)
+    {
+        $payment = \App\Models\CxpPayment::findOrFail($payment_id);
+        $cxp = CxpDetail::findOrFail($payment->cxp_detail_id);
+
+        if ($cxp->is_canceled) {
+            return response()->json(['success' => false, 'message' => 'No se pueden eliminar pagos de una cuenta cancelada.'], 403);
+        }
+
+        $payment->delete();
+
+        $factura = DB::table('facturas')->where('factura_id', $cxp->factura_id)->first();
+        $pagado = $cxp->payments()->sum('amount');
+        $saldo = round($factura->total - $pagado, 2);
+
+        $newEstatus = 'PENDIENTE';
+        if ($saldo <= 0) {
+            $newEstatus = 'PAGADO';
+        } elseif ($pagado > 0) {
+            $newEstatus = 'PARCIAL';
+        }
+        $cxp->update(['estatus' => $newEstatus]);
+
+        return response()->json(['success' => true, 'message' => 'Abono eliminado correctamente']);
     }
 
     public function uploadDocuments(Request $request, $id)
@@ -682,7 +760,6 @@ class CuentasPorPagarController extends Controller
             $sheet->getStyle('L'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
             $sheet->getStyle('K'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
             $sheet->getStyle('K'.$row)->getAlignment()->setWrapText(true);
-            $sheet->getStyle('E'.$row)->getAlignment()->setWrapText(true);
 
             $row++;
         }
@@ -691,10 +768,6 @@ class CuentasPorPagarController extends Controller
         foreach (range('A', 'L') as $col) {
             if ($col === 'K') {
                 $sheet->getColumnDimension($col)->setWidth(35); // Comentarios wider for image
-            } elseif ($col === 'E') {
-                $sheet->getColumnDimension($col)->setWidth(35); // Motivo wider
-            } elseif ($col === 'A') {
-                $sheet->getColumnDimension($col)->setWidth(25); // Empresa
             } else {
                 $sheet->getColumnDimension($col)->setAutoSize(true);
             }
