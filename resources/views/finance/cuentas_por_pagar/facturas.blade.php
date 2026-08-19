@@ -179,7 +179,12 @@ $(function(){
           return `<span class="px-2 py-1 rounded text-xs font-semibold uppercase ${color}">${data}</span>`;
       }},
       { data: 'comentarios', render: function(data, type, row) {
-          let html = `<span class="text-xs text-gray-600 break-words max-w-[150px] block" title="${data}">${data || '—'}</span>`;
+          let html = '';
+          if (data) {
+              html += `<span class="text-xs text-gray-600 break-words max-w-[150px] block" title="${data}">${data}</span>`;
+          } else if (!row.comentario_img) {
+              html += `<span class="text-xs text-gray-600">—</span>`;
+          }
           if (row.comentario_img) {
             const ext = row.comentario_img.split('.').pop().toLowerCase();
             const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
