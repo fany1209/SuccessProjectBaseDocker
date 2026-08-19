@@ -1,3 +1,8 @@
+@php
+  $isAdmin = auth()->user()->canany(['purchases.admin', 'quality.purchases']);
+  $colCount = $isAdmin ? 10 : 5; 
+@endphp
+
 <table id="warehouse-table" class="display w-full divide-y divide-gray-200 table-fixed text-md text-left">
     <thead class="bg-gray-50 text-gray-700 uppercase text-md">
         <tr>

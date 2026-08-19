@@ -31,7 +31,10 @@ class ContratoController extends Controller
                 Storage::disk('public')->delete($contrato->$periodo);
             }
 
-            $path = $request->file('archivo')->store('contratos', 'public');
+            //$path = $request->file('archivo')->store('contratos', 'public');
+              $originalName = $request->file('archivo')->getClientOriginalName();
+            $filename = $request->user_id . '_' . $periodo . '_' . time() . '_' . $originalName;
+            $path = $request->file('archivo')->storeAs('contratos', $filename, 'public_html');
             $contrato->$periodo = $path;
             $contrato->save();
         }

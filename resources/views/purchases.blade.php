@@ -21,9 +21,9 @@ Fecha de actualización: 18-02-2026
 
         <x-nav-button data-button="comparative2" class="option-btn">Yours Comparative Table</x-nav-button>
 
-        @can('purchases.warehouse')
+        @canany(['purchases.warehouse', 'quality.purchases'])
             <x-nav-button data-button="warehouse" class="option-btn">Warehouse</x-nav-button>
-        @endcan
+        @endcanany
 
         <x-tittle-form class="border-b-2 border-green-700 pb-2">Formats</x-tittle-form>
         <p class="text-sm text-gray-600">Select the format you want to generate.</p>
