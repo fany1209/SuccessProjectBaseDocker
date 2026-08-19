@@ -58,16 +58,28 @@ class CuentasPorPagarController extends Controller
     {
         $selectedMonth = $request->input('month', now()->month);
         $selectedYear = $request->input('year', now()->year);
+        $selectedSemana = $request->input('semana');
         $targetDate = \Carbon\Carbon::create($selectedYear, $selectedMonth, 1)->endOfMonth();
 
-        $facturas = DB::table('cxp_details as cxp')
-            ->join('facturas as f', 'f.factura_id', '=', 'cxp.factura_id')
-            ->select(
+        $query = DB::table('cxp_details as cxp')
+            ->join('facturas as f', 'f.factura_id', '=', 'cxp.factura_id');
+            
+        if ($selectedSemana) {
+            $query->where('cxp.semana', $selectedSemana);
+        } else {
+            // If no week is selected, filter by month and year? 
+            // The dashboard originally didn't filter $facturas by month/year for the KPIs, it just took all of them!
+            // Wait, let's keep the original behavior: no month/year filter on $facturas, only on Chart 2 (Pagos por mes).
+            // But if semana is selected, we filter by semana.
+        }
+
+        $facturas = $query->select(
                 'cxp.id as cxp_id',
                 'cxp.fecha_pago',
                 'cxp.estatus',
                 'cxp.is_canceled',
                 'f.empresa',
+                'f.departamento',
                 'f.total',
                 'f.fecha_factura'
             )
@@ -90,6 +102,9 @@ class CuentasPorPagarController extends Controller
 
         // Gráfica: Proveedores
         $proveedoresMap = [];
+        
+        // Gráfica: Departamentos
+        $departamentosMap = [];
 
         // Gráfica: Antigüedad
         $agingBuckets = [
@@ -103,6 +118,17 @@ class CuentasPorPagarController extends Controller
             $pagos = isset($paymentsGrouped[$factura->cxp_id]) ? $paymentsGrouped[$factura->cxp_id] : collect();
             $pagado = $pagos->sum('amount');
             $saldo = round($factura->total - $pagado, 2);
+            
+            // Chart 4: Departamentos que más gastan (Total Facturado, sin importar si se pagó o no)
+            if (!$factura->is_canceled) {
+                $rawDep = $factura->departamento ?: 'Sin Departamento';
+                $dep = mb_convert_case(trim($rawDep), MB_CASE_TITLE, "UTF-8");
+                
+                if (!isset($departamentosMap[$dep])) {
+                    $departamentosMap[$dep] = 0;
+                }
+                $departamentosMap[$dep] += $factura->total;
+            }
 
             if (!$factura->is_canceled && $factura->estatus !== 'PAGADO' && $saldo > 0) {
                 // KPI 1: Total por pagar
@@ -122,7 +148,9 @@ class CuentasPorPagarController extends Controller
                 }
 
                 // Chart 1: Proveedores
-                $emp = $factura->empresa ?: 'Desconocido';
+                $rawEmp = $factura->empresa ?: 'Desconocido';
+                $emp = mb_convert_case(trim($rawEmp), MB_CASE_TITLE, "UTF-8");
+                
                 if (!isset($proveedoresMap[$emp])) {
                     $proveedoresMap[$emp] = 0;
                 }
@@ -178,9 +206,14 @@ class CuentasPorPagarController extends Controller
         // Format Provider Chart Data (Top 10 max to avoid clutter)
         arsort($proveedoresMap);
         $topProveedores = array_slice($proveedoresMap, 0, 10, true);
-        
         $proveedoresLabels = array_keys($topProveedores);
         $proveedoresData = array_values($topProveedores);
+        
+        // Format Departamentos Chart Data
+        arsort($departamentosMap);
+        $topDepartamentos = array_slice($departamentosMap, 0, 10, true);
+        $departamentosLabels = array_keys($topDepartamentos);
+        $departamentosData = array_values($topDepartamentos);
 
         // Format Months Chart Data
         $mesesLabels = [];
@@ -208,8 +241,11 @@ class CuentasPorPagarController extends Controller
             'mesesLabels',
             'mesesData',
             'agingData',
+            'departamentosLabels',
+            'departamentosData',
             'selectedMonth',
-            'selectedYear'
+            'selectedYear',
+            'selectedSemana'
         ));
     }
 

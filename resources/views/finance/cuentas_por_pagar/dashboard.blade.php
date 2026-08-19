@@ -38,6 +38,15 @@
             @endfor
           </select>
         </div>
+        <div class="flex items-center gap-2">
+          <label for="semana" class="text-sm font-medium text-gray-600">Semana Fiscal:</label>
+          <select name="semana" id="semana" class="text-sm border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
+            <option value="">Todas</option>
+            @for ($i = 1; $i <= 53; $i++)
+              <option value="{{ $i }}" {{ (isset($selectedSemana) && $selectedSemana == $i) ? 'selected' : '' }}>{{ $i }}</option>
+            @endfor
+          </select>
+        </div>
         <button type="submit" class="bg-[#198754] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#157347] transition flex items-center gap-1">
           <i class="ri-filter-3-line"></i> Filtrar
         </button>
@@ -132,19 +141,35 @@
 
     </div>
 
-    <!-- Gráfica Secundaria (Antigüedad) -->
-    <div class="grid grid-cols-1 mb-6">
+    <!-- Gráfica Secundaria (Antigüedad y Departamentos) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      
+      <!-- Antigüedad -->
       <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 relative overflow-hidden">
         <div class="flex items-center justify-between mb-6 relative z-10">
           <div>
             <h2 class="text-lg font-bold text-gray-800"><i class="ri-pie-chart-line text-[#198754] mr-2"></i>Antigüedad de Cuentas por Pagar</h2>
-            <p class="text-sm text-gray-500">Saldos agrupados por días desde la emisión de la factura</p>
+            <p class="text-sm text-gray-500">Saldos agrupados por días desde la emisión</p>
           </div>
         </div>
         <div class="w-full h-[320px] relative z-10 flex justify-center">
           <canvas id="agingChart"></canvas>
         </div>
       </div>
+
+      <!-- Departamentos -->
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 relative overflow-hidden">
+        <div class="flex items-center justify-between mb-6 relative z-10">
+          <div>
+            <h2 class="text-lg font-bold text-gray-800"><i class="ri-donut-chart-fill text-[#198754] mr-2"></i>Gastos por Departamento</h2>
+            <p class="text-sm text-gray-500">Distribución del gasto total facturado (Top 10)</p>
+          </div>
+        </div>
+        <div class="w-full h-[320px] relative z-10 flex justify-center">
+          <canvas id="departamentosChart"></canvas>
+        </div>
+      </div>
+
     </div>
 
   </section>
@@ -281,6 +306,59 @@
             '#fbbf24', // yellow (31-60)
             '#f97316', // orange (61-90)
             '#ef4444'  // red (90+)
+          ],
+          borderWidth: 2,
+          borderColor: '#ffffff',
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              font: { family: "'Inter', sans-serif", size: 13 },
+              usePointStyle: true,
+              padding: 20
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            callbacks: {
+              label: function(context) { 
+                return ' ' + context.label + ': ' + formatCurrency(context.parsed); 
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // --- 4. Gráfica de Departamentos (Dona) ---
+    const ctxDept = document.getElementById('departamentosChart').getContext('2d');
+    const deptLabels = @json($departamentosLabels ?? []);
+    const deptData = @json($departamentosData ?? []);
+
+    new Chart(ctxDept, {
+      type: 'doughnut',
+      data: {
+        labels: deptLabels,
+        datasets: [{
+          data: deptData,
+          backgroundColor: [
+            '#059669', // emerald
+            '#0284c7', // light blue
+            '#8b5cf6', // violet
+            '#f59e0b', // amber
+            '#ef4444', // red
+            '#14b8a6', // teal
+            '#ec4899', // pink
+            '#f97316', // orange
+            '#6366f1', // indigo
+            '#64748b'  // slate
           ],
           borderWidth: 2,
           borderColor: '#ffffff',
