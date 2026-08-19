@@ -63,12 +63,14 @@ class UserController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'role_id'  => 'required|exists:roles,id',
             'profile_photo' => 'nullable|image|mimes:jpg,jpeg,png,bmp,svg,webp|max:2048',
+            'status'   => 'required|in:Activo,Inactivo',
         ]);
 
         $user = new User();
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
+        $user->status = $request->status;
 
         if ($request->hasFile('profile_photo')) {
             $user->profile_photo_path = $request->file('profile_photo')->store('users', 'public');
@@ -91,10 +93,12 @@ class UserController extends Controller
             'password' => 'nullable|string|min:8|confirmed',
             'role_id'  => 'required|exists:roles,id',
             'profile_photo' => 'nullable|image|mimes:jpg,jpeg,png,bmp,svg,webp|max:2048',
+            'status'   => 'required|in:Activo,Inactivo',
         ]);
 
         $user->name = $request->name;
         $user->email = $request->email;
+        $user->status = $request->status;
 
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);

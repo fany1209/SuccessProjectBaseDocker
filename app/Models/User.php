@@ -39,6 +39,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'status',
         'password',
     ];
 
@@ -100,5 +101,10 @@ class User extends Authenticatable
     public function isAdmin()
     {
         return $this->hasRole('Admin'); 
+    }
+
+    public function contrato()
+    {
+        return $this->hasOne(Contrato::class, 'user_id');
     }
 }
