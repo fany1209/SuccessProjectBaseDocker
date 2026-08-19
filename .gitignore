@@ -26,3 +26,5 @@ Thumbs.db
 # Docker
 .env.docker
 /docker/mysql/data/
+*.jpeg
+*.jpg
