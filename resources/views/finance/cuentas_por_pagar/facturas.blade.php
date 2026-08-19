@@ -297,6 +297,7 @@ $(function(){
     $('#edit-semana').val(row.semana);
     $('#edit-banco').val(row.banco);
     $('#edit-departamento-cxp').val(row.departamento);
+    $('#edit-fecha-pago').val(row.fecha_pago || '');
     $('#edit-comentarios-cxp').val(row.comentarios);
     $('#edit-comentario-img').val('');
     
@@ -411,6 +412,7 @@ $(function(){
     formData.append('semana', $('#edit-semana').val());
     formData.append('banco', $('#edit-banco').val());
     formData.append('departamento', $('#edit-departamento-cxp').val());
+    formData.append('fecha_pago', $('#edit-fecha-pago').val());
     formData.append('comentarios', $('#edit-comentarios-cxp').val());
 
     const imgFile = $('#edit-comentario-img')[0].files[0];

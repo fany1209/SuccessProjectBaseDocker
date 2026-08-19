@@ -321,6 +321,7 @@ class CuentasPorPagarController extends Controller
             'banco' => 'nullable|string',
             'departamento' => 'nullable|string|max:255',
             'comentarios' => 'nullable|string',
+            'fecha_pago' => 'nullable|date',
             'comentario_img' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:20480'
         ]);
 
@@ -332,7 +333,8 @@ class CuentasPorPagarController extends Controller
 
         $cxp->update([
             'semana' => $request->semana,
-            'comentarios' => $request->comentarios
+            'comentarios' => $request->comentarios,
+            'fecha_pago' => $request->fecha_pago
         ]);
 
         if ($request->hasFile('comentario_img')) {
@@ -515,10 +517,18 @@ class CuentasPorPagarController extends Controller
                 'f.metodo_pago',
                 'f.total'
             )
+            
+            ->orderByRaw("CASE WHEN cxp.estatus = 'PENDIENTE' THEN 1 WHEN cxp.estatus = 'PARCIAL' THEN 2 WHEN cxp.estatus = 'PAGADO' THEN 3 ELSE 4 END")
             ->orderByDesc('f.factura_id')
             ->get();
+            
+        $paymentsList = DB::table('cxp_payments')
+            ->select('cxp_detail_id', 'amount')
+            ->get();
+        $paymentsGrouped = $paymentsList->groupBy('cxp_detail_id');
 
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $spreadsheet->getDefaultStyle()->getFont()->setName('Arial')->setSize(10);
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Cuentas por Pagar');
 
@@ -529,8 +539,8 @@ class CuentasPorPagarController extends Controller
         }
 
         $sheet->setCellValue('A1', $titleStr);
-        $sheet->mergeCells('A1:J1');
-        $sheet->getStyle('A1:J1')->applyFromArray([
+        $sheet->mergeCells('A1:L1');
+        $sheet->getStyle('A1:L1')->applyFromArray([
             'font' => [
                 'bold' => true,
                 'size' => 14,
@@ -548,7 +558,7 @@ class CuentasPorPagarController extends Controller
         $sheet->getRowDimension(1)->setRowHeight(25);
 
         // Header Row (Row 2)
-        $headers = ['Empresa', 'Cantidad', 'Motivo', 'Banco', 'Factura', 'Fecha de factura', 'Fecha de pago', 'Estatus', 'Comentarios', 'Departamento'];
+        $headers = ['Empresa', 'Semana Fiscal', 'Cantidad', 'Restante', 'Motivo', 'Banco', 'Factura', 'Fecha de factura', 'Fecha de pago', 'Estatus', 'Comentarios', 'Departamento'];
         $columnLetter = 'A';
         foreach ($headers as $header) {
             $sheet->setCellValue($columnLetter . '2', $header);
@@ -578,16 +588,29 @@ class CuentasPorPagarController extends Controller
         foreach ($facturas as $factura) {
             $total = round($factura->total, 2);
             $factura->is_canceled = (bool) $factura->is_canceled;
+            
+            $pagos = isset($paymentsGrouped[$factura->cxp_id]) ? $paymentsGrouped[$factura->cxp_id] : collect();
+            $pagado = $pagos->sum('amount');
+            $restante = round($total - $pagado, 2);
 
             $sheet->setCellValue('A' . $row, $factura->empresa);
-            $sheet->setCellValue('B' . $row, $total);
-            $sheet->setCellValue('C' . $row, $factura->motivo);
-            $sheet->setCellValue('D' . $row, $factura->banco . ($factura->metodo_pago ? ' / ' . $factura->metodo_pago : ''));
-            $sheet->setCellValue('E' . $row, $factura->folio_factura);
-            $sheet->setCellValue('F' . $row, $factura->fecha_factura);
-            $sheet->setCellValue('G' . $row, $factura->fecha_pago);
+            $sheet->setCellValue('B' . $row, $factura->semana ? 'Semana ' . $factura->semana : '—');
+            $sheet->setCellValue('C' . $row, $total);
             
-            $estatusCell = 'H' . $row;
+            // Only show difference if it's partial or pending
+            if ($factura->estatus === 'PAGADO') {
+                $sheet->setCellValue('D' . $row, 0);
+            } else {
+                $sheet->setCellValue('D' . $row, $restante);
+            }
+            
+            $sheet->setCellValue('E' . $row, $factura->motivo);
+            $sheet->setCellValue('F' . $row, $factura->banco . ($factura->metodo_pago ? ' / ' . $factura->metodo_pago : ''));
+            $sheet->setCellValue('G' . $row, $factura->folio_factura);
+            $sheet->setCellValue('H' . $row, $factura->fecha_factura);
+            $sheet->setCellValue('I' . $row, $factura->fecha_pago);
+            
+            $estatusCell = 'J' . $row;
             if ($factura->is_canceled) {
                 $sheet->setCellValue($estatusCell, 'CANCELADO');
                 $sheet->getStyle($estatusCell)->getFont()->getColor()->setARGB(\PhpOffice\PhpSpreadsheet\Style\Color::COLOR_RED);
@@ -602,10 +625,10 @@ class CuentasPorPagarController extends Controller
                     $sheet->getStyle($estatusCell)->getFont()->getColor()->setARGB('FFF59E0B');
                 }
             }
-
-            // Comentarios and Image Injection
+            
+            // Comentarios and Image Injection (Column K)
             $comentariosText = $factura->comentarios;
-            $sheet->setCellValue('I' . $row, $comentariosText);
+            $sheet->setCellValue('K' . $row, $comentariosText);
 
             if ($factura->comentario_img) {
                 $ext = strtolower(pathinfo($factura->comentario_img, PATHINFO_EXTENSION));
@@ -616,7 +639,7 @@ class CuentasPorPagarController extends Controller
                         $drawing->setName('Comentario Adjunto');
                         $drawing->setDescription('Imagen del comentario');
                         $drawing->setPath($imagePath);
-                        $drawing->setCoordinates('I' . $row);
+                        $drawing->setCoordinates('K' . $row);
                         
                         // Set image size and row height
                         $drawing->setHeight(60); 
@@ -638,12 +661,13 @@ class CuentasPorPagarController extends Controller
                 }
             }
 
-            $sheet->setCellValue('J' . $row, $factura->departamento);
+            $sheet->setCellValue('L' . $row, $factura->departamento);
 
-            $sheet->getStyle('B' . $row)->getNumberFormat()->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_CURRENCY_USD);
+            $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_CURRENCY_USD);
+            $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_CURRENCY_USD);
 
             // Add basic borders to all cells in the row
-            $sheet->getStyle('A'.$row.':J'.$row)->applyFromArray([
+            $sheet->getStyle('A'.$row.':L'.$row)->applyFromArray([
                 'borders' => [
                     'allBorders' => [
                         'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
@@ -653,21 +677,24 @@ class CuentasPorPagarController extends Controller
             ]);
 
             // Alignment
-            $sheet->getStyle('A'.$row.':J'.$row)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
-            $sheet->getStyle('A'.$row.':H'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('J'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('I'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('I'.$row)->getAlignment()->setWrapText(true);
+            $sheet->getStyle('A'.$row.':L'.$row)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+            $sheet->getStyle('A'.$row.':J'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('L'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('K'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('K'.$row)->getAlignment()->setWrapText(true);
+            $sheet->getStyle('E'.$row)->getAlignment()->setWrapText(true);
 
             $row++;
         }
 
         // Set column widths
-        foreach (range('A', 'J') as $col) {
-            if ($col === 'I') {
-                $sheet->getColumnDimension($col)->setWidth(30); // Comentarios wider for image
-            } elseif ($col === 'A' || $col === 'C') {
-                $sheet->getColumnDimension($col)->setWidth(25); // Empresa and Motivo
+        foreach (range('A', 'L') as $col) {
+            if ($col === 'K') {
+                $sheet->getColumnDimension($col)->setWidth(35); // Comentarios wider for image
+            } elseif ($col === 'E') {
+                $sheet->getColumnDimension($col)->setWidth(35); // Motivo wider
+            } elseif ($col === 'A') {
+                $sheet->getColumnDimension($col)->setWidth(25); // Empresa
             } else {
                 $sheet->getColumnDimension($col)->setAutoSize(true);
             }

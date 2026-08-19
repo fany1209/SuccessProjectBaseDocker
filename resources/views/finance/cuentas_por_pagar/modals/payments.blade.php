@@ -38,6 +38,11 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
           <input type="text" id="edit-departamento-cxp" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" placeholder="Ej. TI, RH...">
         </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Pago</label>
+          <input type="date" id="edit-fecha-pago" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
+        </div>
 
         <div class="md:col-span-2 space-y-3">
           <div>
