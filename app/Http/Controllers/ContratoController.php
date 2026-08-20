@@ -11,34 +11,40 @@ class ContratoController extends Controller
 {
     public function index()
     {
-        $users = User::where('status', 'Activo')->with('contrato')->get();
-        return view('rh.contratos.index', compact('users'));
+        $trabajadores = User::where('status', 'Activo')->where('tipo_empleado', 'Trabajador')->with('contrato')->get();
+        $practicantes = User::where('status', 'Activo')->where('tipo_empleado', 'Practicante')->with('contrato')->get();
+        return view('rh.contratos.index', compact('trabajadores', 'practicantes'));
     }
 
     public function update(Request $request)
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
-            'periodo' => 'required|in:mes_1,mes_2,mes_3,indefinido',
-            'archivo' => 'required|mimes:pdf|max:10240', // max 10MB
+            'mes_1' => 'nullable|mimes:pdf|max:10240',
+            'mes_2' => 'nullable|mimes:pdf|max:10240',
+            'mes_3' => 'nullable|mimes:pdf|max:10240',
+            'indefinido' => 'nullable|mimes:pdf|max:10240',
+            'confidencialidad' => 'nullable|mimes:pdf|max:10240',
         ]);
 
         $contrato = Contrato::firstOrCreate(['user_id' => $request->user_id]);
-        $periodo = $request->periodo;
 
-        if ($request->hasFile('archivo')) {
-            if ($contrato->$periodo) {
-                Storage::disk('public')->delete($contrato->$periodo);
+        $campos = ['mes_1', 'mes_2', 'mes_3', 'indefinido', 'confidencialidad'];
+
+        foreach ($campos as $campo) {
+            if ($request->hasFile($campo)) {
+                if ($contrato->$campo) {
+                    Storage::disk('public_html')->delete($contrato->$campo);
+                }
+                $originalName = $request->file($campo)->getClientOriginalName();
+                $filename = $request->user_id . '_' . $campo . '_' . time() . '_' . $originalName;
+                $path = $request->file($campo)->storeAs('contratos', $filename, 'public_html');
+                $contrato->$campo = $path;
             }
-
-            //$path = $request->file('archivo')->store('contratos', 'public');
-              $originalName = $request->file('archivo')->getClientOriginalName();
-            $filename = $request->user_id . '_' . $periodo . '_' . time() . '_' . $originalName;
-            $path = $request->file('archivo')->storeAs('contratos', $filename, 'public_html');
-            $contrato->$periodo = $path;
-            $contrato->save();
         }
 
-        return redirect()->back()->with('success', 'Contrato guardado correctamente.');
+        $contrato->save();
+
+        return redirect()->back()->with('success', 'Contratos guardados correctamente.');
     }
 }

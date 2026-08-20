@@ -15,6 +15,7 @@ class Contrato extends Model
         'mes_2',
         'mes_3',
         'indefinido',
+        'confidencialidad',
     ];
 
     public function user()
