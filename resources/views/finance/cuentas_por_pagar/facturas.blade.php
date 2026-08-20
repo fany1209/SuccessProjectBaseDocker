@@ -166,7 +166,14 @@ $(function(){
     },
     columns: [
       { data: 'empresa', render: data => `<span class="font-bold text-gray-700">${data}</span>` },
-      { data: 'total', className: 'text-right font-medium', render: formatCurrency },
+      { data: 'total', className: 'text-right font-medium', render: function(data, type, row) {
+          if (row.moneda === 'USD') {
+              const mxn = data * (row.tipo_cambio || 1);
+              return `<div class="whitespace-nowrap">${formatCurrency(data)} <span class="text-xs">USD</span></div>
+                      <div class="text-[10px] text-gray-500 leading-tight whitespace-nowrap mt-1">(${formatCurrency(mxn)} MXN<br>TC: ${row.tipo_cambio})</div>`;
+          }
+          return `<div class="whitespace-nowrap">${formatCurrency(data)}</div>`;
+      } },
       { data: 'motivo', render: data => `<span class="text-xs truncate max-w-[150px] block" title="${data}">${data || '—'}</span>` },
       { data: 'folio_factura', render: data => `<span class="font-semibold text-blue-800">${data || '—'}</span>` },
       { data: 'fecha_factura', render: data => `<span class="text-xs text-gray-500">${formatDate(data)}</span>` },
