@@ -76,7 +76,7 @@ stefany
 
             <div class="row">
                 {{-- Role --}}
-                <div class="form-group col-6">
+                <div class="form-group col-4">
                     <label>Role</label>
                     <select class="form-control" name="role_id">
                         @foreach ($roles as $role)
@@ -87,11 +87,19 @@ stefany
                     </select>
                 </div>
                 {{-- Status --}}
-                <div class="form-group col-6">
+                <div class="form-group col-4">
                     <label>Status</label>
                     <select class="form-control" name="status">
                         <option value="Activo" {{ old('status', $user->status ?? 'Activo') == 'Activo' ? 'selected' : '' }}>Activo</option>
                         <option value="Inactivo" {{ old('status', $user->status ?? 'Activo') == 'Inactivo' ? 'selected' : '' }}>Inactivo</option>
+                    </select>
+                </div>
+                {{-- Tipo Empleado --}}
+                <div class="form-group col-4">
+                    <label>Tipo de Empleado</label>
+                    <select class="form-control" name="tipo_empleado">
+                        <option value="Trabajador" {{ old('tipo_empleado', $user->tipo_empleado ?? 'Trabajador') == 'Trabajador' ? 'selected' : '' }}>Trabajador</option>
+                        <option value="Practicante" {{ old('tipo_empleado', $user->tipo_empleado ?? 'Trabajador') == 'Practicante' ? 'selected' : '' }}>Practicante</option>
                     </select>
                 </div>
             </div>
@@ -155,6 +163,7 @@ stefany
                     <th>Email</th>
                     <th>Role</th>
                     <th>Status</th>
+                    <th>Tipo</th>
                     <th>Since</th>
                     <th>Photo</th>
                     <th>Actions</th>
@@ -174,6 +183,7 @@ stefany
                                 <span class="badge badge-danger">Inactivo</span>
                             @endif
                         </td>
+                        <td><span class="badge badge-secondary">{{ $user->tipo_empleado }}</span></td>
                         <td> {{ $user->created_at ? $user->created_at->format('Y-m-d') : 'N/A' }}</td>
                         <td>
                             @if ($user->profile_photo_path)
