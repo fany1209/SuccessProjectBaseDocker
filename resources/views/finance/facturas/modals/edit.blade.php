@@ -306,6 +306,9 @@ $(function(){
                     $('.close-modal').trigger('click');
                     $('#facturas-table').DataTable().ajax.reload();
                     
+                    // Notificar a otras pestañas que deben recargar (ej. tabla de precios)
+                    localStorage.setItem('factura_updated', Date.now());
+                    
                     Swal.fire({
                         icon: 'success',
                         title: '¡Actualizado!',
