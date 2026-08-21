@@ -11,6 +11,6 @@ Fecha de actualización: 08-10-2025
     <x-button data-target="make-transaction" class="open-modal">Make Transaction</x-button>@include('inventory.home.modals.addTransaction')
     <x-button data-target="movements" class="open-modal">Movements</x-button>@include('inventory.home.modals.movements')@include('inventory.home.modals.alterDateModal')@include('inventory.home.modals.editTransaction')
     @can('warehouse.show')
-    <a href="{{ route('reports') }}" target="_blank"><x-button-1 colorBtn="green"><i class="ri-file-excel-2-line"></i>Reports</x-button-1></a>
+    <x-button-1 data-target="export-reports" class="open-modal" colorBtn="green"><i class="ri-file-excel-2-line"></i>Reports</x-button-1>@include('inventory.home.modals.exportReports')
     @endcan
 </section>

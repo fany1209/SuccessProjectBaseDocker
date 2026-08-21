@@ -137,6 +137,24 @@ class FacturaController extends Controller
             }
             DB::table('factura_detalles')->insert($detallesAInsertar);
 
+            // Crear registros en la tabla de precios (supplier_prices)
+            $preciosAInsertar = [];
+            foreach ($request->productos as $p) {
+                $preciosAInsertar[] = [
+                    'factura_id'       => $facturaId,
+                    'insumo'           => $p['producto'],
+                    'clave_sat'        => $p['clave_sat'] ?? null,
+                    'proveedor'        => $request->empresa,
+                    'precio'           => $p['precio_unitario'],
+                    'tiene_iva'        => $p['aplica_iva'] ? 1 : 0,
+                    'fecha_cotizacion' => $request->fecha_factura,
+                    'moneda'           => $request->moneda ?? 'MXN',
+                    'created_at'       => now(),
+                    'updated_at'       => now(),
+                ];
+            }
+            DB::table('supplier_prices')->insert($preciosAInsertar);
+
             // Crear registro automático en Cuentas por Pagar (cxp_details)
             DB::table('cxp_details')->insert([
                 'factura_id'  => $facturaId,
@@ -284,6 +302,25 @@ class FacturaController extends Controller
             DB::table('factura_detalles')->where('factura_id', $id)->delete();
             DB::table('factura_detalles')->insert($detallesAInsertar);
 
+            // Registrar en la tabla de precios (supplier_prices) también al actualizar
+            $preciosAInsertar = [];
+            foreach ($request->productos as $p) {
+                $preciosAInsertar[] = [
+                    'factura_id'       => $id,
+                    'insumo'           => $p['producto'],
+                    'clave_sat'        => $p['clave_sat'] ?? null,
+                    'proveedor'        => $request->empresa,
+                    'precio'           => $p['precio_unitario'],
+                    'tiene_iva'        => $p['aplica_iva'] ? 1 : 0,
+                    'fecha_cotizacion' => $request->fecha_factura,
+                    'moneda'           => $request->moneda ?? 'MXN',
+                    'created_at'       => now(),
+                    'updated_at'       => now(),
+                ];
+            }
+            DB::table('supplier_prices')->where('factura_id', $id)->delete();
+            DB::table('supplier_prices')->insert($preciosAInsertar);
+
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Documento actualizado correctamente']);
 
@@ -299,6 +336,7 @@ class FacturaController extends Controller
         try {
             DB::table('factura_detalles')->where('factura_id', $id)->delete();
             DB::table('facturas')->where('factura_id', $id)->delete();
+            DB::table('supplier_prices')->where('factura_id', $id)->delete();
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Documento eliminado correctamente']);
         } catch (\Throwable $e) {

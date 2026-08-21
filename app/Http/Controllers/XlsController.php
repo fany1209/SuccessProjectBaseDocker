@@ -15,15 +15,21 @@ use App\Models\ProductOutputs;
 
 class XlsController extends Controller
 {
-    public function reports()
+    public function reports(Request $request)
     {
+        $year = $request->input('year');
         $months = 6;
-
+        
         $spreadsheet = new Spreadsheet();
         $activeSheet = $spreadsheet->getActiveSheet();
-        $activeSheet->setTitle('Salidas '.$months.' meses');
+        
+        if ($year) {
+            $activeSheet->setTitle('Salidas ' . $year);
+        } else {
+            $activeSheet->setTitle('Salidas '.$months.' meses');
+        }
 
-        $outputs = DB::table('product_outputs')
+        $outputsQuery = DB::table('product_outputs')
             ->select(
                 DB::raw("concat(DAY(outputs.updated_at), '-', MONTH(outputs.updated_at), '-', YEAR(outputs.updated_at)) as outputDate"),
                 'customers.name as cName',
@@ -35,9 +41,14 @@ class XlsController extends Controller
             ->join('outputs','outputs.output_id','=','product_outputs.output_id')
             ->join('customers','customers.customer_id','=','outputs.customer_id')
             ->join('products','products.product_id','=','product_outputs.product_id')
-            ->orderByDesc('outputs.updated_at')
-            ->where('outputs.updated_at', '>=', now()->subMonths($months))
-            ->get();
+            ->orderByDesc('outputs.updated_at');
+
+        if ($year) {
+            $outputsQuery->whereYear('outputs.updated_at', $year);
+        } else {
+            $outputsQuery->where('outputs.updated_at', '>=', now()->subMonths($months));
+        }
+        $outputs = $outputsQuery->get();
 
         $estilosEncabezados = [
             'font' => [
@@ -97,9 +108,14 @@ class XlsController extends Controller
 
         $activeSheet->getStyle('C')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
         $activeSheet = $spreadsheet->createSheet();
-        $activeSheet->setTitle('Entradas '.$months.' meses');
+        
+        if ($year) {
+            $activeSheet->setTitle('Entradas ' . $year);
+        } else {
+            $activeSheet->setTitle('Entradas '.$months.' meses');
+        }
 
-        $inputs = DB::table('product_inputs')
+        $inputsQuery = DB::table('product_inputs')
             ->select(
                 DB::raw("concat(DAY(inputs.updated_at), '-', MONTH(inputs.updated_at), '-', YEAR(inputs.updated_at)) as inputDate"),
                 'suppliers.name as sName',
@@ -110,9 +126,14 @@ class XlsController extends Controller
             ->join('inputs','inputs.input_id','=','product_inputs.input_id')
             ->join('suppliers','suppliers.supplier_id','=','inputs.supplier_id')
             ->join('products','products.product_id','=','product_inputs.product_id')
-            ->orderByDesc('inputs.updated_at')
-            ->where('inputs.updated_at', '>=', now()->subMonths($months))
-            ->get();
+            ->orderByDesc('inputs.updated_at');
+
+        if ($year) {
+            $inputsQuery->whereYear('inputs.updated_at', $year);
+        } else {
+            $inputsQuery->where('inputs.updated_at', '>=', now()->subMonths($months));
+        }
+        $inputs = $inputsQuery->get();
 
         $activeSheet->setCellValue('A1', 'Fecha de consulta: '.$fechaConsulta);
         $activeSheet->setCellValue('A3', 'Fecha de Entrada');
@@ -141,7 +162,7 @@ class XlsController extends Controller
         }
 
         $writer = new Xlsx($spreadsheet);
-        $fileName = 'Reporte_movimientos.xlsx';
+        $fileName = $year ? 'Reporte_movimientos_'.$year.'.xlsx' : 'Reporte_movimientos.xlsx';
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment;filename='.$fileName);

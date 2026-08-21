@@ -180,6 +180,22 @@
                 }
             });
         });
+
+        /* AUTO-REFRESH DESDE FACTURAS */
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'factura_updated') {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'info',
+                    title: 'Nuevos precios agregados. Actualizando...',
+                    showConfirmButton: false,
+                    timer: 2000
+                }).then(() => {
+                    location.reload();
+                });
+            }
+        });
     });
 </script>
 @endpush
