@@ -43,6 +43,21 @@
 
         <x-wrapper-form-1>
             <x-wrapper-form-2>
+                <x-label>Moneda</x-label>
+                <select name="moneda" id="factura-moneda" class="w-full border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500 text-sm py-2 px-3 bg-white">
+                    <option value="MXN" selected>MXN (Peso Mexicano)</option>
+                    <option value="USD">USD (Dólar Estadounidense)</option>
+                </select>
+            </x-wrapper-form-2>
+
+            <x-wrapper-form-2 id="tc-container" class="hidden">
+                <x-label>Tipo de Cambio</x-label>
+                <x-input-1 type="number" step="0.0001" min="0.01" name="tipo_cambio" id="factura-tipo-cambio" value="1.0000" placeholder="Ej. 19.50"></x-input-1>
+            </x-wrapper-form-2>
+        </x-wrapper-form-1>
+
+        <x-wrapper-form-1>
+            <x-wrapper-form-2>
                 <x-label>Descripción / Observaciones</x-label>
                 <x-input-1 name="descripcion" placeholder="Ej. Pago de servicios correspondientes al mes de..."></x-input-1>
             </x-wrapper-form-2>
@@ -196,6 +211,16 @@
 $(function(){
 
     let index = 1;
+
+    $('#factura-moneda').on('change', function() {
+        if ($(this).val() === 'USD') {
+            $('#tc-container').removeClass('hidden');
+            $('#factura-tipo-cambio').attr('required', true);
+        } else {
+            $('#tc-container').addClass('hidden');
+            $('#factura-tipo-cambio').removeAttr('required');
+        }
+    });
 
     /* =========================
      * CALCULAR TOTALES 
