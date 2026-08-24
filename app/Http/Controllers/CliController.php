@@ -34,6 +34,8 @@ class CliController extends Controller
             'cli.quantity',
             'cli.weight_per_unit',
             'cli.net_weight',
+            'cli.bag_number',
+            'cli.protein',
             'inventory.product_id',
             'locations.warehouse_id'
         )
@@ -50,7 +52,9 @@ class CliController extends Controller
             'inventory_id' => $request->inventory_id,
             'quantity' => $request->quantity,
             'weight_per_unit' => $request->weight_per_unit,
-            'net_weight' => $request->quantity*$request->weight_per_unit
+            'net_weight' => $request->quantity*$request->weight_per_unit,
+            'bag_number' => $request->bag_number,
+            'protein' => $request->protein,
         ];
         Cli::where('cli_id',$request->cli_id)->update($data);
         return response()->json(['message' => 'Operation successfuly make it'], 201);

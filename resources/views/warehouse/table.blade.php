@@ -194,6 +194,17 @@ $(document).ready(function () {
             .addClass('mt-2 text-sm font-semibold rounded-md tracking-[2px] text-white bg-gray-700 px-2 py-1')
             .text(`Total: ${response.cli.net_weight}`);
 
+          let product = products_inventory.find(i => i.product_id === response.cli.product_id);
+          if (product && product.name.includes('BGBG')) {
+              $('#edit-cli .bag_numbers_wrapper').removeClass('hidden');
+              $('#edit-cli #bag_number').val(response.cli.bag_number);
+              $('#edit-cli #protein').val(response.cli.protein);
+          } else {
+              $('#edit-cli .bag_numbers_wrapper').addClass('hidden');
+              $('#edit-cli #bag_number').val('');
+              $('#edit-cli #protein').val('');
+          }
+
         },
         error: function(){
           queueAlert({

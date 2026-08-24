@@ -89,6 +89,14 @@ Fecha de actualización: 09/03/2026
                     <p class="total"></p>
                 </x-wrapper-form-2>
             </x-wrapper-form-1>
+
+            <x-wrapper-form-1 class="bag_numbers_wrapper hidden w-full flex-col mt-2">
+                <x-label># de Barcina y Proteína</x-label>
+                <div class="flex flex-col md:flex-row gap-2 mt-1 w-full bg-gray-50 p-2 rounded-lg border border-gray-200">
+                    <input type="text" name="bag_number" id="bag_number" class="w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Barcina #">
+                    <input type="number" step="any" name="protein" id="protein" class="w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Proteína %">
+                </div>
+            </x-wrapper-form-1>
         </x-wrapper-form-1>
 
         <x-wrapper-form-1>
@@ -150,13 +158,21 @@ $(function(){
                         }
                     });
                 }
+                
+                let product = products_inventory.find(i => i.product_id === product_id);
+                if (product && product.name.includes('BGBG')) {
+                    father.find('.bag_numbers_wrapper').removeClass('hidden');
+                } else {
+                    father.find('.bag_numbers_wrapper').addClass('hidden');
+                }
             }else{
                 father.find('.stock').text('Available:');
                 father.find('.unit').text('Unit:');
                 father.find('.total').removeClass('mt-2 text-sm font-semibold rounded-md tracking-[2px] text-white bg-gray-700 px-2 py-1').text(``);
                 father.find('.product-name').text('Product:');
                 father.find('#inventory_id').html(`<option value="">Select a product</option>`);
-                father.find('#inventory_id,#quantity,#weight_per_unit').val('');
+                father.find('#inventory_id,#quantity,#weight_per_unit,#bag_number,#protein').val('');
+                father.find('.bag_numbers_wrapper').addClass('hidden');
             }
         });
 
