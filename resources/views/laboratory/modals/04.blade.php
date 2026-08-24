@@ -293,13 +293,11 @@
         $.post(url, data)
           .done(function (res) {
             if (window.Swal) {
-              Swal.fire({ icon: 'success', title: 'Guardado', text: (res?.message || 'Registro guardado correctamente.') });
+              Swal.fire({ icon: 'success', title: 'Guardado', text: (res?.message || 'Registro guardado correctamente.') })
+                  .then(() => location.reload());
+            } else {
+              location.reload();
             }
-            $form[0].reset();
-            $('#stock_final_view').val('');
-            hideModal('#04');
-
-      
           })
           .fail(function (xhr) {
             if (xhr.status === 422) {

@@ -103,7 +103,8 @@ class ReceptionController extends Controller
         try {
             $validated = $request->validate([
                 'folio_muestra'             => ['nullable','string','max:50'],
-                'product_id'                => ['required','integer','exists:products,product_id'],
+                'product_id'                => ['nullable','integer','exists:products,product_id'],
+                'producto'                  => ['nullable','string','max:255'],
                 'nombre_comercial'          => ['nullable','string','max:255'],
                 'sku'                       => ['nullable','string','max:100'],
                 'batch'                     => ['nullable','string','max:100'],
@@ -134,17 +135,45 @@ class ReceptionController extends Controller
 
             $validated['folio_muestra'] = $validated['folio_muestra'] ?? ('RM-' . now()->format('Ymd-His'));
             
+            $productId = $validated['product_id'] ?? null;
+            if (!$productId && !empty($request->producto)) {
+                $productName = trim($request->producto);
+                $product = \App\Models\Product::where('name', $productName)->first();
+                if (!$product) {
+                    $lastProduct = \App\Models\Product::orderBy('product_id', 'desc')->first();
+                    $nextId = $lastProduct ? $lastProduct->product_id + 1 : 1;
+                    $sku = 'LAB' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
+                    
+                    $product = \App\Models\Product::create([
+                        'name' => $productName,
+                        'sku' => $validated['sku'] ?: $sku,
+                        'sat_code' => '01010101',
+                        'category_id' => 1,
+                        'is_public' => 1
+                    ]);
+                }
+                $productId = $product->product_id;
+                $validated['sku'] = $validated['sku'] ?: $product->sku;
+            }
+            if (!$productId) {
+                return response()->json(['message' => 'El producto es requerido.', 'errors' => ['producto' => ['El producto es requerido.']]], 422);
+            }
+            $validated['product_id'] = $productId;
+            unset($validated['producto']);
+
             $supplierId = $validated['supplier_id'] ?? null;
             if (!$supplierId && !empty($request->proveedor)) {
-                $supplierId = Supplier::where('name', $request->proveedor)->value('supplier_id');
+                $supplierId = \App\Models\Supplier::where('name', $request->proveedor)->value('supplier_id');
                 if (!$supplierId) {
-                    $s = Supplier::create([
+                    $s = \App\Models\Supplier::create([
                         'name' => $request->proveedor,
-                        'supplier_code' => 'SP'.str_pad((string)(Supplier::max('supplier_id')+1), 5, '0', STR_PAD_LEFT),
+                        'supplier_code' => 'SP'.str_pad((string)(\App\Models\Supplier::max('supplier_id')+1), 5, '0', STR_PAD_LEFT),
                     ]);
                     $supplierId = $s->supplier_id;
                 }
             }
+            $validated['supplier_id'] = $supplierId;
+            unset($validated['proveedor']);
 
             $record = ReceptionOfSample::create([
                 ...$validated,
