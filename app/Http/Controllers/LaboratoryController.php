@@ -87,11 +87,8 @@ class LaboratoryController extends Controller
                 );
             })
             ->select([
-                'ls.folio',
-                'ls.producto',
-                'ls.sku',
+                'ls.*',
                 'p.product_id',
-                'ls.stock_inicial',
                 'sup.supplier_id',
             ])
             ->orderBy('ls.id', 'asc')
@@ -2060,6 +2057,49 @@ class LaboratoryController extends Controller
         unset($validated['stock_final']);
 
         $row = DB::transaction(function () use ($validated, $request) {
+
+            // Check Proveedor
+            if (!empty($validated['proveedor'])) {
+                $supplierName = trim($validated['proveedor']);
+                $existsSupplier = \App\Models\Supplier::where('name', $supplierName)->first();
+                if (!$existsSupplier) {
+                    $count = \App\Models\Supplier::count();
+                    $next = $count + 1;
+                    $prefix = 'SP';
+                    \App\Models\Supplier::create([
+                        'name' => $supplierName,
+                        'supplier_code' => $prefix . $next,
+                    ]);
+                }
+            }
+
+            // Check Producto
+            if (!empty($validated['producto'])) {
+                $productName = trim($validated['producto']);
+                $existsProduct = \App\Models\Product::where('name', $productName)->first();
+                
+                $sku = $validated['sku'] ?? null;
+                if (!$existsProduct) {
+                    if (empty($sku)) {
+                        $lastProduct = \App\Models\Product::orderBy('product_id', 'desc')->first();
+                        $nextId = $lastProduct ? $lastProduct->product_id + 1 : 1;
+                        $sku = 'LAB' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
+                        $validated['sku'] = $sku;
+                    }
+                    
+                    \App\Models\Product::create([
+                        'name' => $productName,
+                        'sku' => $sku,
+                        'sat_code' => '01010101', 
+                        'category_id' => 1, 
+                        'is_public' => 1
+                    ]);
+                } else {
+                    if (empty($sku)) {
+                        $validated['sku'] = $existsProduct->sku;
+                    }
+                }
+            }
 
             if ($request->filled('folio_muestra')) {
                 $folioFinal = $request->input('folio_muestra');

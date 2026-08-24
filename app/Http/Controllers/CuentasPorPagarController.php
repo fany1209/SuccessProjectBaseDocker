@@ -78,11 +78,10 @@ class CuentasPorPagarController extends Controller
                 'cxp.fecha_pago',
                 'cxp.estatus',
                 'cxp.is_canceled',
+                'f.factura_id',
                 'f.empresa',
                 'f.departamento',
                 'f.total',
-                'f.moneda',
-                'f.tipo_cambio',
                 'f.fecha_factura'
             )
             ->get();
@@ -125,30 +124,28 @@ class CuentasPorPagarController extends Controller
             if (!$factura->is_canceled) {
                 $rawDep = $factura->departamento ?: 'Sin Departamento';
                 $dep = mb_convert_case(trim($rawDep), MB_CASE_TITLE, "UTF-8");
-                
-                if (!isset($departamentosMap[$dep])) {
-                    $departamentosMap[$dep] = 0;
+                if (!empty($dep)) {
+                    if (!isset($departamentosMap[$dep])) {
+                        $departamentosMap[$dep] = 0;
+                    }
+                    $departamentosMap[$dep] += $factura->total;
                 }
-                
-                $totalMXN = $factura->moneda === 'USD' ? $factura->total * $factura->tipo_cambio : $factura->total;
-                $departamentosMap[$dep] += $totalMXN;
             }
 
             if (!$factura->is_canceled && $factura->estatus !== 'PAGADO' && $saldo > 0) {
-                $saldoMXN = $factura->moneda === 'USD' ? $saldo * $factura->tipo_cambio : $saldo;
                 // KPI 1: Total por pagar
-                $totalPorPagar += $saldoMXN;
+                $totalPorPagar += $saldo;
 
                 if (!empty($factura->fecha_pago)) {
                     $dueDate = \Carbon\Carbon::parse($factura->fecha_pago)->startOfDay();
                     
                     // KPI 2: Pagos vencidos
                     if ($today->gt($dueDate)) {
-                        $pagosVencidos += $saldoMXN;
+                        $pagosVencidos += $saldo;
                     } 
                     // KPI 3: Próximos a vencer (entre hoy y +3 días)
                     elseif ($dueDate->between($today, $threeDaysFromNow)) {
-                        $proximosVencer += $saldoMXN;
+                        $proximosVencer += $saldo;
                     }
                 }
 
@@ -159,7 +156,7 @@ class CuentasPorPagarController extends Controller
                 if (!isset($proveedoresMap[$emp])) {
                     $proveedoresMap[$emp] = 0;
                 }
-                $proveedoresMap[$emp] += $saldoMXN;
+                $proveedoresMap[$emp] += $saldo;
 
                 // Chart 3: Antigüedad (Basado en fecha_factura)
                 if (!empty($factura->fecha_factura)) {
@@ -167,16 +164,16 @@ class CuentasPorPagarController extends Controller
                     $daysOld = $ffDate->diffInDays($today, false); // if positive, it means in the past
                     
                     if ($daysOld <= 30) {
-                        $agingBuckets['0_30'] += $saldoMXN;
+                        $agingBuckets['0_30'] += $saldo;
                     } elseif ($daysOld <= 60) {
-                        $agingBuckets['31_60'] += $saldoMXN;
+                        $agingBuckets['31_60'] += $saldo;
                     } elseif ($daysOld <= 90) {
-                        $agingBuckets['61_90'] += $saldoMXN;
+                        $agingBuckets['61_90'] += $saldo;
                     } else {
-                        $agingBuckets['90_plus'] += $saldoMXN;
+                        $agingBuckets['90_plus'] += $saldo;
                     }
                 } else {
-                    $agingBuckets['0_30'] += $saldoMXN; // default if no date
+                    $agingBuckets['0_30'] += $saldo; // default if no date
                 }
             }
         }
@@ -297,8 +294,6 @@ class CuentasPorPagarController extends Controller
                 'f.descripcion as motivo',
                 'f.banco',
                 'f.metodo_pago',
-                'f.moneda',
-                'f.tipo_cambio',
                 'f.total'
             )
             ->orderByDesc('f.factura_id')

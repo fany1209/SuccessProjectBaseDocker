@@ -14,9 +14,13 @@
             <option
               value="{{ $s->folio }}"
               data-product-id="{{ $s->product_id }}"
+              data-producto="{{ $s->producto }}"
               data-sku="{{ $s->sku }}"
               data-supplier-id="{{ $s->supplier_id ?? '' }}"
+              data-proveedor="{{ $s->proveedor ?? '' }}"
               data-stock-inicial="{{ $s->stock_inicial ?? '' }}"
+              data-fecha-entrada="{{ $s->fecha_entrada ?? '' }}"
+              data-recolector="{{ $s->recolector ?? '' }}"
             >
               {{ $s->folio }} — {{ $s->producto ?? 'Sin producto' }}
             </option>
@@ -31,18 +35,16 @@
       <div class="p-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
 
         <div>
-          <label for="product_id" class="block text-sm font-medium mb-1">Producto</label>
-          <select name="product_id" id="product_id" required
-                  class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
-            <option value="">— Selecciona un producto —</option>
+          <label for="producto_input" class="block text-sm font-medium mb-1">Producto</label>
+          <input type="text" name="producto" id="producto_input" list="product_list" required
+                 class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                 placeholder="Selecciona o escribe un producto" value="{{ old('producto') }}">
+          <datalist id="product_list">
             @foreach($products as $p)
-              <option value="{{ $p->product_id }}"
-                      data-sku="{{ $p->sku }}"
-                {{ (int) old('product_id', $model->product_id ?? 0) === (int) $p->product_id ? 'selected' : '' }}>
-                {{ $p->name }}
-              </option>
+              <option value="{{ $p->name }}" data-id="{{ $p->product_id }}" data-sku="{{ $p->sku }}"></option>
             @endforeach
-          </select>
+          </datalist>
+          <input type="hidden" name="product_id" id="product_id_hidden" value="{{ old('product_id') }}">
         </div>
 
         <div class="md:col-span-2">
@@ -155,16 +157,14 @@
         </div>
 
         <div class="mt-3">
-          <label for="supplier_id" class="block text-sm font-semibold">Proveedor</label>
-          <select name="supplier_id" id="supplier_id" class="w-full border rounded px-2 py-1" required>
-            <option value="">— Selecciona un proveedor —</option>
+          <label for="proveedor_input" class="block text-sm font-semibold">Proveedor</label>
+          <input type="text" name="proveedor" id="proveedor_input" list="supplier_list" class="w-full border rounded px-2 py-1" required placeholder="Selecciona o escribe un proveedor" value="{{ old('proveedor') }}">
+          <datalist id="supplier_list">
             @foreach($suppliers as $s)
-              <option value="{{ $s->supplier_id }}"
-                {{ (int)old('supplier_id', $model->supplier_id ?? 0) === (int)$s->supplier_id ? 'selected' : '' }}>
-                {{ $s->name }}
-              </option>
+              <option value="{{ $s->name }}" data-id="{{ $s->supplier_id }}"></option>
             @endforeach
-          </select>
+          </datalist>
+          <input type="hidden" name="supplier_id" id="supplier_id_hidden" value="{{ old('supplier_id') }}">
         </div>
 
         <div class="md:col-span-3">
@@ -247,13 +247,14 @@
   syncDoc();
 })();
 
-
 document.addEventListener('DOMContentLoaded', function(){
 
-  window.productSelect = document.getElementById('product_id');
-  window.skuInput      = document.getElementById('sku');
+  window.productInput = document.getElementById('producto_input');
+  window.productIdHidden = document.getElementById('product_id_hidden');
+  window.skuInput      = document.getElementById('sku')
   window.batchSelect   = document.getElementById('batch');
-  window.supplierSel   = document.getElementById('supplier_id');
+  window.supplierInput = document.getElementById('proveedor_input');
+  window.supplierIdHidden = document.getElementById('supplier_id_hidden');
 
   window.SUPPLIER_BY_PRODUCT = @json($supplierByProduct ?? []);
   window.PREV_SUPPLIER       = @json(old('supplier_id', $model->supplier_id ?? ''));
@@ -261,12 +262,47 @@ document.addEventListener('DOMContentLoaded', function(){
   window.PREV_BATCH          = @json(old('batch', $model->batch ?? ''));
 
   let userTouchedSupplier = false;
-  supplierSel?.addEventListener('change', () => userTouchedSupplier = true);
+  supplierInput?.addEventListener('change', () => userTouchedSupplier = true);
+  supplierInput?.addEventListener('input', function() {
+    const val = this.value;
+    const list = document.getElementById('supplier_list');
+    let foundId = '';
+    if (list) {
+      for (const opt of list.options) {
+        if (opt.value === val) {
+          foundId = opt.getAttribute('data-id');
+          break;
+        }
+      }
+    }
+    supplierIdHidden.value = foundId;
+  });
 
   window.setSkuFromProduct = function(){
-    if(!productSelect || !skuInput) return;
-    const opt = productSelect.selectedOptions[0];
-    skuInput.value = opt ? (opt.getAttribute('data-sku') || '') : '';
+    if(!productInput || !skuInput) return;
+    const val = productInput.value;
+    const list = document.getElementById('product_list');
+    let foundId = '';
+    let foundSku = '';
+    if (list) {
+      for (const opt of list.options) {
+        if (opt.value === val) {
+          foundId = opt.getAttribute('data-id');
+          foundSku = opt.getAttribute('data-sku') || '';
+          break;
+        }
+      }
+    }
+    productIdHidden.value = foundId;
+    if (foundId) {
+      skuInput.value = foundSku;
+      skuInput.readOnly = true;
+    } else {
+      // allow user to type a new sku if the product doesn't exist
+      skuInput.value = '';
+      skuInput.readOnly = false;
+    }
+    return foundId;
   };
 
   window.fillBatches = function(pid){
@@ -282,16 +318,26 @@ document.addEventListener('DOMContentLoaded', function(){
   };
 
   function maybePreselectSupplier(pid){
-    if (userTouchedSupplier || !supplierSel) return;
+    if (userTouchedSupplier || !supplierInput) return;
     if (PREV_SUPPLIER) return;
     const sid = SUPPLIER_BY_PRODUCT[pid] || '';
-    if (sid) supplierSel.value = String(sid);
+    if (sid) {
+      const list = document.getElementById('supplier_list');
+      if (list) {
+        for (const opt of list.options) {
+          if (opt.getAttribute('data-id') === String(sid)) {
+            supplierInput.value = opt.value;
+            supplierIdHidden.value = sid;
+            break;
+          }
+        }
+      }
+    }
   }
 
-  productSelect?.addEventListener('change', () => {
-    const pid = productSelect.value;
-    setSkuFromProduct();
-    if(pid) {
+  productInput?.addEventListener('input', () => {
+    const pid = setSkuFromProduct();
+    if(productInput.value) {
       if(batchSelect) {
         batchSelect.disabled = false;
         batchSelect.placeholder = "Seleccione o escriba un lote";
@@ -303,14 +349,20 @@ document.addEventListener('DOMContentLoaded', function(){
         batchSelect.value = '';
       }
     }
-    fillBatches(pid);
-    maybePreselectSupplier(pid);
+    if (pid) {
+      fillBatches(pid);
+      maybePreselectSupplier(pid);
+    } else {
+      if(document.getElementById('batch-list')) document.getElementById('batch-list').innerHTML = '';
+    }
   });
 
-  setSkuFromProduct();
-  if(productSelect?.value){
-    fillBatches(productSelect.value);
-    maybePreselectSupplier(productSelect.value);
+  const pid = setSkuFromProduct();
+  if(productInput?.value){
+    if (pid) {
+      fillBatches(pid);
+      maybePreselectSupplier(pid);
+    }
     if(batchSelect) {
       batchSelect.disabled = false;
       batchSelect.placeholder = "Seleccione o escriba un lote";
@@ -333,26 +385,44 @@ $(function(){
     const sku = opt.data('sku');
     const supplierId = opt.data('supplier-id');
     const stockInicial = opt.data('stock-inicial');
+    const productoText = opt.data('producto');
+    const proveedorText = opt.data('proveedor');
+    const fechaEntrada = opt.data('fecha-entrada');
+    const recolector = opt.data('recolector');
 
-    if(!pid){
-      $('#product_id').val('');
-      $('#sku').val('');
+    if(!productoText && !pid){
+      $('#producto_input').val('');
+      $('#product_id_hidden').val('');
+      $('#sku').val('').prop('readonly', false);
       $('#batch-list').html('');
       $('#batch').val('').attr('placeholder', '— Selecciona un producto primero —').prop('disabled', true);
       return;
     }
 
-    $('#product_id').val(pid);
-    setSkuFromProduct();
+    $('#producto_input').val(productoText || '');
+    $('#product_id_hidden').val(pid || '');
+    $('#sku').val(sku).prop('readonly', true);
     $('#batch').prop('disabled', false).attr('placeholder', 'Seleccione o escriba un lote');
-    fillBatches(pid);
+    
+    if (pid) {
+      fillBatches(pid);
+    }
 
-    if (supplierId) {
-      $('#supplier_id').val(supplierId);
+    if (proveedorText) {
+      $('#proveedor_input').val(proveedorText);
+      $('#supplier_id_hidden').val(supplierId || '');
     }
     
     if (stockInicial !== undefined && stockInicial !== '') {
       $('input[name="cantidad"]').val(stockInicial);
+    }
+
+    if (fechaEntrada) {
+      $('input[name="fecha_entrada"]').val(fechaEntrada);
+    }
+    
+    if (recolector) {
+      $('input[name="firma_recepcion_nombre"]').val(recolector);
     }
   });
 });
