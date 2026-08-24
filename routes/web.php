@@ -438,6 +438,7 @@ Route::prefix('laboratory/equipments')->group(function () {
     //peticiones de lotes
     Route::post('/lot-requests', [LotRequestController::class, 'store'])->name('lot.request.store');
     Route::get('/lot-requests/check', [LotRequestController::class, 'checkPending'])->name('lot.request.check');
+    Route::get('/lot-requests/count-completed', [LotRequestController::class, 'countCompleted'])->name('lot.request.count_completed');
     Route::patch('/lot-requests/{id}', [LotRequestController::class, 'updateStatus'])->name('lot.request.update');
     Route::get('/lot-requests', [LotRequestController::class, 'index'])->name('lot.request.index');
     Route::get('/lot-requests/datatable', [LotRequestController::class, 'datatable'])->name('lot.request.datatable');

@@ -21,11 +21,21 @@ class LotRequestController extends Controller
         $request->validate([
             'department' => 'required|string|max:100',
             'comments'   => 'nullable|string|max:1000',
+            'product'    => 'nullable|string|max:255',
+            'quantity'   => 'nullable|string|max:255',
+            'provider'   => 'nullable|string|max:255',
+            'collector'  => 'nullable|string|max:255',
+            'sector'     => 'nullable|string|max:255',
         ]);
 
         DB::table('lot_requests')->insert([
             'department'   => $request->department,
             'comments'     => $request->comments,
+            'product'      => $request->product,
+            'quantity'     => $request->quantity,
+            'provider'     => $request->provider,
+            'collector'    => $request->collector,
+            'sector'       => $request->sector,
             'requested_at' => now(),
             'status'       => 'pendiente',
         ]);
@@ -42,13 +52,48 @@ class LotRequestController extends Controller
                 DB::raw("DATE_FORMAT(requested_at, '%Y-%m-%d %H:%i') as requested_at"),
                 'status',
                 'comments',
+                'product',
+                'quantity',
+                'provider',
+                'collector',
+                'sector',
+                'sku',
+                'batch'
             ])
             ->orderByDesc('requested_at')
             ->orderByDesc('id')
             ->get();
 
+        $productSkus = DB::table('lot_requests')
+            ->whereNotNull('sku')
+            ->where('sku', '!=', '')
+            ->whereNotNull('product')
+            ->where('product', '!=', '')
+            ->select('product', 'sku')
+            ->distinct()
+            ->get()
+            ->groupBy('product')
+            ->map(function ($items) {
+                return $items->pluck('sku')->toArray();
+            });
+
+        $productBatches = DB::table('lot_requests')
+            ->whereNotNull('batch')
+            ->where('batch', '!=', '')
+            ->whereNotNull('product')
+            ->where('product', '!=', '')
+            ->select('product', 'batch')
+            ->distinct()
+            ->get()
+            ->groupBy('product')
+            ->map(function ($items) {
+                return $items->pluck('batch')->toArray();
+            });
+
         return response()->json([
             'lots' => $rows, 
+            'productSkus' => $productSkus,
+            'productBatches' => $productBatches,
         ]);
     }
 
@@ -58,9 +103,17 @@ class LotRequestController extends Controller
             ? 'terminado'
             : 'pendiente';
 
+        $dataToUpdate = ['status' => $nuevoEstado];
+        if ($request->has('sku')) {
+            $dataToUpdate['sku'] = $request->sku;
+        }
+        if ($request->has('batch')) {
+            $dataToUpdate['batch'] = $request->batch;
+        }
+
         DB::table('lot_requests')
             ->where('id', $id)
-            ->update(['status' => $nuevoEstado]);
+            ->update($dataToUpdate);
 
         $pending = DB::table('lot_requests')
             ->where('status', 'pendiente')
@@ -76,7 +129,7 @@ class LotRequestController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user || !$user->roles()->whereIn('name', ['Warehouse', 'warehouse'])->exists()) {
+        if (!$user || !$user->roles()->whereIn('name', ['Quality', 'quality'])->exists()) {
             return response()->json(['pending' => [], 'count' => 0]);
         }
 
@@ -91,4 +144,12 @@ class LotRequestController extends Controller
         ]);
     }
 
+    public function countCompleted()
+    {
+        $count = DB::table('lot_requests')
+            ->where('status', 'terminado')
+            ->count();
+
+        return response()->json(['count' => $count]);
+    }
 }

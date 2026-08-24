@@ -34,25 +34,7 @@ Fecha de actualización: 26-01-2026
         </x-nav-button>
         @endhasanyrole
 
-        <div class="relative w-full">
-            <x-nav-button
-                data-button="batch"
-                icon="ri-file-list-fill"
-                class="option-btn w-full">
-                Batch
-            </x-nav-button>
 
-            @if(isset($pendingLotRequests) && $pendingLotRequests > 0)
-                <span
-                    id="pending-batch-badge"
-                    class="absolute top-1 right-2
-                        bg-red-600 text-white text-xs font-bold
-                        rounded-full min-w-[18px] h-[18px]
-                        flex items-center justify-center px-1">
-                    {{ $pendingLotRequests }}
-                </span>
-            @endif
-        </div>
 
         @if ($quarantine->isNotEmpty())
             <x-nav-button data-button="quarantine" icon="ri-error-warning-line"
@@ -91,15 +73,7 @@ Fecha de actualización: 26-01-2026
             </div>
         </div>
 
-        <div id="batch-layout" class="hidden w-full">
-            <x-tittle-form class="border-s-2 border-green-700 ps-2 ms-2">
-                Batch / Lotes
-            </x-tittle-form>
 
-            <div class="w-full overflow-x-auto mt-3">
-                @include('formats.laboratory.lot_requests._table')
-            </div>
-        </div>
 
         <div id="sales-layout" class="hidden w-full">
             <x-tittle-form class="border-s-2 border-green-700 ps-2 ms-2">
@@ -135,7 +109,7 @@ $(function () {
         $(this).addClass('border-2 border-green-500');
 
         inventory_module.find(
-            '#inventory-layout, #make-input-layout, #quarantine-layout, #batch-layout, #sales-layout'
+            '#inventory-layout, #make-input-layout, #quarantine-layout, #sales-layout'
         ).addClass('hidden');
 
         switch (option) {
@@ -154,10 +128,7 @@ $(function () {
                 $('#opt-tittle').text('Quarantine');
                 break;
 
-            case 'batch':
-                $('#batch-layout').removeClass('hidden');
-                $('#opt-tittle').text('Batch');
-                break;
+
                 
             case 'sales':
                 $('#sales-layout').removeClass('hidden');

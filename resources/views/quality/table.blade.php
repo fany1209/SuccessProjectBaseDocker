@@ -279,27 +279,7 @@ const table = $('#inspection-table').DataTable({
       }
     });
   });
-   $(document).ready(function() {
-    // alerts wh
-    $.ajax({
-        url: "{{ route('quality.checkPendingWarehouseInspections') }}",
-        type: 'GET',
-        dataType: 'json',
-        success: function(res) {
-            if(res.pending && res.pending.length > 0) {
-                let message = `You have ${res.pending.length} pending warehouse inspection(s).`;
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Pending Inspections',
-                    html: message,
-                    confirmButtonText: 'Accept'
-                });
-            }
-        },
-        error: function(err) {
-            console.error(err);
-        }
-    });
+   // Warehouse alerts have been moved to the end of the script to execute sequentially.
 
 // inspection WH - VIEW
 $(document).on('click', '.view-warehouse-btn', function () {
@@ -384,28 +364,57 @@ $(document).on('click', '#view-warehouse .close-modal', function () {
   modal.classList.remove('flex');
 });
 
-   $(document).ready(function () {
-    $.ajax({
-      url: "{{ route('quality.checkPendingQuality') }}",
-      type: 'GET',
-      dataType: 'json',
-      success: function(res) {
-        const total = res?.count ?? (res?.pending?.length || 0);
-        if (total > 0) {
-          Swal.fire({
+   $(document).ready(async function () {
+    // Helper function to show alerts sequentially
+    async function showAlerts() {
+      try {
+        const resIns = await $.get("{{ route('quality.checkPendingWarehouseInspections') }}");
+        if(resIns.pending && resIns.pending.length > 0) {
+          await Swal.fire({
             icon: 'info',
-            title: 'Pending sample receptions',
-            html: `You have <b>${total}</b> pending sample reception(s) in Laboratory.`,
+            title: 'Pending Inspections',
+            html: `You have ${resIns.pending.length} pending warehouse inspection(s).`,
             confirmButtonText: 'Accept'
           });
         }
-      },
-      error: function(err) {
+      } catch (err) {
+        console.error('Error checking warehouse inspections pending', err);
+      }
+
+      try {
+        const resQual = await $.get("{{ route('quality.checkPendingQuality') }}");
+        const totalQ = resQual?.count ?? (resQual?.pending?.length || 0);
+        if (totalQ > 0) {
+          await Swal.fire({
+            icon: 'info',
+            title: 'Pending sample receptions',
+            html: `You have <b>${totalQ}</b> pending sample reception(s) in Laboratory.`,
+            confirmButtonText: 'Accept'
+          });
+        }
+      } catch (err) {
         console.error('Error checking Quality pending', err);
       }
-    });
+
+      try {
+        const resLot = await $.get("{{ route('lot.request.check') }}");
+        const totalL = resLot?.count ?? (resLot?.pending?.length || 0);
+        if (totalL > 0) {
+          $('#pending-batch-badge').text(totalL).removeClass('hidden');
+          await Swal.fire({
+            icon: 'info',
+            title: 'Pending Batch Requests',
+            html: `You have <b>${totalL}</b> pending batch request(s).`,
+            confirmButtonText: 'Accept'
+          });
+        }
+      } catch (err) {
+        console.error('Error checking Lot Requests pending', err);
+      }
+    }
+
+    await showAlerts();
   });
-});
 });
 </script>
 @endpush

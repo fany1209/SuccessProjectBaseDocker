@@ -20,7 +20,14 @@
             <th class="px-4 py-3 whitespace-nowrap">ID</th>
             <th class="px-4 py-3 whitespace-nowrap">Date/Hour</th>
             <th class="px-4 py-3 whitespace-nowrap">Department</th>
+            <th class="px-4 py-3 whitespace-nowrap">Product</th>
+            <th class="px-4 py-3 whitespace-nowrap">Qty</th>
+            <th class="px-4 py-3 whitespace-nowrap">Provider</th>
+            <th class="px-4 py-3 whitespace-nowrap">Collector</th>
+            <th class="px-4 py-3 whitespace-nowrap">Sector</th>
             <th class="px-4 py-3">Comments</th>
+            <th class="px-4 py-3 whitespace-nowrap">SKU</th>
+            <th class="px-4 py-3 whitespace-nowrap">Batch</th>
             <th class="px-4 py-3 whitespace-nowrap">Status</th>
             <th class="px-4 py-3 whitespace-nowrap">Actions</th>
           </tr>
@@ -35,16 +42,26 @@
 @push('js')
 <script>
 $(function () {
+  const canAssignBatch = @json(auth()->user() && auth()->user()->roles()->whereIn('name', ['Quality', 'quality'])->exists());
 
   const table = $('#lot-requests-table').DataTable({
     ajax: {
       url: "{{ route('lot.request.datatable') }}",
-      dataSrc: 'lots'
+      dataSrc: function (json) {
+        window.productSkus = json.productSkus || {};
+        window.productBatches = json.productBatches || {};
+        return json.lots;
+      }
     },
     columns: [
       { data: 'id' },
       { data: 'requested_at' },
       { data: 'department' },
+      { data: 'product', render: data => data || '—' },
+      { data: 'quantity', render: data => data || '—' },
+      { data: 'provider', render: data => data || '—' },
+      { data: 'collector', render: data => data || '—' },
+      { data: 'sector', render: data => data || '—' },
       {
         data: 'comments',
         render: function (data) {
@@ -69,6 +86,45 @@ $(function () {
         }
       },
 
+      {
+        data: 'sku',
+        render: function (data, type, row) {
+          if (row.status === 'terminado' || !canAssignBatch) return data || '—';
+          
+          let listHtml = '';
+          const listId = `sku-list-${row.id}`;
+          if (row.product && window.productSkus[row.product] && window.productSkus[row.product].length > 0) {
+              listHtml = `<datalist id="${listId}">`;
+              window.productSkus[row.product].forEach(sku => {
+                  listHtml += `<option value="${sku}">`;
+              });
+              listHtml += `</datalist>`;
+          }
+          const listAttr = listHtml ? `list="${listId}"` : '';
+
+          return `<input type="text" ${listAttr} class="lr-sku border rounded px-2 py-1 w-full text-sm" data-id="${row.id}" value="${data || ''}" placeholder="SKU">${listHtml}`;
+        }
+      },
+      {
+        data: 'batch',
+        render: function (data, type, row) {
+          if (row.status === 'terminado' || !canAssignBatch) return data || '—';
+
+          let listHtml = '';
+          const listId = `batch-list-${row.id}`;
+          if (row.product && window.productBatches[row.product] && window.productBatches[row.product].length > 0) {
+              listHtml = `<datalist id="${listId}">`;
+              window.productBatches[row.product].forEach(batch => {
+                  listHtml += `<option value="${batch}">`;
+              });
+              listHtml += `</datalist>`;
+          }
+          const listAttr = listHtml ? `list="${listId}"` : '';
+
+          return `<input type="text" ${listAttr} class="lr-batch border rounded px-2 py-1 w-full text-sm" data-id="${row.id}" value="${data || ''}" placeholder="Batch">${listHtml}`;
+        }
+      },
+
       // Status badge
       {
         data: 'status',
@@ -87,6 +143,12 @@ $(function () {
         orderable: false,
         searchable: false,
         render: function (row) {
+          if (!canAssignBatch) {
+              return row.status === 'terminado' 
+                 ? '<span class="text-green-600 font-semibold">Resuelto</span>' 
+                 : '<span class="text-gray-500 italic">En espera</span>';
+          }
+          
           const disabled = row.status === 'terminado' ? 'disabled' : '';
 
           return `
@@ -139,11 +201,15 @@ $(function () {
   $(document).on('change', '.lr-status', function () {
     const id = $(this).data('id');
     const status = $(this).val();
+    
+    // Retrieve the inputted SKU and Batch from the corresponding row
+    const sku = $(`.lr-sku[data-id="${id}"]`).val();
+    const batch = $(`.lr-batch[data-id="${id}"]`).val();
 
     $.ajax({
       url: "{{ route('lot.request.update', ':id') }}".replace(':id', id),
       method: 'PATCH',
-      data: { status },
+      data: { status, sku, batch },
       headers: {
         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
         'X-Requested-With': 'XMLHttpRequest'

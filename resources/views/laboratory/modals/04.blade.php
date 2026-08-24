@@ -53,15 +53,14 @@
           <label class="block text-sm font-semibold">Proveedor</label>
 
           @isset($suppliers)
-            <select id="proveedor_select" class="w-full border rounded px-2 py-1">
-              <option value="">Seleccione proveedor</option>
+            <input type="text" name="proveedor" id="proveedor_input" list="proveedor_list" class="w-full border rounded px-2 py-1" placeholder="Seleccione o escriba proveedor...">
+            <datalist id="proveedor_list">
               @foreach ($suppliers as $s)
-                <option value="{{ $s->name }}">{{ $s->name }}</option>
+                <option value="{{ $s->name }}"></option>
               @endforeach
-            </select>
-            <input type="hidden" name="proveedor" id="proveedor_input">
+            </datalist>
           @else
-            <input type="text" name="proveedor" class="w-full border rounded px-2 py-1">
+            <input type="text" name="proveedor" id="proveedor_input" class="w-full border rounded px-2 py-1">
           @endisset
         </div>
       </div>
@@ -73,27 +72,20 @@
         <div class="md:col-span-2">
           <label class="block text-sm font-semibold">Producto *</label>
           @isset($products)
-            <select id="producto_select" class="w-full border rounded px-2 py-1" required>
-              <option value="">Seleccione producto</option>
+            <input type="text" name="producto" id="producto_input" list="producto_list" class="w-full border rounded px-2 py-1" placeholder="Seleccione o escriba producto..." required>
+            <datalist id="producto_list">
               @foreach ($products as $p)
-                <option value="{{ $p->id }}" data-name="{{ $p->name }}" data-sku="{{ $p->sku }}">
-                  {{ $p->name }}
-                </option>
+                <option value="{{ $p->name }}" data-sku="{{ $p->sku }}"></option>
               @endforeach
-            </select>
-            <input type="hidden" name="producto" id="producto_input">
+            </datalist>
           @else
-            <input type="text" name="producto" class="w-full border rounded px-2 py-1" required>
+            <input type="text" name="producto" id="producto_input" class="w-full border rounded px-2 py-1" required>
           @endisset
         </div>
 
         <div>
           <label class="block text-sm font-semibold">SKU</label>
-          @isset($products)
-            <input type="text" name="sku" id="sku_input" class="w-full border rounded px-2 py-1" readonly>
-          @else
-            <input type="text" name="sku" class="w-full border rounded px-2 py-1">
-          @endisset
+          <input type="text" name="sku" id="sku_input" class="w-full border rounded px-2 py-1">
         </div>
 
       {{-- ===== Presentación ===== --}}
@@ -262,16 +254,21 @@
         }
       });
 
-      $('#proveedor_select').on('change', function () {
-        $('#proveedor_input').val($(this).val());
-      });
-
-      $('#producto_select').on('change', function () {
-        const opt = this.selectedOptions[0];
-        const nombre = opt ? opt.getAttribute('data-name') : '';
-        const sku    = opt ? opt.getAttribute('data-sku')  : '';
-        $('#producto_input').val(nombre);
-        $('#sku_input').val(sku);
+      $('#producto_input').on('input change', function () {
+        const val = $(this).val();
+        const $list = $('#producto_list');
+        if ($list.length) {
+          const option = $list.find('option').filter(function() {
+            return this.value === val;
+          }).first();
+          
+          if (option.length) {
+            const sku = option.attr('data-sku') || '';
+            $('#sku_input').val(sku).prop('readonly', true);
+          } else {
+            $('#sku_input').prop('readonly', false);
+          }
+        }
       });
 
       function calcStockFinal() {
