@@ -34,6 +34,9 @@ class StoreCliRequest extends FormRequest
             'bag_number' => 'nullable|array',
             'bag_number.*' => 'nullable|array',
             'bag_number.*.*' => 'required|string',
+            'protein' => 'nullable|array',
+            'protein.*' => 'nullable|array',
+            'protein.*.*' => 'required|numeric|min:0',
         ];
     }
 }

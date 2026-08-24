@@ -14,7 +14,7 @@ class Cli extends Model
     protected $primaryKey = 'cli_id';
 
     protected $fillable = [
-        'bag_number', 'quantity', 'weight_per_unit', 'net_weight', 'sq_certificate',
+        'bag_number', 'protein', 'quantity', 'weight_per_unit', 'net_weight', 'sq_certificate',
         'inventory_id', 'location_id', 'concept_id'
     ];
 

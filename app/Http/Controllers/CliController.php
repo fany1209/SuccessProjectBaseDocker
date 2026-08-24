@@ -64,10 +64,11 @@ class CliController extends Controller
                 $quantities = $request->input('quantity');
                 $weights = $request->input('weight_per_unit');
                 $bag_numbers = $request->input('bag_number', []);
+                $proteins = $request->input('protein', []);
 
                 foreach($concepts as $index => $concept){
                     if (isset($bag_numbers[$index]) && is_array($bag_numbers[$index]) && count($bag_numbers[$index]) > 0) {
-                        foreach ($bag_numbers[$index] as $bag_num) {
+                        foreach ($bag_numbers[$index] as $b_idx => $bag_num) {
                             Cli::create([
                                 'location_id' => $request->location_id,
                                 'inventory_id' => $inventories[$index],
@@ -76,6 +77,7 @@ class CliController extends Controller
                                 'weight_per_unit' => $weights[$index],
                                 'net_weight' => 1 * $weights[$index],
                                 'bag_number' => $bag_num,
+                                'protein' => $proteins[$index][$b_idx] ?? null,
                             ]);
                         }
                     } else {

@@ -208,6 +208,7 @@ class InventoryController extends Controller
                 'weight_per_unit'      => 'nullable|array',
                 'weight_per_unit.*'    => 'nullable|numeric',
                 'bag_number'           => 'nullable|array',
+                'protein'              => 'nullable|array',
                 'bag_location_id'      => 'nullable|array',
             ]);
 
@@ -329,6 +330,7 @@ class InventoryController extends Controller
                                             'weight_per_unit' => $weight,
                                             'net_weight' => 1 * $weight,
                                             'bag_number' => $bag_num,
+                                            'protein' => $request->protein[$index][$b_idx] ?? null,
                                         ]);
                                     }
                                 }

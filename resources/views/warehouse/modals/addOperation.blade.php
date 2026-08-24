@@ -90,7 +90,7 @@ Fecha de actualización: 09/03/2026
                         <x-wrapper-form-2><p class="total"></p></x-wrapper-form-2>
                     </x-wrapper-form-1>
                     <x-wrapper-form-1 class="bag_numbers_wrapper hidden w-full flex-col mt-2">
-                        <x-label># de Barcina para cada BigBag</x-label>
+                        <x-label># de Barcina y Proteína para cada BigBag</x-label>
                         <div class="bag_numbers_container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-1 w-full">
                         </div>
                     </x-wrapper-form-1>
@@ -155,7 +155,7 @@ Fecha de actualización: 09/03/2026
         <x-wrapper-form-2><p class="total"></p></x-wrapper-form-2>
     </x-wrapper-form-1>
     <x-wrapper-form-1 class="bag_numbers_wrapper hidden w-full flex-col mt-2">
-        <x-label># de Barcina para cada BigBag</x-label>
+        <x-label># de Barcina y Proteína para cada BigBag</x-label>
         <div class="bag_numbers_container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-1 w-full">
         </div>
     </x-wrapper-form-1>
@@ -186,7 +186,10 @@ $(function(){
                 let numInputs = Math.floor(quantity);
                 for (let i = 0; i < numInputs; i++) {
                     container.append(`
-                        <input type="text" class="bag_number_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Barcina #${i+1}" required>
+                        <div class="flex flex-col gap-1 w-full bg-gray-50 p-2 rounded-lg border border-gray-200">
+                            <input type="text" class="bag_number_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Barcina #${i+1}" required>
+                            <input type="number" step="any" class="protein_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Proteína %" required>
+                        </div>
                     `);
                 }
             } else {
@@ -313,9 +316,13 @@ $(function(){
             var form = $('#add-cli-form')[0];
             var data = new FormData(form);
             data.delete('bag_number'); // Ensure no stray bag_numbers
+            data.delete('protein');
             $('#products .wrapper').each(function(index) {
                 $(this).find('.bag_number_input').each(function() {
                     data.append('bag_number[' + index + '][]', $(this).val());
+                });
+                $(this).find('.protein_input').each(function() {
+                    data.append('protein[' + index + '][]', $(this).val());
                 });
             });
             $('#save-operation').prop('disabled',true);
