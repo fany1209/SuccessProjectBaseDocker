@@ -7,8 +7,8 @@
         <x-wrapper-form-1>
             <x-wrapper-form-2>
                 <x-label for="supplier_id">Supplier</x-label>
-                <x-input-1 required name="supplier_id" list="suppliers"></x-input-1>
-                <datalist id="suppliers">
+                <x-input-1 required name="supplier_id" list="make_input_suppliers"></x-input-1>
+                <datalist id="make_input_suppliers">
                     @foreach ($suppliers as $supplier)
                          <option value='{{ $supplier->supplier_id }}'>{{ $supplier->name }}</option>
                     @endforeach
@@ -39,8 +39,8 @@
         <x-wrapper-form-1>
             <x-wrapper-form-2>
                 <x-label for="unit_plates">Unit plates</x-label>
-                <x-input-1 required name="unit_plates" list="vehicles"></x-input-1>
-                <datalist id="vehicles">
+                <x-input-1 required name="unit_plates" list="make_input_vehicles"></x-input-1>
+                <datalist id="make_input_vehicles">
                     @foreach ($vehicles as $vehicle)
                             <option value='{{ $vehicle->plate }}'>{{ $vehicle->type }}</option>
                     @endforeach
@@ -48,8 +48,8 @@
             </x-wrapper-form-2>
             <x-wrapper-form-2>
                 <x-label for="trailer_plates">Trailer plates</x-label>
-                <x-input-1 name="trailer_plates" list="trailers"></x-input-1>
-                <datalist id="trailers">
+                <x-input-1 name="trailer_plates" list="make_input_trailers"></x-input-1>
+                <datalist id="make_input_trailers">
                     @foreach ($trailers as $trailer)
                             <option value='{{ $trailer->plate }}'>{{ $trailer->type }}</option>
                     @endforeach
@@ -83,8 +83,8 @@
                     <x-wrapper-form-1>
                         <x-wrapper-form-2>
                             <x-label for="product_id">Product</x-label>
-                            <x-input-1 name="product_id[]" id="product_id" list="products_all" class="product_id">Product</x-input-1>
-                                <datalist id="products_all">
+                            <x-input-1 name="product_id[]" id="product_id" list="make_input_products_all" class="product_id">Product</x-input-1>
+                                <datalist id="make_input_products_all">
                                     @foreach ($products_all as $product)
                                         <option value='{{ $product->product_id }}'>{{ $product->name }}</option>
                                     @endforeach
@@ -135,8 +135,8 @@
         <x-wrapper-form-1>
             <x-wrapper-form-2>
                 <x-label for="product_id">Product</x-label>
-                <x-input-1 name="product_id[]" id="product_id" list="products_all" class="product_id">Product</x-input-1>
-                    <datalist id="products_all">
+                <x-input-1 name="product_id[]" id="product_id" list="make_input_products_all" class="product_id">Product</x-input-1>
+                    <datalist id="make_input_products_all">
                         @foreach ($products_all as $product)
                             <option value='{{ $product->product_id }}'>{{ $product->name }}</option>
                         @endforeach

@@ -300,6 +300,7 @@
 
     <br>
 
+    @if (!($type != 'inputs' && isset($movement->customer) && $movement->customer->customer_code === 'INT-PROD'))
     {{-- SECCION DE TRANSPORTE --}}
     <div style="width: 100%;">
         <div class="fullDiv">
@@ -390,6 +391,7 @@
     </div>
 
     <br>
+    @endif
 
     {{-- SECCION DE COMENTARIOS --}}
     @if (!empty($movement->comments))

@@ -9,6 +9,12 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Chart\Chart;
+use PhpOffice\PhpSpreadsheet\Chart\DataSeries;
+use PhpOffice\PhpSpreadsheet\Chart\DataSeriesValues;
+use PhpOffice\PhpSpreadsheet\Chart\Legend;
+use PhpOffice\PhpSpreadsheet\Chart\PlotArea;
+use PhpOffice\PhpSpreadsheet\Chart\Title;
 use Illuminate\Support\Facades\DB;
 use App\Models\Inventory;
 use App\Models\ProductOutputs;
@@ -264,6 +270,155 @@ class XlsController extends Controller
         $fileName = 'Inventario_Success.xlsx';
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment;filename='.$fileName.'');
+    }
+
+    public function proteinXls(){
+        $spreadsheet = new Spreadsheet();
+        $activeSheet = $spreadsheet->getActiveSheet();
+        $activeSheet->setTitle('Reporte de Proteína');
+
+        $data = DB::table('cli')
+            ->select('cli.bag_number', 'cli.protein', 'products.name as pName', 'inventory.batch as batch')
+            ->join('inventory', 'inventory.inventory_id', '=', 'cli.inventory_id')
+            ->join('products', 'products.product_id', '=', 'inventory.product_id')
+            ->whereNotNull('cli.protein')
+            ->orderBy('cli.cli_id', 'desc')
+            ->get();
+
+        $estilosEncabezados = [
+            'font' => [
+                'bold' => true,
+                'color' => ['argb' => Color::COLOR_WHITE],
+                'size' => 12,
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['argb' => '008000'],
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['argb' => Color::COLOR_WHITE],
+                ],
+            ],
+        ];
+
+        $fechaConsulta = now();
+        $activeSheet->setCellValue('A1', 'Fecha de consulta: '.$fechaConsulta);
+
+        $activeSheet->setCellValue('A3', 'Producto');
+        $activeSheet->setCellValue('B3', 'Lote');
+        $activeSheet->setCellValue('C3', 'Barcina');
+        $activeSheet->setCellValue('D3', 'Proteína (%)');
+        $activeSheet->setCellValue('E3', 'Rango');
+
+        foreach (['A3','B3','C3','D3','E3'] as $col) {
+            $activeSheet->getStyle($col)->applyFromArray($estilosEncabezados);
+        }
+
+        $activeSheet->getRowDimension('3')->setRowHeight(20);
+
+        $counts = [
+            '< 30' => 0,
+            '30 a 34.9' => 0,
+            '35 a 39.9' => 0,
+            '>= 40' => 0,
+        ];
+
+        $filaInicial = 4;
+
+        foreach($data as $item){
+            $rango = 'N/A';
+            if (is_numeric($item->protein)) {
+                if ($item->protein < 30) {
+                    $rango = '< 30';
+                } elseif ($item->protein >= 30 && $item->protein < 35) {
+                    $rango = '30 a 34.9';
+                } elseif ($item->protein >= 35 && $item->protein < 40) {
+                    $rango = '35 a 39.9';
+                } elseif ($item->protein >= 40) {
+                    $rango = '>= 40';
+                }
+                
+                if (isset($counts[$rango])) {
+                    $counts[$rango]++;
+                }
+            }
+
+            $activeSheet->setCellValue('A'.$filaInicial, $item->pName);
+            $activeSheet->setCellValue('B'.$filaInicial, $item->batch);
+            $activeSheet->setCellValue('C'.$filaInicial, $item->bag_number);
+            $activeSheet->setCellValue('D'.$filaInicial, $item->protein);
+            $activeSheet->setCellValue('E'.$filaInicial, $rango);
+            $filaInicial++;
+        }
+
+        foreach (['A','B','C','D','E'] as $col) {
+            $activeSheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $activeSheet->getStyle('D')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+
+        // Tabla de resumen para la gráfica
+        $activeSheet->setCellValue('G3', 'Rango');
+        $activeSheet->setCellValue('H3', 'Cantidad');
+        $activeSheet->getStyle('G3:H3')->applyFromArray($estilosEncabezados);
+
+        $activeSheet->setCellValue('G4', '< 30');
+        $activeSheet->setCellValue('H4', $counts['< 30']);
+        $activeSheet->setCellValue('G5', '30 a 34.9');
+        $activeSheet->setCellValue('H5', $counts['30 a 34.9']);
+        $activeSheet->setCellValue('G6', '35 a 39.9');
+        $activeSheet->setCellValue('H6', $counts['35 a 39.9']);
+        $activeSheet->setCellValue('G7', '>= 40');
+        $activeSheet->setCellValue('H7', $counts['>= 40']);
+
+        // Crear Gráfica
+        $sheetTitle = "'Reporte de Proteína'";
+        
+        $dataSeriesLabels = [
+            new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_STRING, $sheetTitle.'!$H$3', null, 1), 
+        ];
+        $xAxisTickValues = [
+            new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_STRING, $sheetTitle.'!$G$4:$G$7', null, 4), 
+        ];
+        $dataSeriesValues = [
+            new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_NUMBER, $sheetTitle.'!$H$4:$H$7', null, 4),
+        ];
+
+        $series = new DataSeries(
+            DataSeries::TYPE_BARCHART,
+            DataSeries::GROUPING_STANDARD,
+            range(0, count($dataSeriesValues) - 1),
+            $dataSeriesLabels,
+            $xAxisTickValues,
+            $dataSeriesValues
+        );
+
+        $plotArea = new PlotArea(null, [$series]);
+        $legend = new Legend(Legend::POSITION_RIGHT, null, false);
+        $title = new Title('Distribución de Proteína');
+        $chart = new Chart(
+            'grafica_proteina',
+            $title,
+            $legend,
+            $plotArea,
+            true,
+            0,
+            null,
+            null
+        );
+
+        $chart->setTopLeftPosition('J3');
+        $chart->setBottomRightPosition('R18');
+        $activeSheet->addChart($chart);
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->setIncludeCharts(true);
+        $fileName = 'Reporte_Proteina.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename='.$fileName);
         $writer->save("php://output");
     }
 }

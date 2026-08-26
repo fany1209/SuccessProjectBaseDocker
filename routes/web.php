@@ -663,6 +663,8 @@ Route::prefix('laboratory/equipments')->group(function () {
     
     Route::get('/export-inventory', [XlsController::class, 'inventoryXls'])
         ->name('export-inventory');
+    Route::get('/export-protein', [XlsController::class, 'proteinXls'])
+        ->name('export-protein');
 
     Route::get('/reports-excel-inventory', [XlsController::class, 'reports'])
         ->name('reports');

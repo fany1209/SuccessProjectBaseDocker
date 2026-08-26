@@ -8,19 +8,25 @@ Fecha de actualización: 15-01-2026
 --}}
 <x-modal id="make-transaction">
     <form class="flex flex-col items-center w-full gap-2" id="make-transaction-form">
+        <datalist id="add_tx_products_all">
+            @foreach ($products_all as $product)
+                <option value='{{ $product->product_id }}'>{{ $product->name }}</option>
+            @endforeach
+        </datalist>
         @csrf
 
         <x-wrapper-form-1>
             <x-tittle-form>Make Transaction</x-tittle-form>
             @hasanyrole('Admin|Warehouse')
-            <x-toggle-switch id="type" name="type" value="Input" :checked="true"
-                onLabel="Input" offLabel="Output"
-                onColor="emerald-500" offColor="red-700"
-                textColor="white" class=""/>
+            <select id="type" name="type" class="w-full rounded-lg border border-gray-300 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 px-3 py-2 font-semibold">
+                <option value="Input" selected>Input (Entrada)</option>
+                <option value="Output">Output (Salida Venta)</option>
+                <option value="InternalOutput">Internal Output (Salida Producción)</option>
+            </select>
             @else
             <div class="flex items-center gap-2">
                 <span class="bg-emerald-500 text-white font-semibold px-4 py-1 rounded shadow-sm">Input</span>
-                <input type="checkbox" id="type" name="type" value="Input" checked class="hidden" />
+                <input type="hidden" id="type" name="type" value="Input" />
             </div>
             @endhasanyrole
         </x-wrapper-form-1>
@@ -28,8 +34,8 @@ Fecha de actualización: 15-01-2026
         <x-wrapper-form-1>
             <x-wrapper-form-2 id="supplier-wrapper" class="">
                 <x-label for="supplier">Supplier</x-label>
-                <x-input-1 required name="supplier" id="supplier" list="suppliers"></x-input-1>
-                <datalist id="suppliers">
+                <x-input-1 required name="supplier" id="supplier" list="add_tx_suppliers"></x-input-1>
+                <datalist id="add_tx_suppliers">
                     @foreach ($suppliers as $supplier)
                         <option value='{{ $supplier->supplier_id }}'>{{ $supplier->name }}</option>
                     @endforeach
@@ -39,8 +45,8 @@ Fecha de actualización: 15-01-2026
 
             <x-wrapper-form-2 id="customer-wrapper" class="hidden">
                 <x-label for="customer">Customer</x-label>
-                <x-input-1 disabled required name="customer" id="customer" list="customers"></x-input-1>
-                <datalist id="customers">
+                <x-input-1 disabled required name="customer" id="customer" list="add_tx_customers"></x-input-1>
+                <datalist id="add_tx_customers">
                     @foreach ($customers as $customer)
                         <option value='{{ $customer->customer_id }}'>{{ $customer->name }}</option>
                     @endforeach
@@ -74,12 +80,7 @@ Fecha de actualización: 15-01-2026
                         
                         <x-wrapper-form-2>
                             <x-label for="product_id">Product</x-label>
-                            <x-input-1 name="product_id[]" list="products_all" class="product_id">Product</x-input-1>
-                            <datalist id="products_all">
-                                @foreach ($products_all as $product)
-                                    <option value='{{ $product->product_id }}'>{{ $product->name }}</option>
-                                @endforeach
-                            </datalist>
+                            <x-input-1 name="product_id[]" list="add_tx_products_all" class="product_id">Product</x-input-1>
                             <p class="product-name text-sm text-gray-500"></p>
                         </x-wrapper-form-2>
                     </x-wrapper-form-1>
@@ -134,11 +135,11 @@ Fecha de actualización: 15-01-2026
         </x-wrapper-form-1>
 
 
-        <x-wrapper-form-1>
+        <x-wrapper-form-1 class="transport-info-wrapper">
             <x-wrapper-form-2>
                 <x-label for="transport_line">Transport Line</x-label>
-                <x-input-1 name="transport_line" id="transport_line" list="transport_lines"></x-input-1>
-                <datalist id="transport_lines">
+                <x-input-1 name="transport_line" id="transport_line" list="add_tx_transport_lines"></x-input-1>
+                <datalist id="add_tx_transport_lines">
                     @foreach ($transport_lines as $transport_line)
                         <option value='{{ $transport_line->transport_line_id }}'>{{ $transport_line->name }}</option>
                     @endforeach
@@ -146,11 +147,11 @@ Fecha de actualización: 15-01-2026
             </x-wrapper-form-2>
         </x-wrapper-form-1>
 
-        <x-wrapper-form-1>
+        <x-wrapper-form-1 class="transport-info-wrapper">
             <x-wrapper-form-2>
                 <x-label for="operator">Operator</x-label>
-                <x-input-1 name="operator" id="operator" list="operators"></x-input-1>
-                <datalist id="operators">
+                <x-input-1 name="operator" id="operator" list="add_tx_operators"></x-input-1>
+                <datalist id="add_tx_operators">
                     @foreach ($operators as $operator)
                         <option value="{{ $operator->name }}">{{ $operator->license }}</option>
                     @endforeach
@@ -166,8 +167,8 @@ Fecha de actualización: 15-01-2026
         <x-wrapper-form-1>
             <x-wrapper-form-2 id="seller-wrapper" class="hidden">
                 <x-label for="vendedor">Vendedor</x-label>
-                <x-input-1 disabled name="vendedor" id="vendedor" list="sellers" maxlength="200"></x-input-1>
-                <datalist id="sellers">
+                <x-input-1 disabled name="vendedor" id="vendedor" list="add_tx_sellers" maxlength="200"></x-input-1>
+                <datalist id="add_tx_sellers">
                     <option value="Nery Medina"></option>
                     <option value="William"></option>
                     <option value="Flor Gutierrez"></option>
@@ -175,7 +176,7 @@ Fecha de actualización: 15-01-2026
             </x-wrapper-form-2>
         </x-wrapper-form-1>
 
-        <x-wrapper-form-1>
+        <x-wrapper-form-1 class="transport-info-wrapper">
             <x-toggle-decision id="security-seal" label="Security Seal?" buttonText="No"
                 class="border-gray-400 hover:bg-green-300 text-gray-700 hover:text-white"></x-toggle-decision>
 
@@ -187,17 +188,17 @@ Fecha de actualización: 15-01-2026
             </x-wrapper-form-2>
         </x-wrapper-form-1>
 
-        <x-wrapper-form-1>
+        <x-wrapper-form-1 class="transport-info-wrapper">
             <x-wrapper-form-2>
                 <x-label for="unit_plates">Unit plates</x-label>
-                <x-input-1 name="unit_plates" id="unit_plates" list="vehicles"></x-input-1>
-                <datalist id="vehicles"></datalist>
+                <x-input-1 name="unit_plates" id="unit_plates" list="add_tx_vehicles"></x-input-1>
+                <datalist id="add_tx_vehicles"></datalist>
             </x-wrapper-form-2>
 
             <x-wrapper-form-2>
                 <x-label for="trailer_plates">Trailer plates</x-label>
-                <x-input-1 name="trailer_plates" id="trailer_plates" list="trailers"></x-input-1>
-                <datalist id="trailers"></datalist>
+                <x-input-1 name="trailer_plates" id="trailer_plates" list="add_tx_trailers"></x-input-1>
+                <datalist id="add_tx_trailers"></datalist>
             </x-wrapper-form-2>
         </x-wrapper-form-1>
 
@@ -234,7 +235,7 @@ Fecha de actualización: 15-01-2026
 
             <x-wrapper-form-2>
                 <x-label for="product_id">Product</x-label>
-                <x-input-1 name="product_id[]" list="products_all" class="product_id">Product</x-input-1>
+                <x-input-1 name="product_id[]" list="add_tx_products_all" class="product_id">Product</x-input-1>
                 <p class="product-name text-sm text-gray-500"></p>
             </x-wrapper-form-2>
         </x-wrapper-form-1>
@@ -291,7 +292,7 @@ Fecha de actualización: 15-01-2026
         <x-wrapper-form-1>
             <x-wrapper-form-2>
                 <x-label for="product_id">Product</x-label>
-                <x-input-1 name="product_id[]" list="products_all" class="product_id">Product</x-input-1>
+                <x-input-1 name="product_id[]" list="add_tx_products_all" class="product_id">Product</x-input-1>
                 <p class="product-name text-sm text-gray-500"></p>
             </x-wrapper-form-2>
             <x-wrapper-form-2>
@@ -341,16 +342,13 @@ $(function(){
     let row_index = 1;
 
     function getMovement($modal){
-        const cb = $modal.find('input[type="checkbox"]#type').first();
-        return (cb.length && cb.prop('checked')) ? 'Input' : 'Output';
+        const cb = $modal.find('#type');
+        return cb.length ? cb.val() : 'Input';
     }
 
     function setMovement($modal, movement){
-        const cb = $modal.find('input[type="checkbox"]#type').first();
-        const hd = $modal.find('input[type="hidden"][name="type"]').first();
-
-        if(cb.length) cb.prop('checked', movement === 'Input');
-        if(hd.length) hd.val(movement);
+        const cb = $modal.find('#type');
+        if(cb.length) cb.val(movement);
     }
 
     function applyMovement($modal, movement){
@@ -362,8 +360,11 @@ $(function(){
 
         let filteredProducts = products_inventory;
         @hasrole('Warehouse')
-        if (!isInput) {
+        if (movement === 'Output') {
             filteredProducts = products_inventory.filter(p => p.category_id == 17);
+        } else if (movement === 'InternalOutput') {
+            // For internal production output, we allow BGBG / materia prima (or all inputs)
+            filteredProducts = products_inventory; 
         }
         @endhasrole
 
@@ -371,7 +372,7 @@ $(function(){
         filteredProducts.forEach(product => {
             optionsHtml += `<option value='${product.product_id}'>${product.name}</option>`;
         });
-        $('#products_all').empty().append(optionsHtml);
+        $('#add_tx_products_all').empty().append(optionsHtml);
 
         if(isInput){
 
@@ -385,11 +386,26 @@ $(function(){
             $modal.find('#customer-name').text('');
             $sellerWrapper.addClass('hidden').css('display','none');
             $modal.find('#vendedor').prop('disabled', true).attr('disabled','disabled').prop('required', false).val('');
+            $modal.find('.transport-info-wrapper').removeClass('hidden').css('display','block');
             let template = $modal.find('#product_input_template').clone().removeAttr('id').removeClass('hidden').show();
             $modal.find('#products').empty().append(template);
 
-        }else{
+        } else if (movement === 'InternalOutput') {
+            $customerWrapper.addClass('hidden').css('display','none');
+            $supplierWrapper.addClass('hidden').css('display','none');
+            $modal.find('.warehouse').prop('disabled', true);
+            $modal.find('.location_id').prop('disabled', true);
+            $modal.find('#customer').prop('disabled', true).attr('disabled','disabled').prop('required', false).val('');
+            $modal.find('#supplier').prop('disabled', true).attr('disabled','disabled').prop('required', false).val('');
+            $modal.find('#supplier-name').text('');
+            $modal.find('#customer-name').text('');
+            $sellerWrapper.addClass('hidden').css('display','none');
+            $modal.find('#vendedor').prop('disabled', true).attr('disabled','disabled').prop('required', false).val('');
+            $modal.find('.transport-info-wrapper').addClass('hidden').css('display','none');
+            let template = $modal.find('#product_output_template').clone().removeAttr('id').removeClass('hidden').show();
+            $modal.find('#products').empty().append(template);
 
+        } else {
             $customerWrapper.removeClass('hidden').css('display','block');
             $supplierWrapper.addClass('hidden').css('display','none');
             $modal.find('.warehouse').prop('disabled', true);
@@ -400,6 +416,7 @@ $(function(){
             $modal.find('#supplier-name').text('');
             $sellerWrapper.removeClass('hidden').css('display','block');
             $modal.find('#vendedor').prop('disabled', false).removeAttr('disabled').prop('required', true);
+            $modal.find('.transport-info-wrapper').removeClass('hidden').css('display','block');
             let template = $modal.find('#product_output_template').clone().removeAttr('id').removeClass('hidden').show();
             $modal.find('#products').empty().append(template);
         }
@@ -413,10 +430,10 @@ $(function(){
         applyMovement(father, movement);
     }
 
-    $(document).off('change.makeTxType', '#make-transaction input[type="checkbox"]#type')
-      .on('change.makeTxType', '#make-transaction input[type="checkbox"]#type', function(){
+    $(document).off('change.makeTxType', '#make-transaction #type')
+      .on('change.makeTxType', '#make-transaction #type', function(){
           const $modal = $(this).closest('#make-transaction');
-          const movement = this.checked ? 'Input' : 'Output';
+          const movement = $(this).val();
 
           setMovement($modal, movement);
           applyMovement($modal, movement);
@@ -447,20 +464,29 @@ $(function(){
                 }
                 
                 let availableBags = [];
-                if (movement === 'Output') {
+                if (movement === 'Output' || movement === 'InternalOutput') {
                     let inventory_id = wrapper.find('.warehouse_batch').val();
                     let selectedLocId = wrapper.find('.warehouse_batch').find('option:selected').data('location-id');
                     if (inventory_id) {
-                        availableBags = product_locations.filter(pl => pl.inventory_id == inventory_id && pl.bag_number && (!selectedLocId || pl.location_id == selectedLocId)).map(pl => pl.bag_number);
+                        availableBags = product_locations.filter(pl => pl.inventory_id == inventory_id && pl.bag_number && (!selectedLocId || pl.location_id == selectedLocId));
                     }
                 }
 
                 for (let i = 0; i < numInputs; i++) {
-                    if (movement === 'Output' && availableBags.length > 0) {
+                    if ((movement === 'Output' || movement === 'InternalOutput') && availableBags.length > 0) {
                         let options = '<option value="">Select a Barcina</option>';
                         // filter out duplicates just in case
-                        [...new Set(availableBags)].forEach(bag => {
-                            options += `<option value="${bag}">${bag}</option>`;
+                        let uniqueBags = [];
+                        let seen = new Set();
+                        availableBags.forEach(bag => {
+                            if (!seen.has(bag.bag_number)) {
+                                seen.add(bag.bag_number);
+                                uniqueBags.push(bag);
+                            }
+                        });
+
+                        uniqueBags.forEach(bag => {
+                            options += `<option value="${bag.bag_number}" data-protein="${bag.protein || ''}">${bag.bag_number}</option>`;
                         });
                         container.append(`
                             <div class="flex flex-col gap-1 w-full bg-gray-50 p-2 rounded-lg border border-gray-200">
@@ -526,6 +552,21 @@ $(function(){
         wrapper.find('.weight_per_unit').prop('required', hasLocation);
     });
 
+    father.on('change', '.bag_number_input', function() {
+        let selectedOption = $(this).find('option:selected');
+        let protein = selectedOption.data('protein');
+        let container = $(this).closest('div');
+        let proteinInput = container.find('.protein_input');
+        
+        if (protein !== undefined && protein !== '') {
+            proteinInput.val(protein);
+            proteinInput.prop('readonly', true).addClass('bg-gray-100');
+        } else {
+            proteinInput.val('');
+            proteinInput.prop('readonly', false).removeClass('bg-gray-100');
+        }
+    });
+
     father.on('click','#add_product',function(){
         setTimeout(() => {
             father.find('#products .wrapper').each(function() {
@@ -560,16 +601,16 @@ $(function(){
 
     father.on('input','#transport_line',function(){
         let transport_line = $(this).val();
-        father.find('#vehicles').empty();
+        father.find('#add_tx_vehicles').empty();
         vehicles.forEach(vehicle => {
             if(vehicle.transport_line_id == transport_line){
-                father.find('#vehicles').append(`<option value="${vehicle.plate}">${vehicle.type}</option>`);
+                father.find('#add_tx_vehicles').append(`<option value="${vehicle.plate}">${vehicle.type}</option>`);
             }
         });
-        father.find('#trailers').empty();
+        father.find('#add_tx_trailers').empty();
         trailers.forEach(trailer => {
             if(trailer.transport_line_id == transport_line){
-                father.find('#trailers').append(`<option value="${trailer.plate}">${trailer.type}</option>`);
+                father.find('#add_tx_trailers').append(`<option value="${trailer.plate}">${trailer.type}</option>`);
             }
         });
     });
@@ -604,7 +645,7 @@ $(function(){
         wrapper.find('.stock').text((inventory_id && batch) ? `Available: ${batch.stock}` : `Available: 0`);
         
         let movement = getMovement(father);
-        if (movement === 'Output' && location_id) {
+        if ((movement === 'Output' || movement === 'InternalOutput') && location_id) {
             let locationObj = locations.find(l => l.location_id == location_id);
             if (locationObj) {
                 wrapper.find('.warehouse').val(locationObj.warehouse_id).trigger('change');
@@ -641,7 +682,7 @@ $(function(){
                     wrapper.find('.product-name').text(response.product.name);
                     wrapper.find('.unit').text(`Unit: ${response.product.unit}`);
 
-                    if(movement === 'Output'){
+                    if(movement === 'Output' || movement === 'InternalOutput'){
                         if(batch){
                             wrapper.find('.label_batch').val(`${batch.batch_code}${code}`);
                         }
@@ -718,7 +759,7 @@ $(function(){
         row_index += 1;
         let movement = getMovement(father);
 
-        let template = (movement === 'Output')
+        let template = (movement === 'Output' || movement === 'InternalOutput')
             ? father.find('#product_output_template').clone().removeAttr('id').removeClass('hidden').show()
             : father.find('#product_input_template').clone().removeAttr('id').removeClass('hidden').show();
 
@@ -746,7 +787,7 @@ $(function(){
                 data.append('bag_location_id[' + index + '][]', $(this).val());
             });
             
-            if (movement === 'Output') {
+            if (movement === 'Output' || movement === 'InternalOutput') {
                 let loc_id = $(this).find('.warehouse_batch').find('option:selected').data('location-id');
                 if (loc_id) {
                     data.append('output_location_id[' + index + ']', loc_id);

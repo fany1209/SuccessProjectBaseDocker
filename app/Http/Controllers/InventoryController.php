@@ -72,7 +72,7 @@ class InventoryController extends Controller
             ->orderBy('sale_id', 'desc')
             ->get();
 
-        $product_locations = DB::table('cli')->select('inventory_id', 'location_id', 'bag_number')->get();
+        $product_locations = DB::table('cli')->select('inventory_id', 'location_id', 'bag_number', 'protein')->get();
 
         return view('inventory',compact('warehouses','locations','available_locations','concepts','trailers','vehicles','operators','batchs','outputs_products','inputs_products','outputs_dates','inputs_dates','outputs_months','outputs_years','inputs_months','inputs_years','transport_lines','suppliers','customers','products','products_all','quarantine','products_warehouse', 'almacen_sales', 'product_locations'));
     }
@@ -183,7 +183,7 @@ class InventoryController extends Controller
             }
 
             $request->validate([
-                'type'                 => 'required|string|in:Input,Output',
+                'type'                 => 'required|string|in:Input,Output,InternalOutput',
                 'transport_line'       => 'nullable|integer',
                 'operator'             => 'nullable|string|max:200',
                 'license_number'       => 'nullable|string|max:50',
@@ -242,8 +242,17 @@ class InventoryController extends Controller
                     $fkField  = 'input_id';
                     $fkValue  = $movement->input_id;
                 } else {
-                    $data['customer_id'] = $request->customer;
-                    $data['vendedor'] = $request->vendedor;
+                    if ($request->type === 'InternalOutput') {
+                        $internalCustomer = \App\Models\Customer::firstOrCreate(
+                            ['name' => 'Consumo Interno Producción'],
+                            ['customer_code' => 'INT-PROD']
+                        );
+                        $data['customer_id'] = $internalCustomer->customer_id;
+                        $data['vendedor'] = 'Producción';
+                    } else {
+                        $data['customer_id'] = $request->customer;
+                        $data['vendedor'] = $request->vendedor;
+                    }
                     $movement = Output::create($data);
                     $fkField  = 'output_id';
                     $fkValue  = $movement->output_id;
@@ -259,7 +268,7 @@ class InventoryController extends Controller
                         $fkField     => $fkValue,
                     ];
 
-                    if ($request->type === 'Output') {
+                    if ($request->type === 'Output' || $request->type === 'InternalOutput') {
                         $inventory = Inventory::where('inventory_id', $request->warehouse_batch[$index])->firstOrFail();
                         $row['warehouse_batch'] = $inventory->batch;
                         $row['label_batch']     = $request->label_batch[$index] ?? null;

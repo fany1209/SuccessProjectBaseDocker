@@ -20,8 +20,8 @@ Fecha de actualización: 15-01-26
         <x-wrapper-form-1>
             <x-wrapper-form-2 id="supplier-wrapper">
                 <x-label for="supplier">Supplier</x-label>
-                <x-input-1 required name="supplier_id" id="supplier" list="suppliers"></x-input-1>
-                <datalist id="suppliers">
+                <x-input-1 required name="supplier_id" id="supplier" list="edit_tx_suppliers"></x-input-1>
+                <datalist id="edit_tx_suppliers">
                     @foreach ($suppliers as $supplier)
                         <option value="{{ $supplier->supplier_id }}">{{ $supplier->name }}</option>
                     @endforeach
@@ -31,8 +31,8 @@ Fecha de actualización: 15-01-26
 
             <x-wrapper-form-2 id="customer-wrapper" class="hidden">
                 <x-label for="customer">Customer</x-label>
-                <x-input-1 disabled required name="customer_id" id="customer" list="customers"></x-input-1>
-                <datalist id="customers">
+                <x-input-1 disabled required name="customer_id" id="customer" list="edit_tx_customers"></x-input-1>
+                <datalist id="edit_tx_customers">
                     @foreach ($customers as $customer)
                         <option value="{{ $customer->customer_id }}">{{ $customer->name }}</option>
                     @endforeach
@@ -44,8 +44,8 @@ Fecha de actualización: 15-01-26
        <x-wrapper-form-1>
             <x-wrapper-form-2 id="seller-wrapper" class="hidden">
                 <x-label for="vendedor">Vendedor</x-label>
-                <x-input-1 disabled name="vendedor" id="vendedor" list="sellers" maxlength="200"></x-input-1>
-                <datalist id="sellers">
+                <x-input-1 disabled name="vendedor" id="vendedor" list="edit_tx_sellers" maxlength="200"></x-input-1>
+                <datalist id="edit_tx_sellers">
                     <option value="Nery Medina"></option>
                     <option value="William"></option>
                     <option value="Flor Gutierrez"></option>
@@ -61,11 +61,11 @@ Fecha de actualización: 15-01-26
             <div id="products" class="w-full"></div>
         </x-wrapper-form-1>
 
-        <x-wrapper-form-1>
+        <x-wrapper-form-1 class="transport-info-wrapper">
             <x-wrapper-form-2>
                 <x-label for="transport_line">Transport Line</x-label>
-                <x-input-1 required name="transport_line_id" id="transport_line" list="transport_lines"></x-input-1>
-                <datalist id="transport_lines">
+                <x-input-1 required name="transport_line_id" id="transport_line" list="edit_tx_transport_lines"></x-input-1>
+                <datalist id="edit_tx_transport_lines">
                     @foreach ($transport_lines as $transport_line)
                         <option value="{{ $transport_line->transport_line_id }}">{{ $transport_line->name }}</option>
                     @endforeach
@@ -74,7 +74,7 @@ Fecha de actualización: 15-01-26
             </x-wrapper-form-2>
         </x-wrapper-form-1>
 
-        <x-wrapper-form-1>
+        <x-wrapper-form-1 class="transport-info-wrapper">
             <x-wrapper-form-2>
                 <x-label for="operator">Operator</x-label>
                 <x-input-1 required name="operator" id="operator" list="operators_list_edit"></x-input-1>
@@ -91,7 +91,7 @@ Fecha de actualización: 15-01-26
             </x-wrapper-form-2>
         </x-wrapper-form-1>
 
-        <x-wrapper-form-1>
+        <x-wrapper-form-1 class="transport-info-wrapper">
             <x-toggle-decision
                 id="security-seal"
                 label="Security Seal?"
@@ -107,11 +107,11 @@ Fecha de actualización: 15-01-26
             </x-wrapper-form-2>
         </x-wrapper-form-1>
 
-        <x-wrapper-form-1>
+        <x-wrapper-form-1 class="transport-info-wrapper">
             <x-wrapper-form-2>
                 <x-label for="unit_plates">Unit plates</x-label>
-                <x-input-1 required name="unit_plates" id="unit_plates" list="vehicles_list_edit"></x-input-1>
-                <datalist id="vehicles_list_edit">
+                <x-input-1 required name="unit_plates" id="unit_plates" list="edit_tx_vehicles"></x-input-1>
+                <datalist id="edit_tx_vehicles">
                     @foreach ($vehicles as $vehicle)
                         <option value="{{ $vehicle->plate }}">{{ $vehicle->type }}</option>
                     @endforeach
@@ -120,8 +120,8 @@ Fecha de actualización: 15-01-26
 
             <x-wrapper-form-2>
                 <x-label for="trailer_plates">Trailer plates</x-label>
-                <x-input-1 required name="trailer_plates" id="trailer_plates" list="trailers_list_edit"></x-input-1>
-                <datalist id="trailers_list_edit">
+                <x-input-1 required name="trailer_plates" id="trailer_plates" list="edit_tx_trailers"></x-input-1>
+                <datalist id="edit_tx_trailers">
                     @foreach ($trailers as $trailer)
                         <option value="{{ $trailer->plate }}">{{ $trailer->type }}</option>
                     @endforeach
@@ -142,7 +142,7 @@ Fecha de actualización: 15-01-26
         </x-wrapper-form-1>
     </form>
 
-    <datalist id="products_all">
+    <datalist id="edit_tx_products_all">
         @foreach ($products_all as $product)
             <option value='{{ $product->product_id }}'>{{ $product->name }}</option>
         @endforeach
@@ -152,7 +152,7 @@ Fecha de actualización: 15-01-26
         <x-wrapper-form-1>
             <x-wrapper-form-2>
                 <x-label for="product_id">Product</x-label>
-                <x-input-1 name="product_id[]" class="product_id" readonly list="products_all"></x-input-1>
+                <x-input-1 name="product_id[]" class="product_id" readonly list="edit_tx_products_all"></x-input-1>
                 <input type="hidden" name="product[]" class="product_hidden">
                 <p class="product-name text-sm text-gray-500"></p>
             </x-wrapper-form-2>
@@ -176,7 +176,7 @@ Fecha de actualización: 15-01-26
         <x-wrapper-form-1>
             <x-wrapper-form-2>
                 <x-label for="product_id">Product</x-label>
-                <x-input-1 name="product_id[]" list="products_all" class="product_id"></x-input-1>
+                <x-input-1 name="product_id[]" list="edit_tx_products_all" class="product_id"></x-input-1>
                 <input type="hidden" name="product[]" class="product_hidden">
                 <p class="product-name text-sm text-gray-500"></p>
             </x-wrapper-form-2>
@@ -381,6 +381,9 @@ $(function(){
 
                     modal.find('#supplier').val(r.input.supplier_id);
                     modal.find('#supplier-name').text(r.input.sName);
+                    
+                    modal.find('.transport-info-wrapper').removeClass('hidden').show();
+                    modal.find('#transport_line, #operator, #license_number, #unit_plates, #trailer_plates').prop('required', true);
 
                 }else{
                     // OUTPUT
@@ -395,6 +398,14 @@ $(function(){
                     modal.find('#customer').val(r.output.customer_id);
                     modal.find('#customer-name').text(r.output.cName);
                     modal.find('#vendedor').val(r.output.vendedor || '');
+                    
+                    if (r.output.cName === 'Consumo Interno Producción') {
+                        modal.find('.transport-info-wrapper').addClass('hidden').hide();
+                        modal.find('#transport_line, #operator, #license_number, #unit_plates, #trailer_plates').prop('required', false);
+                    } else {
+                        modal.find('.transport-info-wrapper').removeClass('hidden').show();
+                        modal.find('#transport_line, #operator, #license_number, #unit_plates, #trailer_plates').prop('required', true);
+                    }
                 }
 
                 const header = finalIsInput ? r.input : r.output;
