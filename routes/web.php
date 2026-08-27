@@ -64,9 +64,10 @@ use App\Http\Controllers\PortalUserController;
 use App\Http\Controllers\ItEquipmentController;
 use App\Http\Controllers\ItInspectionController;
 use App\Http\Controllers\MaintenanceController;
-use App\Http\Controllers\ContratoController;
+use App\Http\Controllers\MaintenanceEquipmentController;
+use App\Http\Controllers\MaintenancePlanController;
+use App\Http\Controllers\MaintenanceAreaController;
 
-use App\Http\Controllers\ActivityLogController;
 Route::get('/', function () {
     return view('home');
 })->name('home');
@@ -145,10 +146,6 @@ Route::middleware([
             ->name('profile.delete');
     });
 
-    // Activity Log
-    Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity-log.index');
-
-
     //Inventory
     Route::resource('/inventory', InventoryController::class)->middleware('can:inventory.show');
     Route::get('/getInventoryAvailable', [InventoryController::class, 'getInventoryAvailable'])->middleware('can:inventory.show')->name('inventory.getInventoryAvailable');
@@ -208,8 +205,8 @@ Route::middleware([
     Route::post('/gPurchaseOrder', [PurchaseController::class, 'gPurchaseOrder'])->name('purchases.gPurchaseOrder');
 
     // Purchase Orders
-    Route::get('/purchases/orders', [PurchaseController::class, 'orders'])->name('purchases.orders');
-    Route::get('/purchases/get-orders', [PurchaseController::class, 'getPurchaseOrders']) ->name('purchases.getPurchaseOrders');
+    Route::get('/purchases/orders', [PurchasesController::class, 'orders'])->name('purchases.orders');
+    Route::get('/purchases/get-orders', [PurchasesController::class, 'getPurchaseOrders']) ->name('purchases.getPurchaseOrders');
     Route::resource('purchases', PurchaseController::class);
     Route::get('/purchases/order-pdf/{id}', [PurchaseController::class, 'streamPdf'])->name('purchases.streamPdf');
     Route::get('/purchases/orders/{id}/edit', [PurchaseController::class, 'edit'])->name('purchases.editOrder');
@@ -438,7 +435,6 @@ Route::prefix('laboratory/equipments')->group(function () {
     //peticiones de lotes
     Route::post('/lot-requests', [LotRequestController::class, 'store'])->name('lot.request.store');
     Route::get('/lot-requests/check', [LotRequestController::class, 'checkPending'])->name('lot.request.check');
-    Route::get('/lot-requests/count-completed', [LotRequestController::class, 'countCompleted'])->name('lot.request.count_completed');
     Route::patch('/lot-requests/{id}', [LotRequestController::class, 'updateStatus'])->name('lot.request.update');
     Route::get('/lot-requests', [LotRequestController::class, 'index'])->name('lot.request.index');
     Route::get('/lot-requests/datatable', [LotRequestController::class, 'datatable'])->name('lot.request.datatable');
@@ -506,10 +502,7 @@ Route::prefix('laboratory/equipments')->group(function () {
         Route::post('/{id}/cancel', [\App\Http\Controllers\CuentasPorPagarController::class, 'cancel'])->name('cuentas-por-pagar.cancel');
         Route::get('/{id}/payments', [\App\Http\Controllers\CuentasPorPagarController::class, 'getPayments'])->name('cuentas-por-pagar.payments.list');
         Route::post('/{id}/payments', [\App\Http\Controllers\CuentasPorPagarController::class, 'addPayment'])->name('cuentas-por-pagar.payments.add');
-        Route::put('/payments/{payment_id}', [\App\Http\Controllers\CuentasPorPagarController::class, 'updatePayment'])->name('cuentas-por-pagar.payments.update');
-        Route::delete('/payments/{payment_id}', [\App\Http\Controllers\CuentasPorPagarController::class, 'deletePayment'])->name('cuentas-por-pagar.payments.delete');
         Route::post('/{id}/documents', [\App\Http\Controllers\CuentasPorPagarController::class, 'uploadDocuments'])->name('cuentas-por-pagar.documents.upload');
-        Route::delete('/{id}/comentario-img', [\App\Http\Controllers\CuentasPorPagarController::class, 'deleteComentarioImg'])->name('cuentas-por-pagar.delete-img');
     });
 
     //production y i+d
@@ -570,19 +563,6 @@ Route::prefix('laboratory/equipments')->group(function () {
         Route::get('/tasks/{task}/edit', [TaskController::class, 'edit'])->name('tasks.edit');
         Route::put('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
         Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
-        
-        Route::post('/maintenance', [MaintenanceController::class, 'store'])->name('maintenance.store');
-        Route::post('/maintenance/{id}/confirm-admin', [MaintenanceController::class, 'confirmAdmin'])->name('maintenance.confirmAdmin');
-    });
-
-    Route::middleware([
-        'auth:sanctum',
-        config('jetstream.auth_session'),
-        'verified',
-    ])->group(function () {
-        Route::get('/maintenance', [MaintenanceController::class, 'index'])->name('maintenance.index');
-        Route::get('/maintenance/{id}', [MaintenanceController::class, 'show'])->name('maintenance.show');
-        Route::post('/maintenance/{id}/confirm-department', [MaintenanceController::class, 'confirmDepartment'])->name('maintenance.confirmDepartment');
     });
 
     // Ruta para marcar todas las notificaciones como leídas
@@ -623,10 +603,6 @@ Route::prefix('laboratory/equipments')->group(function () {
     // Cursos
     Route::post('/rh/cursos', [\App\Http\Controllers\RecursosHumanosController::class, 'storeCurso'])->name('rh.cursos.store');
     Route::get('/rh/cursos/resultados', [\App\Http\Controllers\RecursosHumanosController::class, 'indexCursos'])->name('rh.cursos.resultados');
-
-    // Contratos
-    Route::get('/rh/contratos', [ContratoController::class, 'index'])->name('rh.contratos.index');
-    Route::post('/rh/contratos/update', [ContratoController::class, 'update'])->name('rh.contratos.update');
 
     //portal users
     Route::get('admin/get-json-portal-users', [PortalUserController::class, 'getPortalUsers'])
@@ -672,6 +648,16 @@ Route::prefix('laboratory/equipments')->group(function () {
     Route::get('/download-quote/{quote_id}', [PdfController::class, 'makeQuotePDF'])
         ->name('quote');
     */
+
+    // Maintenance
+    Route::get('/maintenance', [MaintenanceController::class, 'index'])->name('maintenance.index');
+    Route::get('/maintenance/history', [MaintenanceController::class, 'history'])->name('maintenance.history');
+    Route::get('/maintenance/{record}/print', [MaintenanceController::class, 'printChecklist'])->name('maintenance.print');
+    Route::post('/maintenance/{record}/complete', [MaintenanceController::class, 'complete'])->name('maintenance.complete');
+    
+    Route::resource('maintenance/areas', MaintenanceAreaController::class)->names('maintenance.areas');
+    Route::resource('maintenance/equipment', MaintenanceEquipmentController::class)->names('maintenance.equipment');
+    Route::resource('maintenance/plans', MaintenancePlanController::class)->names('maintenance.plans');
         Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),

@@ -2,44 +2,31 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class MaintenanceRecord extends Model
 {
-    use HasFactory;
-
-    protected $table = 'maintenance_records';
-
     protected $fillable = [
-        'equipment_id',
-        'scheduled_date',
-        'department_confirmed_at',
-        'department_user_id',
-        'admin_confirmed_at',
-        'admin_user_id',
-        'status',
-        'comments',
+        'code', 'equipment_id', 'maintenance_plan_id', 'scheduled_date', 
+        'status', 'printed_at', 'completed_at', 'evidence_file'
     ];
 
-    protected $casts = [
-        'scheduled_date' => 'date',
-        'department_confirmed_at' => 'datetime',
-        'admin_confirmed_at' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'scheduled_date' => 'date',
+            'printed_at' => 'datetime',
+            'completed_at' => 'datetime',
+        ];
+    }
 
     public function equipment()
     {
-        return $this->belongsTo(MaintenanceEquipment::class, 'equipment_id');
+        return $this->belongsTo(Equipment::class);
     }
 
-    public function departmentUser()
+    public function maintenancePlan()
     {
-        return $this->belongsTo(User::class, 'department_user_id');
-    }
-
-    public function adminUser()
-    {
-        return $this->belongsTo(User::class, 'admin_user_id');
+        return $this->belongsTo(MaintenancePlan::class);
     }
 }
