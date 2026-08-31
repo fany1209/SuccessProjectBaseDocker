@@ -93,6 +93,12 @@
                         </x-nav-link>
                     @endcan
 
+                    @auth
+                        <x-nav-link href="{{ route('production.yeast.index') }}" :active="request()->routeIs('production.yeast.index')">
+                            {{ __('Producción') }}
+                        </x-nav-link>
+                    @endauth
+
                     @can('finance.show')
                         <x-nav-link href="{{ route('finance.index') }}" :active="request()->routeIs('finance.index')">
                             {{ __('Finance') }}

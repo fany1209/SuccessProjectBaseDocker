@@ -298,6 +298,13 @@ Route::middleware([
     Route::get('/incidencias', [QualityController::class, 'incidencias'])->name('quality.incidencias');
     Route::post('/quality/pdf2', [QualityController::class, 'pdf2'])->name('quality.pdf2');
     Route::post('/quality/pdf3', [QualityController::class, 'pdf3'])->name('quality.pdf3');
+    
+    //Production
+    Route::resource('production/yeast', \App\Http\Controllers\YeastProductionController::class)->names([
+        'index' => 'production.yeast.index',
+        'update' => 'production.yeast.update',
+    ]);
+    
     Route::post('/quality/pd4', [QualityController::class, 'pdf4'])->name('quality.pdf4');
     Route::get('/quality/pdf5/form', [QualityController::class, 'pdf5Form'])->name('quality.pdf5.form');
     Route::post('/quality/pdf6', [QualityController::class, 'pdf6'])->name('quality.pdf6');
