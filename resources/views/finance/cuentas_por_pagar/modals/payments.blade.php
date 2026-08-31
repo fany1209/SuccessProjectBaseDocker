@@ -15,28 +15,7 @@
           </select>
         </div>
         
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Banco</label>
-          <select id="edit-banco" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]">
-            <option value="">Selecciona un banco</option>
-            <option value="Banbajío">Banbajío</option>
-            <option value="BBVA">BBVA</option>
-            <option value="Efectivo William" style="color: #198754; font-weight: 600;">Efectivo William</option>
-            <option value="Efectivo Manola" style="color: #198754; font-weight: 600;">Efectivo Manola</option>
-            <option value="Efectivo Rocio" style="color: #198754; font-weight: 600;">Efectivo Rocio</option>
-            <option value="Banamex">Banamex</option>
-            <option value="Santander">Santander</option>
-            <option value="Banorte">Banorte</option>
-            <option value="HSBC">HSBC</option>
-            <option value="Scotiabank">Scotiabank</option>
-            <option value="Inbursa">Inbursa</option>
-            <option value="Afirme">Afirme</option>
-            <option value="Banregio">Banregio</option>
-            <option value="Hey Banco">Hey Banco</option>
-            <option value="Nu">Nu</option>
-          </select>
-        </div>
-        
+
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
           <input type="text" id="edit-departamento-cxp" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" placeholder="Ej. TI, RH...">
@@ -88,7 +67,7 @@
       <div class="bg-gray-50 p-4 rounded-xl border border-gray-200" id="add-payment-container">
         <h3 class="text-md font-bold text-gray-800 mb-3">Registrar Abono</h3>
         <form id="add-payment-form" enctype="multipart/form-data">
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-start">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Monto ($)</label>
               <input type="number" step="0.01" min="0.01" id="pay-amount" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" required>
@@ -111,11 +90,38 @@
             </div>
 
             <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Banco</label>
+              <select id="pay-banco" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754] text-sm">
+                <option value="">Selecciona un banco</option>
+                <option value="Banbajío">Banbajío</option>
+                <option value="BBVA">BBVA</option>
+                <option value="Efectivo William">Efectivo William</option>
+                <option value="Efectivo Manola">Efectivo Manola</option>
+                <option value="Efectivo Rocio">Efectivo Rocio</option>
+                <option value="Banamex">Banamex</option>
+                <option value="Santander">Santander</option>
+                <option value="Banorte">Banorte</option>
+                <option value="HSBC">HSBC</option>
+                <option value="Scotiabank">Scotiabank</option>
+                <option value="Inbursa">Inbursa</option>
+                <option value="Afirme">Afirme</option>
+                <option value="Banregio">Banregio</option>
+                <option value="Hey Banco">Hey Banco</option>
+                <option value="Nu">Nu</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="pay-same-bank" class="rounded text-[#198754] focus:ring-[#198754]">
+              <label for="pay-same-bank" class="text-sm text-gray-700">Mismo Banco</label>
+            </div>
+
+            <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Comprobante</label>
               <input type="file" id="pay-comprobante" class="w-full border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-[#e8f5e9] file:text-[#198754] hover:file:bg-[#c8e6c9] text-sm">
             </div>
 
-            <div class="lg:col-span-3">
+            <div class="lg:col-span-4">
               <label class="block text-sm font-medium text-gray-700 mb-1">Notas</label>
               <textarea id="pay-notas" rows="1" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754] text-sm" placeholder="Opcional"></textarea>
             </div>
@@ -238,6 +244,28 @@
             <option value="Transferencia">Transferencia</option>
             <option value="Tarjeta">Tarjeta</option>
             <option value="Cheque">Cheque</option>
+          </select>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Banco</label>
+          <select id="edit-pay-banco" class="w-full border-gray-300 rounded-lg focus:ring-[#198754] focus:border-[#198754]" required>
+            <option value="">Selecciona un banco</option>
+            <option value="Banbajío">Banbajío</option>
+            <option value="BBVA">BBVA</option>
+            <option value="Efectivo William">Efectivo William</option>
+            <option value="Efectivo Manola">Efectivo Manola</option>
+            <option value="Efectivo Rocio">Efectivo Rocio</option>
+            <option value="Banamex">Banamex</option>
+            <option value="Santander">Santander</option>
+            <option value="Banorte">Banorte</option>
+            <option value="HSBC">HSBC</option>
+            <option value="Scotiabank">Scotiabank</option>
+            <option value="Inbursa">Inbursa</option>
+            <option value="Afirme">Afirme</option>
+            <option value="Banregio">Banregio</option>
+            <option value="Hey Banco">Hey Banco</option>
+            <option value="Nu">Nu</option>
           </select>
         </div>
         

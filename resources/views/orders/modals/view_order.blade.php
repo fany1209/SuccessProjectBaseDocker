@@ -37,8 +37,10 @@
                 <p class="font-bold text-gray-500">Transporte / Línea:</p>
                 <p id="view_transporte" class="text-gray-800"></p>
             </div>
+            
             <div>
-
+                <p class="font-bold text-gray-500">Registrado por:</p>
+                <p id="view_creador" class="text-gray-800 font-medium"></p>
             </div>
 
             <div class="col-span-2 border-t pt-2">

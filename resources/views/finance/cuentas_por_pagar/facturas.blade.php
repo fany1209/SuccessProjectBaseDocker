@@ -122,30 +122,37 @@ $(function(){
   const toInputDate = (dateStr) => dateStr ? dateStr.slice(0, 10) : '';
 
   const renderBancoBadge = (banco) => {
-    if (!banco || banco === '—' || banco === 'N/A') return `<span class="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">—</span>`;
+    if (!banco || banco === '—' || banco === 'N/A' || banco.includes('nullable|string')) return `<span class="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">—</span>`;
     
-    let bgColor = 'bg-gray-100';
-    let textColor = 'text-gray-800';
-    let iconClass = 'ri-bank-line';
+    let html = '';
+    const bancos = banco.split(',').map(b => b.trim()).filter(b => b);
+    
+    bancos.forEach(b => {
+        let bgColor = 'bg-gray-100';
+        let textColor = 'text-gray-800';
+        let iconClass = 'ri-bank-line';
 
-    const b = banco.toLowerCase();
-    if (b.includes('bbva')) { bgColor = 'bg-[#072146]'; textColor = 'text-white'; }
-    else if (b.includes('santander')) { bgColor = 'bg-[#ec0000]'; textColor = 'text-white'; }
-    else if (b.includes('banorte')) { bgColor = 'bg-[#eb0029]'; textColor = 'text-white'; }
-    else if (b.includes('banamex') || b.includes('citi')) { bgColor = 'bg-[#00529b]'; textColor = 'text-white'; }
-    else if (b.includes('hsbc')) { bgColor = 'bg-[#db0011]'; textColor = 'text-white'; }
-    else if (b.includes('scotiabank')) { bgColor = 'bg-[#ec111a]'; textColor = 'text-white'; }
-    else if (b.includes('inbursa')) { bgColor = 'bg-[#005596]'; textColor = 'text-white'; }
-    else if (b.includes('afirme')) { bgColor = 'bg-[#009b3e]'; textColor = 'text-white'; }
-    else if (b.includes('banbajio') || b.includes('banbajío')) { bgColor = 'bg-[#004b87]'; textColor = 'text-white'; }
-    else if (b.includes('banregio')) { bgColor = 'bg-[#e24a2c]'; textColor = 'text-white'; }
-    else if (b.includes('hey')) { bgColor = 'bg-[#000000]'; textColor = 'text-white'; }
-    else if (b.includes('nu')) { bgColor = 'bg-[#8A05BE]'; textColor = 'text-white'; }
-    else if (b.includes('efectivo')) { bgColor = 'bg-green-100 border border-green-300'; textColor = 'text-[#198754]'; iconClass = 'ri-cash-line'; }
+        const lowerB = b.toLowerCase();
+        if (lowerB.includes('bbva')) { bgColor = 'bg-[#072146]'; textColor = 'text-white'; }
+        else if (lowerB.includes('santander')) { bgColor = 'bg-[#ec0000]'; textColor = 'text-white'; }
+        else if (lowerB.includes('banorte')) { bgColor = 'bg-[#eb0029]'; textColor = 'text-white'; }
+        else if (lowerB.includes('banamex') || lowerB.includes('citi')) { bgColor = 'bg-[#00529b]'; textColor = 'text-white'; }
+        else if (lowerB.includes('hsbc')) { bgColor = 'bg-[#db0011]'; textColor = 'text-white'; }
+        else if (lowerB.includes('scotiabank')) { bgColor = 'bg-[#ec111a]'; textColor = 'text-white'; }
+        else if (lowerB.includes('inbursa')) { bgColor = 'bg-[#005596]'; textColor = 'text-white'; }
+        else if (lowerB.includes('afirme')) { bgColor = 'bg-[#009b3e]'; textColor = 'text-white'; }
+        else if (lowerB.includes('banbajio') || lowerB.includes('banbajío')) { bgColor = 'bg-[#004b87]'; textColor = 'text-white'; }
+        else if (lowerB.includes('banregio')) { bgColor = 'bg-[#e24a2c]'; textColor = 'text-white'; }
+        else if (lowerB.includes('hey')) { bgColor = 'bg-[#000000]'; textColor = 'text-white'; }
+        else if (lowerB.includes('nu')) { bgColor = 'bg-[#8A05BE]'; textColor = 'text-white'; }
+        else if (lowerB.includes('efectivo')) { bgColor = 'bg-green-100 border border-green-300'; textColor = 'text-[#198754]'; iconClass = 'ri-cash-line'; }
 
-    return `<span class="px-2 py-1 ${bgColor} ${textColor} rounded text-[10px] font-bold shadow-sm uppercase tracking-wider inline-flex items-center gap-1">
-              <i class="${iconClass}"></i> ${banco}
-            </span>`;
+        html += `<span class="px-2 py-1 ${bgColor} ${textColor} rounded text-[10px] font-bold shadow-sm uppercase tracking-wider inline-flex items-center gap-1 mb-1 mr-1">
+                  <i class="${iconClass}"></i> ${b}
+                </span>`;
+    });
+    
+    return html;
   };
 
   // Datatable Init
@@ -509,7 +516,7 @@ $(function(){
             if (p.banco === 'nullable|string') p.banco = null;
             if (p.metodo_pago === 'nullable|string') p.metodo_pago = null;
 
-            const bancoMetodo = `<span class="text-gray-800">${p.metodo_pago || '—'}</span>`;
+            const bancoMetodo = `<span class="text-gray-800">${p.banco || '—'} / ${p.metodo_pago || '—'}</span>`;
             tbody.append(`
               <tr>
                 <td class="px-4 py-2 text-gray-500">#${p.id}</td>
@@ -535,9 +542,36 @@ $(function(){
             `);
           });
         }
+        // Handle "same bank" logic
+        if (res.payments.length > 0) {
+          const lastBank = res.payments[0].banco;
+          if (lastBank) {
+            $('#container-same-bank').removeClass('hidden');
+            $('#pay-same-bank').prop('checked', true).data('last-bank', lastBank);
+            $('#pay-banco').val(lastBank).prop('disabled', true);
+          } else {
+            $('#container-same-bank').addClass('hidden');
+            $('#pay-same-bank').prop('checked', false);
+            $('#pay-banco').prop('disabled', false).val('');
+          }
+        } else {
+          $('#container-same-bank').addClass('hidden');
+          $('#pay-same-bank').prop('checked', false);
+          $('#pay-banco').prop('disabled', false).val('');
+        }
       }
     });
   }
+
+  // Toggle same bank
+  $('#pay-same-bank').on('change', function() {
+    if ($(this).is(':checked')) {
+      const lastBank = $(this).data('last-bank');
+      $('#pay-banco').val(lastBank).prop('disabled', true);
+    } else {
+      $('#pay-banco').prop('disabled', false);
+    }
+  });
 
   // Guardar Abono
   $('#add-payment-form').on('submit', function(e) {
@@ -549,6 +583,7 @@ $(function(){
     formData.append('date', $('#pay-date').val());
     formData.append('notas', $('#pay-notas').val());
     formData.append('metodo_pago', $('#pay-metodo').val());
+    formData.append('banco', $('#pay-banco').val());
     
     const fileInput = document.getElementById('pay-comprobante');
     if (fileInput.files[0]) {
@@ -571,6 +606,9 @@ $(function(){
           $('#pay-amount').val('');
           $('#pay-date').val(new Date().toISOString().split('T')[0]);
           $('#pay-metodo').val('');
+          $('#pay-banco').val('').prop('disabled', false);
+          $('#container-same-bank').addClass('hidden');
+          $('#pay-same-bank').prop('checked', false);
           $('#pay-comprobante').val('');
           $('#pay-notas').val('');
           
@@ -609,6 +647,7 @@ $(function(){
       $('#edit-pay-amount').val(p.amount);
       $('#edit-pay-date').val(toInputDate(p.date));
       $('#edit-pay-metodo').val(p.metodo_pago || '');
+      $('#edit-pay-banco').val(p.banco || '');
       $('#edit-pay-notas').val(p.notas || '');
       $('#edit-pay-comprobante').val('');
       
@@ -626,6 +665,7 @@ $(function(){
       formData.append('date', $('#edit-pay-date').val());
       formData.append('notas', $('#edit-pay-notas').val());
       formData.append('metodo_pago', $('#edit-pay-metodo').val());
+      formData.append('banco', $('#edit-pay-banco').val());
       formData.append('_method', 'PUT'); // For Laravel put method
       
       const fileInput = document.getElementById('edit-pay-comprobante');

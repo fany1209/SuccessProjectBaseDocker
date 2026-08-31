@@ -20,12 +20,18 @@ class Order extends Model
      * * @var array
      */
     protected $fillable = [
-    'año', 'semana', 'empresa', 'cantidad', 'producto','pdf_path', 'po', 
-    'fecha_de_carga', 'hora', 'fecha_de_envio', 
-    'fecha_requerida_por_el_cliente', 'transporte', 
-    'estatus_almacen', 'estatus_calidad', 'estatus_administrativo', 
-    'documentacion_requerida', 'comentarios'
+        'user_id',
+        'año', 'semana', 'empresa', 'cantidad', 'producto','pdf_path', 'po', 
+        'fecha_de_carga', 'hora', 'fecha_de_envio', 
+        'fecha_requerida_por_el_cliente', 'transporte', 
+        'estatus_almacen', 'estatus_calidad', 'estatus_administrativo', 
+        'documentacion_requerida', 'comentarios'
     ];
 
-    public $timestamps = false; 
+    public $timestamps = false;
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }

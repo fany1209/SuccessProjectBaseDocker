@@ -20,8 +20,15 @@ class OrderController extends Controller
 
     public function getData()
     {
+        $user = auth()->user();
+        $query = Order::with('user:id,name,email');
+
+        if (!$user->hasRole('Admin')) {
+            $query->where('user_id', $user->id);
+        }
+
         return response()->json([
-            'data' => Order::all()
+            'data' => $query->orderBy('id', 'desc')->get()
         ]);
     }
 
@@ -37,6 +44,7 @@ class OrderController extends Controller
             ]);
 
             $data = $request->all();
+            $data['user_id'] = auth()->id();
 
             if ($request->has('documentacion_requerida')) {
                 $data['documentacion_requerida'] = implode(', ', $request->input('documentacion_requerida'));
@@ -69,13 +77,26 @@ class OrderController extends Controller
 
     public function edit($id) 
     {
-        return response()->json(Order::findOrFail($id));
+        $order = Order::with('user:id,name,email')->findOrFail($id);
+        $user = auth()->user();
+
+        if (!$user->hasRole('Admin') && $order->user_id !== $user->id) {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
+        return response()->json($order);
     }
 
     public function update(Request $request, $id)
     {
         try {
             $order = Order::findOrFail($id);
+            $user = auth()->user();
+
+            if (!$user->hasRole('Admin') && $order->user_id !== $user->id) {
+                return response()->json(['error' => 'No autorizado'], 403);
+            }
+
             $data = $request->all();
 
             if ($request->has('documentacion_requerida')) {
@@ -131,6 +152,11 @@ class OrderController extends Controller
     {
         try {
             $order = Order::findOrFail($id);
+            $user = auth()->user();
+
+            if (!$user->hasRole('Admin') && $order->user_id !== $user->id) {
+                return response()->json(['error' => 'No autorizado'], 403);
+            }
             
             if ($order->pdf_path && file_exists(public_path('orders_pdf/' . $order->pdf_path))) {
                 unlink(public_path('orders_pdf/' . $order->pdf_path));

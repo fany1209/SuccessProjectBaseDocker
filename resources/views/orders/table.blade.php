@@ -11,14 +11,12 @@
         <div class="w-full flex flex-col md:flex-row justify-between items-center mt-8 mb-4 gap-4 px-2">
             <div id="search-container" class="w-full md:flex-1 md:max-w-sm"></div>
             
-            @hasrole('Admin')
             <div class="w-full md:w-auto flex justify-end">
                 <x-button data-target="create-order" 
                         class="open-modal w-full md:w-auto bg-green-500 hover:bg-green-600 text-white shadow-sm transition duration-150 py-2 px-4 rounded-lg text-sm font-semibold">
                     + Nuevo Pedido
                 </x-button>
             </div>
-            @endhasrole
         </div>
 
         <div class="w-full overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-100">
@@ -41,9 +39,7 @@
                   <th class="px-4 py-4 text-center min-w-[130px]">Calidad</th> 
                   <th class="px-4 py-4 text-center min-w-[130px]">Admin.</th>
                   
-                  @hasrole('Admin')
                   <th class="px-4 py-4 text-center w-12">PDF</th>
-                  @endhasrole
 
                   <th class="px-4 py-4 min-w-[180px]">Comentarios</th> 
                   <th class="px-4 py-4 text-right w-24">Acciones</th>
@@ -61,6 +57,7 @@
         (function(){
             const userRoles = @json(auth()->user()->roles->pluck('name'));
             const isAdmin = userRoles.includes('Admin');
+            const currentUserId = {{ auth()->id() ?? 'null' }};
 
             // Función para formatear fechas de YYYY-MM-DD a DD/MM/YYYY
             function formatDate(dateString) {
@@ -94,6 +91,8 @@
 
             function renderActions(data, type, row){
                 const id = row.id ?? '';
+                const isOwner = currentUserId && row.user_id === currentUserId;
+                const canManage = isAdmin || isOwner;
                 const tableEl = document.getElementById('orders-table');
                 const imgEditar = tableEl.getAttribute('data-img-editar');
                 const imgBorrar = tableEl.getAttribute('data-img-borrar');
@@ -106,7 +105,7 @@
                         </svg>
                     </button>`;
 
-                if(isAdmin) {
+                if(canManage) {
                     html += `
                         <button data-id="${id}" class="edit-order-btn bg-blue-500 p-1.5 rounded-sm shadow-sm hover:bg-blue-600" title="Edit">
                             <img width="14" height="14" src="${imgEditar}"/>
@@ -152,23 +151,20 @@
                             'DOCUMENTACION PENDIENTE': { originalValue: 'Documentacion Pendiente', bg: 'bg-red-100', textCol: 'text-red-700' },
                             'DOCUMENTACION COMPLETA': { originalValue: 'Documentacion Completa', bg: 'bg-green-100', textCol: 'text-green-700' }
                         })
-                    }
-                ];
-
-                if (isAdmin) {
-                    tableColumns.push({ 
+                    },
+                    { 
                         data: 'pdf_path', 
                         className: 'text-center',
                         render: function(data) {
                             if (!data) return '<span class="text-gray-300 text-[10px]">-</span>';
-                            return `<a href="/orders_pdf/${data}" target="_blank" class="inline-flex items-center justify-center p-1 bg-red-100 text-red-600 rounded hover:bg-red-200 transition">
+                            return `<a href="/orders_pdf/${data}" target="_blank" class="inline-flex items-center justify-center p-1 bg-red-100 text-red-600 rounded hover:bg-red-200 transition" title="Ver PDF">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                         </svg>
                                     </a>`;
                         }
-                    });
-                }
+                    }
+                ];
 
                 tableColumns.push({ 
                     data: 'comentarios', 
@@ -230,6 +226,8 @@
                             if (response.ok) {
                                 Swal.fire({ icon: 'success', title: 'Deleted!', text: 'The order has been removed.', timer: 1500, showConfirmButton: false });
                                 table.ajax.reload(null, false); 
+                            } else {
+                                Swal.fire('Error', 'No autorizado o no se pudo eliminar', 'error');
                             }
                         } catch (err) { Swal.fire('Error', 'Deletion failed', 'error'); }
                     }
@@ -239,6 +237,10 @@
                     const id = $(this).data('id');
                     try {
                         const resp = await fetch(`/orders/${id}/edit`);
+                        if (!resp.ok) {
+                            Swal.fire('Error', 'No autorizado para editar este pedido', 'error');
+                            return;
+                        }
                         const order = await resp.json();
                         $('#edit_id').val(order.id);
                         $('#edit_año').val(order.año);
@@ -282,6 +284,7 @@
                         $('#view_envio').text(formatDate(order.fecha_de_envio) ?? 'Pending');
                         $('#view_hora').text(order.hora ?? 'N/A');
                         $('#view_transporte').text(order.transporte ?? 'Not assigned');
+                        $('#view_creador').text(order.user ? order.user.name : (order.user_id ? `Usuario #${order.user_id}` : 'General / Sistema'));
                         $('#view_comentarios').text(order.comentarios ?? 'No comments.');
 
                         let docsHtml = '';

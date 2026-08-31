@@ -300,7 +300,12 @@ class CuentasPorPagarController extends Controller
             ->get();
 
         $payments = DB::table('cxp_payments')
-            ->select('cxp_detail_id', DB::raw("SUM(amount) as total_pagado"), DB::raw("COUNT(comprobante) as comprobantes_count"))
+            ->select(
+                'cxp_detail_id', 
+                DB::raw("SUM(amount) as total_pagado"), 
+                DB::raw("COUNT(comprobante) as comprobantes_count"),
+                DB::raw("GROUP_CONCAT(DISTINCT banco SEPARATOR ', ') as bancos_usados")
+            )
             ->groupBy('cxp_detail_id')
             ->get()
             ->keyBy('cxp_detail_id');
@@ -315,6 +320,7 @@ class CuentasPorPagarController extends Controller
             $factura->pagado = round($pagado, 2);
             $factura->is_canceled = (bool) $factura->is_canceled;
             $factura->comprobantes_count = $comprobantes_count;
+            $factura->banco = $paymentInfo && $paymentInfo->bancos_usados ? $paymentInfo->bancos_usados : '—';
         }
 
         return response()->json(['data' => $facturas]);
@@ -348,12 +354,10 @@ class CuentasPorPagarController extends Controller
             $cxp->update(['comentario_img' => 'uploads/comentarios_cxp/' . $filename]);
         }
 
-        if ($request->has('banco') || $request->has('departamento')) {
-            $updateFactura = [];
-            if ($request->has('banco')) $updateFactura['banco'] = $request->banco;
-            if ($request->has('departamento')) $updateFactura['departamento'] = $request->departamento;
-
-            DB::table('facturas')->where('factura_id', $cxp->factura_id)->update($updateFactura);
+        if ($request->has('departamento')) {
+            DB::table('facturas')->where('factura_id', $cxp->factura_id)->update([
+                'departamento' => $request->departamento
+            ]);
         }
 
         return response()->json(['success' => true, 'message' => 'Actualizado correctamente']);
@@ -618,7 +622,7 @@ class CuentasPorPagarController extends Controller
             ->get();
             
         $paymentsList = DB::table('cxp_payments')
-            ->select('cxp_detail_id', 'amount')
+            ->select('cxp_detail_id', 'amount', 'banco')
             ->get();
         $paymentsGrouped = $paymentsList->groupBy('cxp_detail_id');
 
@@ -687,6 +691,7 @@ class CuentasPorPagarController extends Controller
             $pagos = isset($paymentsGrouped[$factura->cxp_id]) ? $paymentsGrouped[$factura->cxp_id] : collect();
             $pagado = $pagos->sum('amount');
             $restante = round($total - $pagado, 2);
+            $bancosUsados = $pagos->pluck('banco')->filter()->unique()->implode(', ') ?: '—';
 
             $sheet->setCellValue('A' . $row, $factura->empresa);
             $sheet->setCellValue('B' . $row, $factura->semana ? 'Semana ' . $factura->semana : '—');
@@ -700,7 +705,7 @@ class CuentasPorPagarController extends Controller
             }
             
             $sheet->setCellValue('E' . $row, $factura->motivo);
-            $sheet->setCellValue('F' . $row, $factura->banco . ($factura->metodo_pago ? ' / ' . $factura->metodo_pago : ''));
+            $sheet->setCellValue('F' . $row, $bancosUsados . ($factura->metodo_pago ? ' / ' . $factura->metodo_pago : ''));
             $sheet->setCellValue('G' . $row, $factura->folio_factura);
             $sheet->setCellValue('H' . $row, $factura->fecha_factura);
             $sheet->setCellValue('I' . $row, $factura->fecha_pago);
