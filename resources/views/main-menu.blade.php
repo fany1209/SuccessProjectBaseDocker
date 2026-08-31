@@ -115,7 +115,7 @@
                     ORDERS
                 </x-application.buttons.menu-btn>
 
-                <x-application.buttons.menu-btn module="maintenance" link="{{ route('maintenance.index') }}" image="{{ asset('images/main-menu/sistemas.png') }}">
+                <x-application.buttons.menu-btn module="maintenance" link="{{ route('maintenance.index') }}" image="{{ asset('images/main-menu/mantenimiento.png') }}">
                     MANTENIMIENTO
                 </x-application.buttons.menu-btn>
 
