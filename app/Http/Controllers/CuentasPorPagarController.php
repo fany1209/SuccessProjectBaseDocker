@@ -320,7 +320,7 @@ class CuentasPorPagarController extends Controller
             $factura->pagado = round($pagado, 2);
             $factura->is_canceled = (bool) $factura->is_canceled;
             $factura->comprobantes_count = $comprobantes_count;
-            $factura->banco = $paymentInfo && $paymentInfo->bancos_usados ? $paymentInfo->bancos_usados : '—';
+            $factura->banco = $paymentInfo && $paymentInfo->bancos_usados ? $paymentInfo->bancos_usados : ($factura->banco ?: '—');
         }
 
         return response()->json(['data' => $facturas]);
@@ -691,7 +691,7 @@ class CuentasPorPagarController extends Controller
             $pagos = isset($paymentsGrouped[$factura->cxp_id]) ? $paymentsGrouped[$factura->cxp_id] : collect();
             $pagado = $pagos->sum('amount');
             $restante = round($total - $pagado, 2);
-            $bancosUsados = $pagos->pluck('banco')->filter()->unique()->implode(', ') ?: '—';
+            $bancosUsados = $pagos->pluck('banco')->filter()->unique()->implode(', ') ?: ($factura->banco ?: '—');
 
             $sheet->setCellValue('A' . $row, $factura->empresa);
             $sheet->setCellValue('B' . $row, $factura->semana ? 'Semana ' . $factura->semana : '—');
