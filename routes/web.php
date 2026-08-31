@@ -478,7 +478,7 @@ Route::prefix('laboratory/equipments')->group(function () {
     Route::delete('/{id}', [FacturaController::class, 'destroy'])->name('facturas.destroy');
     });
 
-    Route::prefix('cuentas-por-cobrar')->group(function () {
+    Route::prefix('cuentas-por-cobrar')->middleware('can:finance.show')->group(function () {
         Route::get('/', [CuentasPorCobrarController::class, 'index'])->name('cuentas-por-cobrar.index');
         Route::get('/dashboard', [CuentasPorCobrarController::class, 'dashboard'])->name('cuentas-por-cobrar.dashboard');
         Route::get('/clientes', [CuentasPorCobrarController::class, 'clientes'])->name('cuentas-por-cobrar.clientes');
@@ -492,7 +492,7 @@ Route::prefix('laboratory/equipments')->group(function () {
         Route::post('/{id}/payments', [CuentasPorCobrarController::class, 'addPayment'])->name('cuentas-por-cobrar.payments.add');
     });
 
-    Route::prefix('cuentas-por-pagar')->group(function () {
+    Route::prefix('cuentas-por-pagar')->middleware('can:finance.show')->group(function () {
         Route::get('/', [\App\Http\Controllers\CuentasPorPagarController::class, 'index'])->name('cuentas-por-pagar.index');
         Route::get('/dashboard', [\App\Http\Controllers\CuentasPorPagarController::class, 'dashboard'])->name('cuentas-por-pagar.dashboard');
         Route::get('/facturas', [\App\Http\Controllers\CuentasPorPagarController::class, 'facturas'])->name('cuentas-por-pagar.facturas');
