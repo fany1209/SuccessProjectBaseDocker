@@ -72,7 +72,7 @@ class InventoryController extends Controller
             ->orderBy('sale_id', 'desc')
             ->get();
 
-        $product_locations = DB::table('cli')->select('inventory_id', 'location_id', 'bag_number', 'protein')->get();
+        $product_locations = DB::table('cli')->select('inventory_id', 'location_id', 'bag_number', 'protein', 'weight_per_unit')->get();
 
         return view('inventory',compact('warehouses','locations','available_locations','concepts','trailers','vehicles','operators','batchs','outputs_products','inputs_products','outputs_dates','inputs_dates','outputs_months','outputs_years','inputs_months','inputs_years','transport_lines','suppliers','customers','products','products_all','quarantine','products_warehouse', 'almacen_sales', 'product_locations'));
     }
@@ -209,6 +209,7 @@ class InventoryController extends Controller
                 'weight_per_unit.*'    => 'nullable|numeric',
                 'bag_number'           => 'nullable|array',
                 'protein'              => 'nullable|array',
+                'bag_weight'           => 'nullable|array',
                 'bag_location_id'      => 'nullable|array',
             ]);
 
@@ -283,7 +284,20 @@ class InventoryController extends Controller
                                 } else if (isset($request->location_id[$index])) {
                                     $query->where('location_id', $request->location_id[$index]);
                                 }
+                                
+                                $cliRecord = $query->first();
+                                $internalWeight = $cliRecord ? $cliRecord->weight_per_unit : null;
+                                
                                 $query->delete();
+                                
+                                if ($request->type === 'InternalOutput') {
+                                    \App\Models\YeastProduction::create([
+                                        'output_id' => $fkValue,
+                                        'date' => now(),
+                                        'bag_number' => $bag_num,
+                                        'internal_weight' => $internalWeight,
+                                    ]);
+                                }
                             }
                         } else {
                             $loc = $request->output_location_id[$index] ?? ($request->location_id[$index] ?? null);
@@ -300,6 +314,14 @@ class InventoryController extends Controller
                                         $cli->save();
                                     }
                                 }
+                            }
+                            
+                            if ($request->type === 'InternalOutput') {
+                                \App\Models\YeastProduction::create([
+                                    'output_id' => $fkValue,
+                                    'date' => now(),
+                                    'bag_number' => null,
+                                ]);
                             }
                         }
                     } else {
@@ -329,6 +351,7 @@ class InventoryController extends Controller
                             if (isset($request->bag_number[$index]) && is_array($request->bag_number[$index]) && count($request->bag_number[$index]) > 0) {
                                 foreach ($request->bag_number[$index] as $b_idx => $bag_num) {
                                     $bagLocId = $request->bag_location_id[$index][$b_idx] ?? $locId;
+                                    $realWeight = $request->bag_weight[$index][$b_idx] ?? $weight;
                                     
                                     if ($bagLocId) {
                                         Cli::create([
@@ -336,8 +359,8 @@ class InventoryController extends Controller
                                             'inventory_id' => $inventory->inventory_id,
                                             'concept_id' => $conceptId,
                                             'quantity' => 1,
-                                            'weight_per_unit' => $weight,
-                                            'net_weight' => 1 * $weight,
+                                            'weight_per_unit' => $realWeight,
+                                            'net_weight' => 1 * $realWeight,
                                             'bag_number' => $bag_num,
                                             'protein' => $request->protein[$index][$b_idx] ?? null,
                                         ]);

@@ -91,10 +91,11 @@ Fecha de actualización: 09/03/2026
             </x-wrapper-form-1>
 
             <x-wrapper-form-1 class="bag_numbers_wrapper hidden w-full flex-col mt-2">
-                <x-label># de Barcina y Proteína</x-label>
+                <x-label># de Barcina, Proteína y Peso Real</x-label>
                 <div class="flex flex-col md:flex-row gap-2 mt-1 w-full bg-gray-50 p-2 rounded-lg border border-gray-200">
                     <input type="text" name="bag_number" id="bag_number" class="w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Barcina #">
                     <input type="number" step="any" name="protein" id="protein" class="w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Proteína %">
+                    <input type="number" step="any" id="bag_weight_edit" class="w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Peso Real (kg)">
                 </div>
             </x-wrapper-form-1>
         </x-wrapper-form-1>
@@ -131,6 +132,14 @@ $(function(){
             let quantity = $(this).val();
             let weight_unit = father.find('#weight_per_unit').val();
             father.find('.total').addClass('mt-2 text-sm font-semibold rounded-md tracking-[2px] text-white bg-gray-700 px-2 py-1').text(`Total: ${quantity*weight_unit}`);
+        });
+
+        father.on('input','#bag_weight_edit',function(){
+            father.find('#weight_per_unit').val($(this).val()).trigger('input');
+        });
+        
+        father.on('input','#weight_per_unit',function(){
+            father.find('#bag_weight_edit').val($(this).val());
         });
         
         father.on('change','#inventory_id',function(){

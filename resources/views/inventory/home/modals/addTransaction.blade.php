@@ -275,7 +275,7 @@ Fecha de actualización: 15-01-2026
         <x-wrapper-form-1>
             <x-wrapper-form-2>
                 <x-label for="warehouse_batch">Warehouse batch</x-label>
-                <x-input-1 name="warehouse_batch[]" class="warehouse_batch" readonly></x-input-1>
+                <x-input-1 name="warehouse_batch[]" class="warehouse_batch"></x-input-1>
             </x-wrapper-form-2>
             <x-wrapper-form-2><p class="total"></p></x-wrapper-form-2>
         </x-wrapper-form-1>
@@ -486,7 +486,7 @@ $(function(){
                         });
 
                         uniqueBags.forEach(bag => {
-                            options += `<option value="${bag.bag_number}" data-protein="${bag.protein || ''}">${bag.bag_number}</option>`;
+                            options += `<option value="${bag.bag_number}" data-protein="${bag.protein || ''}" data-weight="${bag.weight_per_unit || ''}">${bag.bag_number}</option>`;
                         });
                         container.append(`
                             <div class="flex flex-col gap-1 w-full bg-gray-50 p-2 rounded-lg border border-gray-200">
@@ -494,6 +494,7 @@ $(function(){
                                     ${options}
                                 </select>
                                 <input type="number" step="any" class="protein_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Proteína %" required>
+                                <input type="number" step="any" class="bag_weight_output w-full bg-gray-100 rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none px-2 py-2" placeholder="Peso Interno (kg)" readonly>
                             </div>
                         `);
                     } else {
@@ -505,6 +506,7 @@ $(function(){
                             <div class="flex flex-col gap-1 w-full bg-gray-50 p-2 rounded-lg border border-gray-200">
                                 <input type="text" class="bag_number_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Barcina #${i+1}" required>
                                 <input type="number" step="any" class="protein_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Proteína %" required>
+                                <input type="number" step="any" class="bag_weight_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Peso Real (kg)" required>
                                 ${locSelectHTML}
                             </div>
                         `);
@@ -555,8 +557,10 @@ $(function(){
     father.on('change', '.bag_number_input', function() {
         let selectedOption = $(this).find('option:selected');
         let protein = selectedOption.data('protein');
+        let weight = selectedOption.data('weight');
         let container = $(this).closest('div');
         let proteinInput = container.find('.protein_input');
+        let weightInput = container.find('.bag_weight_output');
         
         if (protein !== undefined && protein !== '') {
             proteinInput.val(protein);
@@ -564,6 +568,14 @@ $(function(){
         } else {
             proteinInput.val('');
             proteinInput.prop('readonly', false).removeClass('bg-gray-100');
+        }
+
+        if (weightInput.length > 0) {
+            if (weight !== undefined && weight !== '') {
+                weightInput.val(weight);
+            } else {
+                weightInput.val('');
+            }
         }
     });
 
@@ -776,12 +788,16 @@ $(function(){
         data.delete('bag_number'); 
         data.delete('protein'); 
         data.delete('bag_location_id'); 
+        data.delete('bag_weight'); 
         $('#make-transaction #products .wrapper').each(function(index) {
             $(this).find('.bag_number_input').each(function() {
                 data.append('bag_number[' + index + '][]', $(this).val());
             });
             $(this).find('.protein_input').each(function() {
                 data.append('protein[' + index + '][]', $(this).val());
+            });
+            $(this).find('.bag_weight_input').each(function() {
+                data.append('bag_weight[' + index + '][]', $(this).val());
             });
             $(this).find('.bag_location_input').each(function() {
                 data.append('bag_location_id[' + index + '][]', $(this).val());

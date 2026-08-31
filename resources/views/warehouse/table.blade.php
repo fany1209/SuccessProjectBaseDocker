@@ -199,6 +199,7 @@ $(document).ready(function () {
               $('#edit-cli .bag_numbers_wrapper').removeClass('hidden');
               $('#edit-cli #bag_number').val(response.cli.bag_number);
               $('#edit-cli #protein').val(response.cli.protein);
+              $('#edit-cli #bag_weight_edit').val(response.cli.weight_per_unit);
           } else {
               $('#edit-cli .bag_numbers_wrapper').addClass('hidden');
               $('#edit-cli #bag_number').val('');
