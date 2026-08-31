@@ -327,7 +327,6 @@ class CuentasPorPagarController extends Controller
             'banco' => 'nullable|string',
             'departamento' => 'nullable|string|max:255',
             'comentarios' => 'nullable|string',
-            'fecha_pago' => 'nullable|date',
             'comentario_img' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:20480'
         ]);
 
@@ -339,8 +338,7 @@ class CuentasPorPagarController extends Controller
 
         $cxp->update([
             'semana' => $request->semana,
-            'comentarios' => $request->comentarios,
-            'fecha_pago' => $request->fecha_pago
+            'comentarios' => $request->comentarios
         ]);
 
         if ($request->hasFile('comentario_img')) {
@@ -447,7 +445,12 @@ class CuentasPorPagarController extends Controller
             $newEstatus = 'PARCIAL';
         }
 
-        $cxp->update(['estatus' => $newEstatus]);
+        $fecha_pago = ($newEstatus === 'PAGADO') ? $cxp->payments()->max('date') : null;
+
+        $cxp->update([
+            'estatus' => $newEstatus,
+            'fecha_pago' => $fecha_pago
+        ]);
 
         return response()->json(['success' => true, 'message' => 'Abono añadido correctamente']);
     }
@@ -495,7 +498,13 @@ class CuentasPorPagarController extends Controller
         } elseif ($pagado > 0) {
             $newEstatus = 'PARCIAL';
         }
-        $cxp->update(['estatus' => $newEstatus]);
+
+        $fecha_pago = ($newEstatus === 'PAGADO') ? $cxp->payments()->max('date') : null;
+
+        $cxp->update([
+            'estatus' => $newEstatus,
+            'fecha_pago' => $fecha_pago
+        ]);
 
         return response()->json(['success' => true, 'message' => 'Abono actualizado correctamente']);
     }
@@ -521,7 +530,13 @@ class CuentasPorPagarController extends Controller
         } elseif ($pagado > 0) {
             $newEstatus = 'PARCIAL';
         }
-        $cxp->update(['estatus' => $newEstatus]);
+        
+        $fecha_pago = ($newEstatus === 'PAGADO') ? $cxp->payments()->max('date') : null;
+
+        $cxp->update([
+            'estatus' => $newEstatus,
+            'fecha_pago' => $fecha_pago
+        ]);
 
         return response()->json(['success' => true, 'message' => 'Abono eliminado correctamente']);
     }
