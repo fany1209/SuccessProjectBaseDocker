@@ -28,8 +28,8 @@
               <thead class="bg-gray-50 text-gray-700 uppercase text-[10px] tracking-wider">
                 <tr>
                   <th class="px-4 py-4 min-w-[140px]">Empresa</th>
-                  <th class="px-4 py-4 min-w-[120px]">Producto</th>
-                  <th class="px-4 py-4 w-16">Cant.</th>
+                  <th class="px-4 py-4 min-w-[180px]">Productos</th>
+                  <th class="px-4 py-4 text-center w-24">Cant.</th>
                   
                   <th class="px-4 py-4 text-center min-w-[100px]">F. Carga</th>
                   <th class="px-4 py-4 text-center min-w-[100px]">F. Envío</th>
@@ -58,6 +58,63 @@
             const userRoles = @json(auth()->user()->roles->pluck('name'));
             const isAdmin = userRoles.includes('Admin');
             const currentUserId = {{ auth()->id() ?? 'null' }};
+            const availableProducts = @json($productos->pluck('name'));
+            let editItemIndex = 0;
+
+            function buildEditProductOptions(selectedValue = '') {
+                let opts = '<option value="" disabled ' + (selectedValue ? '' : 'selected') + '>Seleccione un producto...</option>';
+                availableProducts.forEach(name => {
+                    const isSel = (selectedValue === name) ? 'selected' : '';
+                    opts += `<option value="${name}" ${isSel}>${name}</option>`;
+                });
+                return opts;
+            }
+
+            function addEditProductRow(producto = '', cantidad = '') {
+                const idx = editItemIndex++;
+                const html = `
+                    <div class="edit-order-item-row flex flex-col md:flex-row items-center gap-2 bg-white p-2.5 rounded-lg border border-gray-200 shadow-xs">
+                        <div class="w-full md:flex-1">
+                            <label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">Producto</label>
+                            <select name="items[${idx}][producto]" class="w-full border-gray-300 focus:border-green-500 focus:ring-green-500 rounded-md shadow-sm text-xs py-1.5" required>
+                                ${buildEditProductOptions(producto)}
+                            </select>
+                        </div>
+                        <div class="w-full md:w-48">
+                            <label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">Cantidad</label>
+                            <input type="text" name="items[${idx}][cantidad]" value="${cantidad || ''}" placeholder="Ej: 500 kg, 20 L" class="w-full border-gray-300 focus:border-green-500 focus:ring-green-500 rounded-md shadow-sm text-xs py-1.5" required>
+                        </div>
+                        <div class="w-full md:w-auto flex md:self-end pt-1 md:pt-0">
+                            <button type="button" class="remove-edit-item-btn p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700 rounded-md transition" title="Eliminar producto">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                $('#edit-order-items-container').append(html);
+            }
+
+            $('#edit-add-product-btn').on('click', function(){
+                addEditProductRow();
+            });
+
+            $(document).on('click', '.remove-edit-item-btn', function(){
+                if ($('#edit-order-items-container .edit-order-item-row').length > 1) {
+                    $(this).closest('.edit-order-item-row').remove();
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Atención',
+                        text: 'El pedido debe contener al menos un producto.',
+                        toast: true,
+                        position: 'top-end',
+                        timer: 2500,
+                        showConfirmButton: false
+                    });
+                }
+            });
 
             // Función para formatear fechas de YYYY-MM-DD a DD/MM/YYYY
             function formatDate(dateString) {
@@ -120,10 +177,33 @@
             document.addEventListener('DOMContentLoaded', function () {
                 let tableColumns = [
                     { data: 'empresa' },
-                    { data: 'producto' },
-                    { data: 'cantidad', render: (d) => `<b>${d ?? ''}</b>` },
+                    { 
+                        data: 'items', 
+                        className: 'min-w-[180px]',
+                        render: function(data, type, row) {
+                            if (data && data.length > 0) {
+                                return data.map(item => `<div class="text-[11px] font-semibold text-gray-800 leading-tight py-0.5"><span class="text-green-600 font-bold">•</span> ${item.producto} <span class="text-gray-500 font-normal text-[10px]">(${item.cantidad || 'S/C'})</span></div>`).join('');
+                            }
+                            if (row.producto) {
+                                return `<div class="text-[11px] font-semibold text-gray-800 leading-tight py-0.5">${row.producto} <span class="text-gray-500 font-normal text-[10px]">(${row.cantidad || 'S/C'})</span></div>`;
+                            }
+                            return '<span class="text-gray-300">-</span>';
+                        }
+                    },
+                    { 
+                        data: 'items', 
+                        className: 'text-center whitespace-nowrap',
+                        render: function(data, type, row) {
+                            if (data && data.length > 1) {
+                                return `<span class="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-200">${data.length} prods.</span>`;
+                            } else if (data && data.length === 1) {
+                                return `<b>${data[0].cantidad || '-'}</b>`;
+                            }
+                            return `<b>${row.cantidad ?? '-'}</b>`;
+                        }
+                    },
                     
-                    // --- COLUMNAS DE FECHAS AÑADIDAS ---
+                    // --- COLUMNAS DE FECHAS ---
                     { data: 'fecha_de_carga', className: 'text-center whitespace-nowrap', render: (d) => formatDate(d) },
                     { data: 'fecha_de_envio', className: 'text-center whitespace-nowrap', render: (d) => formatDate(d) },
                     { data: 'fecha_requerida_por_el_cliente', className: 'text-center whitespace-nowrap', render: (d) => formatDate(d) },
@@ -243,12 +323,25 @@
                         }
                         const order = await resp.json();
                         $('#edit_id').val(order.id);
+                        $('#edit_label_po').text(order.po ? `PO: ${order.po}` : 'Sin PO');
                         $('#edit_año').val(order.año);
                         $('#edit_semana').val(order.semana);
                         $('#edit_empresa').val(order.empresa);
-                        $('#edit_producto').val(order.producto);
-                        $('#edit_cantidad').val(order.cantidad);
                         $('#edit_po').val(order.po);
+                        
+                        // Cargar items de productos dinámicos
+                        $('#edit-order-items-container').empty();
+                        editItemIndex = 0;
+                        if (order.items && order.items.length > 0) {
+                            order.items.forEach(item => {
+                                addEditProductRow(item.producto, item.cantidad);
+                            });
+                        } else if (order.producto) {
+                            addEditProductRow(order.producto, order.cantidad);
+                        } else {
+                            addEditProductRow();
+                        }
+
                         $('#edit_fecha_de_carga').val(order.fecha_de_carga);
                         $('#edit_hora').val(order.hora);
                         $('#edit_fecha_de_envio').val(order.fecha_de_envio);
@@ -279,8 +372,32 @@
                         $('#view_po_badge').text(order.po ? `PO: ${order.po}` : 'NO PO');
                         $('#view_fecha_info').text(`${order.año} / Week ${order.semana}`);
                         $('#view_empresa').text(order.empresa);
-                        $('#view_producto').text(order.producto);
-                        $('#view_cantidad').text(order.cantidad ?? 'N/A');
+
+                        // Renderizar lista de productos
+                        let prodsHtml = '';
+                        if (order.items && order.items.length > 0) {
+                            prodsHtml = '<div class="divide-y divide-gray-100 bg-white rounded-md border overflow-hidden">';
+                            order.items.forEach((item, index) => {
+                                prodsHtml += `
+                                    <div class="flex justify-between items-center px-3 py-2 text-xs">
+                                        <span class="font-semibold text-gray-800"><span class="text-green-600 font-bold mr-1.5">${index + 1}.</span> ${item.producto}</span>
+                                        <span class="bg-green-50 text-green-700 font-bold px-2.5 py-0.5 rounded border border-green-200 text-[11px]">${item.cantidad || 'S/C'}</span>
+                                    </div>
+                                `;
+                            });
+                            prodsHtml += '</div>';
+                        } else if (order.producto) {
+                            prodsHtml = `
+                                <div class="flex justify-between items-center bg-white px-3 py-2 rounded-md border text-xs">
+                                    <span class="font-semibold text-gray-800">${order.producto}</span>
+                                    <span class="bg-green-50 text-green-700 font-bold px-2.5 py-0.5 rounded border border-green-200 text-[11px]">${order.cantidad || 'S/C'}</span>
+                                </div>
+                            `;
+                        } else {
+                            prodsHtml = '<span class="text-gray-400 text-xs italic">Sin productos especificados</span>';
+                        }
+                        $('#view_products_container').html(prodsHtml);
+
                         $('#view_envio').text(formatDate(order.fecha_de_envio) ?? 'Pending');
                         $('#view_hora').text(order.hora ?? 'N/A');
                         $('#view_transporte').text(order.transporte ?? 'Not assigned');
@@ -313,7 +430,9 @@
                         success: function() {
                             Swal.fire({icon: 'success', title: 'Success!', timer: 1500, showConfirmButton: false}).then(() => location.reload());
                         },
-                        error: function() { Swal.fire('Error', 'Update failed', 'error'); }
+                        error: function(xhr) {
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Update failed', 'error');
+                        }
                     });
                 });
             });

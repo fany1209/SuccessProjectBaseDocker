@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Notifications\NewOrderNotification;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
@@ -21,9 +22,10 @@ class OrderController extends Controller
     public function getData()
     {
         $user = auth()->user();
-        $query = Order::with('user:id,name,email');
+        $query = Order::with(['user:id,name,email', 'items']);
 
-        if (!$user->hasRole('Admin')) {
+        // Los usuarios con rol Sales (que no sean Admin) solo pueden ver los pedidos que ellos mismos hayan ingresado
+        if ($user->hasRole('Sales') && !$user->hasRole('Admin')) {
             $query->where('user_id', $user->id);
         }
 
@@ -36,15 +38,42 @@ class OrderController extends Controller
     {
         try {
             $request->validate([
-                'año'     => 'required|integer',
-                'semana'  => 'required|integer',
-                'empresa' => 'required|string|max:255',
-                'po'      => 'nullable|string|max:100',
+                'año'      => 'required|integer',
+                'semana'   => 'required|integer',
+                'empresa'  => 'required|string|max:255',
+                'po'       => 'nullable|string|max:100',
                 'pdf_file' => 'nullable|mimes:pdf|max:10240',
+                'items'    => 'nullable|array',
+                'items.*.producto' => 'nullable|string|max:255',
+                'items.*.cantidad' => 'nullable|string|max:100',
             ]);
 
-            $data = $request->all();
+            $data = $request->except(['items']);
             $data['user_id'] = auth()->id();
+
+            // Soportar items múltiples o fallback a campo individual
+            $itemsData = [];
+            if ($request->has('items') && is_array($request->items)) {
+                foreach ($request->items as $item) {
+                    if (!empty($item['producto'])) {
+                        $itemsData[] = [
+                            'producto' => $item['producto'],
+                            'cantidad' => $item['cantidad'] ?? null,
+                        ];
+                    }
+                }
+            } elseif ($request->filled('producto')) {
+                $itemsData[] = [
+                    'producto' => $request->input('producto'),
+                    'cantidad' => $request->input('cantidad'),
+                ];
+            }
+
+            // Resumen de producto/cantidad para compatibilidad con vistas legacy
+            if (!empty($itemsData)) {
+                $data['producto'] = implode(', ', array_column($itemsData, 'producto'));
+                $data['cantidad'] = implode(', ', array_filter(array_column($itemsData, 'cantidad')));
+            }
 
             if ($request->has('documentacion_requerida')) {
                 $data['documentacion_requerida'] = implode(', ', $request->input('documentacion_requerida'));
@@ -57,7 +86,13 @@ class OrderController extends Controller
                 $data['pdf_path'] = $fileName;
             }
 
-            $order = Order::create($data);
+            $order = DB::transaction(function() use ($data, $itemsData) {
+                $order = Order::create($data);
+                if (!empty($itemsData)) {
+                    $order->items()->createMany($itemsData);
+                }
+                return $order;
+            });
 
             $usersToNotify = User::role(['Admin', 'Quality', 'Warehouse'])->get();
             if ($usersToNotify->count() > 0) {
@@ -77,10 +112,10 @@ class OrderController extends Controller
 
     public function edit($id) 
     {
-        $order = Order::with('user:id,name,email')->findOrFail($id);
+        $order = Order::with(['user:id,name,email', 'items'])->findOrFail($id);
         $user = auth()->user();
 
-        if (!$user->hasRole('Admin') && $order->user_id !== $user->id) {
+        if ($user->hasRole('Sales') && !$user->hasRole('Admin') && $order->user_id !== $user->id) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
@@ -93,11 +128,34 @@ class OrderController extends Controller
             $order = Order::findOrFail($id);
             $user = auth()->user();
 
-            if (!$user->hasRole('Admin') && $order->user_id !== $user->id) {
+            if ($user->hasRole('Sales') && !$user->hasRole('Admin') && $order->user_id !== $user->id) {
                 return response()->json(['error' => 'No autorizado'], 403);
             }
 
-            $data = $request->all();
+            $data = $request->except(['items']);
+
+            // Soportar items múltiples o fallback
+            $itemsData = [];
+            if ($request->has('items') && is_array($request->items)) {
+                foreach ($request->items as $item) {
+                    if (!empty($item['producto'])) {
+                        $itemsData[] = [
+                            'producto' => $item['producto'],
+                            'cantidad' => $item['cantidad'] ?? null,
+                        ];
+                    }
+                }
+            } elseif ($request->filled('producto')) {
+                $itemsData[] = [
+                    'producto' => $request->input('producto'),
+                    'cantidad' => $request->input('cantidad'),
+                ];
+            }
+
+            if (!empty($itemsData)) {
+                $data['producto'] = implode(', ', array_column($itemsData, 'producto'));
+                $data['cantidad'] = implode(', ', array_filter(array_column($itemsData, 'cantidad')));
+            }
 
             if ($request->has('documentacion_requerida')) {
                 $data['documentacion_requerida'] = implode(', ', $request->input('documentacion_requerida'));
@@ -116,7 +174,14 @@ class OrderController extends Controller
                 $data['pdf_path'] = $fileName;
             }
 
-            $order->update($data);
+            DB::transaction(function() use ($order, $data, $itemsData) {
+                $order->update($data);
+                if (!empty($itemsData)) {
+                    $order->items()->delete();
+                    $order->items()->createMany($itemsData);
+                }
+            });
+
             return response()->json(['success' => true]);
 
         } catch (\Exception $e) {
@@ -154,7 +219,7 @@ class OrderController extends Controller
             $order = Order::findOrFail($id);
             $user = auth()->user();
 
-            if (!$user->hasRole('Admin') && $order->user_id !== $user->id) {
+            if ($user->hasRole('Sales') && !$user->hasRole('Admin') && $order->user_id !== $user->id) {
                 return response()->json(['error' => 'No autorizado'], 403);
             }
             
