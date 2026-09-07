@@ -1,11 +1,9 @@
 @php
-    if(!isset($mis_grupos)){
-        $mis_insumos = \DB::table('comparative')
-            ->where('user_id', auth()->id()) 
-            ->orderBy('id', 'desc')
-            ->get();
-        $mis_grupos = $mis_insumos->groupBy('folio');
-    }
+    $mis_insumos = \DB::table('comparative')
+        ->where('user_id', auth()->id()) 
+        ->orderBy('id', 'desc')
+        ->get();
+    $mis_grupos = $mis_insumos->groupBy('folio');
 @endphp
 
 <section class="col-span-12 w-full flex flex-col items-center px-1">
@@ -28,7 +26,7 @@
                     @forelse($mis_grupos as $folio => $productos)
                     <tr class="hover:bg-blue-50 transition-colors border-b border-gray-100">
                         <td class="px-6 py-4 font-bold text-blue-900 uppercase italic text-[12px]">
-                            <i class="ri-file-user-fill mr-2 text-blue-500"></i> {{ $folio ?? 'S/F' }}
+                            <i class="ri-file-user-fill mr-2 text-blue-500"></i> {{ empty($folio) ? 'S/F' : $folio }}
                         </td>
                         <td class="px-6 py-4 text-center">
                             <span class="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full text-[10px] font-black uppercase whitespace-nowrap">
