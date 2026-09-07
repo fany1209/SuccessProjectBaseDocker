@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use App\Models\CxpDetail;
 use App\Models\CxpPayment;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -349,8 +350,13 @@ class CuentasPorPagarController extends Controller
 
         if ($request->hasFile('comentario_img')) {
             $file = $request->file('comentario_img');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $path = $file->move(public_path('uploads/comentarios_cxp'), $filename);
+            $ext = $file->guessExtension() ?: 'jpg';
+            $filename = time() . '_' . Str::uuid() . '.' . $ext;
+            $dest = public_path('uploads/comentarios_cxp');
+            if (!file_exists($dest)) {
+                @mkdir($dest, 0755, true);
+            }
+            $file->move($dest, $filename);
             $cxp->update(['comentario_img' => 'uploads/comentarios_cxp/' . $filename]);
         }
 
@@ -421,8 +427,13 @@ class CuentasPorPagarController extends Controller
         $comprobantePath = null;
         if ($request->hasFile('comprobante')) {
             $file = $request->file('comprobante');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(base_path('public/uploads/cxp/payments'), $filename);
+            $ext = $file->guessExtension() ?: 'pdf';
+            $filename = time() . '_' . Str::uuid() . '.' . $ext;
+            $dest = public_path('uploads/cxp/payments');
+            if (!file_exists($dest)) {
+                @mkdir($dest, 0755, true);
+            }
+            $file->move($dest, $filename);
             $comprobantePath = 'uploads/cxp/payments/' . $filename;
         }
 
@@ -479,8 +490,13 @@ class CuentasPorPagarController extends Controller
 
         if ($request->hasFile('comprobante')) {
             $file = $request->file('comprobante');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(base_path('public/uploads/cxp/payments'), $filename);
+            $ext = $file->guessExtension() ?: 'pdf';
+            $filename = time() . '_' . Str::uuid() . '.' . $ext;
+            $dest = public_path('uploads/cxp/payments');
+            if (!file_exists($dest)) {
+                @mkdir($dest, 0755, true);
+            }
+            $file->move($dest, $filename);
             $payment->comprobante = 'uploads/cxp/payments/' . $filename;
         }
 
@@ -558,15 +574,23 @@ class CuentasPorPagarController extends Controller
 
         if ($request->hasFile('pdf_file')) {
             $file = $request->file('pdf_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(base_path('public/uploads/cxp/documents'), $filename);
+            $filename = time() . '_' . Str::uuid() . '.pdf';
+            $dest = public_path('uploads/cxp/documents');
+            if (!file_exists($dest)) {
+                @mkdir($dest, 0755, true);
+            }
+            $file->move($dest, $filename);
             $updateData['pdf_path'] = 'uploads/cxp/documents/' . $filename;
         }
 
         if ($request->hasFile('xml_file')) {
             $file = $request->file('xml_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(base_path('public/uploads/cxp/documents'), $filename);
+            $filename = time() . '_' . Str::uuid() . '.xml';
+            $dest = public_path('uploads/cxp/documents');
+            if (!file_exists($dest)) {
+                @mkdir($dest, 0755, true);
+            }
+            $file->move($dest, $filename);
             $updateData['xml_path'] = 'uploads/cxp/documents/' . $filename;
         }
 

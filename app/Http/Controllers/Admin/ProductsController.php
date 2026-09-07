@@ -16,6 +16,7 @@ use App\Models\File;
 use App\Models\Concept;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ProductsController extends Controller
 {
@@ -81,8 +82,8 @@ class ProductsController extends Controller
             'presentation' => 'nullable|string|max:255',
             'unit' => 'nullable|string|max:100',
             'batch_code' => 'nullable|string|max:100',
-            'images.*' => 'nullable|image|mimes:jpg,jpeg,png,bmp,gif,svg,webp|max:2048',
-            'files.*' => 'nullable|file|mimes:pdf|max:5120',
+            'images.*' => 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'files.*' => 'nullable|file|mimes:pdf|max:10240',
         ]);
 
         DB::beginTransaction();
@@ -92,7 +93,8 @@ class ProductsController extends Controller
 
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
-                    $imageName = time() . $image->getClientOriginalName();
+                    $ext = $image->guessExtension() ?: 'jpg';
+                    $imageName = time() . '_' . Str::uuid() . '.' . $ext;
                     $path = $image->storeAs('products', $imageName, 'public');
 
                     Image::create([
@@ -104,7 +106,7 @@ class ProductsController extends Controller
 
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
-                    $fileName = $file->getClientOriginalName();
+                    $fileName = time() . '_' . Str::uuid() . '.pdf';
                     $path = $file->storeAs('products/files', $fileName, 'public');
 
                     File::create([
@@ -139,8 +141,8 @@ class ProductsController extends Controller
             'presentation' => 'nullable|string|max:255',
             'unit' => 'nullable|string|max:100',
             'batch_code' => 'nullable|string|max:100',
-            'images.*' => 'nullable|image|mimes:jpg,jpeg,png,bmp,gif,svg,webp|max:2048',
-            'files.*' => 'nullable|file|mimes:pdf|max:5120',
+            'images.*' => 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'files.*' => 'nullable|file|mimes:pdf|max:10240',
         ]);
 
         DB::beginTransaction();
@@ -150,7 +152,8 @@ class ProductsController extends Controller
 
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
-                    $imageName = time() . $image->getClientOriginalName();
+                    $ext = $image->guessExtension() ?: 'jpg';
+                    $imageName = time() . '_' . Str::uuid() . '.' . $ext;
                     $path = $image->storeAs('products', $imageName, 'public');
 
                     Image::create([
@@ -162,7 +165,7 @@ class ProductsController extends Controller
 
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
-                    $fileName = $file->getClientOriginalName();
+                    $fileName = time() . '_' . Str::uuid() . '.pdf';
                     $path = $file->storeAs('products/files', $fileName, 'public');
 
                     File::create([

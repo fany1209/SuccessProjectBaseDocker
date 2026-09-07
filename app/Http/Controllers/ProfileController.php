@@ -54,8 +54,8 @@ public function showProfile()
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'photo' => 'nullable|image|max:1024'
+            'email' => "required|email|max:255|unique:users,email,{$user->id}",
+            'photo' => 'nullable|file|image|mimes:jpeg,jpg,png,webp|max:2048'
         ]);
 
         $user->name = $request->name;

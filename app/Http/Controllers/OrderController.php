@@ -10,6 +10,7 @@ use App\Notifications\NewOrderNotification;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class OrderController extends Controller
 {
@@ -42,7 +43,7 @@ class OrderController extends Controller
                 'semana'   => 'required|integer',
                 'empresa'  => 'required|string|max:255',
                 'po'       => 'nullable|string|max:100',
-                'pdf_file' => 'nullable|mimes:pdf|max:10240',
+                'pdf_file' => 'nullable|file|mimes:pdf|max:10240',
                 'items'    => 'nullable|array',
                 'items.*.producto' => 'nullable|string|max:255',
                 'items.*.cantidad' => 'nullable|string|max:100',
@@ -81,8 +82,12 @@ class OrderController extends Controller
 
             if ($request->hasFile('pdf_file')) {
                 $file = $request->file('pdf_file');
-                $fileName = time() . '_' . $file->getClientOriginalName();
-                $file->move(public_path('orders_pdf'), $fileName);
+                $destination = public_path('orders_pdf');
+                if (!file_exists($destination)) {
+                    mkdir($destination, 0755, true);
+                }
+                $fileName = time() . '_' . Str::uuid() . '.pdf';
+                $file->move($destination, $fileName);
                 $data['pdf_path'] = $fileName;
             }
 
@@ -125,6 +130,17 @@ class OrderController extends Controller
     public function update(Request $request, $id)
     {
         try {
+            $request->validate([
+                'año'      => 'nullable|integer',
+                'semana'   => 'nullable|integer',
+                'empresa'  => 'nullable|string|max:255',
+                'po'       => 'nullable|string|max:100',
+                'pdf_file' => 'nullable|file|mimes:pdf|max:10240',
+                'items'    => 'nullable|array',
+                'items.*.producto' => 'nullable|string|max:255',
+                'items.*.cantidad' => 'nullable|string|max:100',
+            ]);
+
             $order = Order::findOrFail($id);
             $user = auth()->user();
 
@@ -165,12 +181,16 @@ class OrderController extends Controller
 
             if ($request->hasFile('pdf_file')) {
                 if ($order->pdf_path && file_exists(public_path('orders_pdf/' . $order->pdf_path))) {
-                    unlink(public_path('orders_pdf/' . $order->pdf_path));
+                    @unlink(public_path('orders_pdf/' . $order->pdf_path));
                 }
 
                 $file = $request->file('pdf_file');
-                $fileName = time() . '_' . $file->getClientOriginalName();
-                $file->move(public_path('orders_pdf'), $fileName);
+                $destination = public_path('orders_pdf');
+                if (!file_exists($destination)) {
+                    mkdir($destination, 0755, true);
+                }
+                $fileName = time() . '_' . Str::uuid() . '.pdf';
+                $file->move($destination, $fileName);
                 $data['pdf_path'] = $fileName;
             }
 

@@ -363,6 +363,10 @@ class RecursosHumanosController extends Controller
 
     public function generarExpedientePracticantePdf(Request $request)
     {
+        $request->validate([
+            'foto_infantil' => 'nullable|file|image|mimes:jpeg,jpg,png,webp|max:3072',
+        ]);
+
         $practicante = (object) $request->all();
         
         $practicante->foto_base64 = null; 

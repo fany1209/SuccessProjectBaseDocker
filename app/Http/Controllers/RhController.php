@@ -196,7 +196,7 @@ class RhController extends Controller
 
     public function uploadCsv(Request $request)
     {
-        $request->validate(['csv_file' => 'required|mimes:csv,txt']);
+        $request->validate(['csv_file' => 'required|file|mimes:csv,txt|max:10240']);
         $path = $request->file('csv_file')->getRealPath();
         $file = fopen($path, 'r');
         

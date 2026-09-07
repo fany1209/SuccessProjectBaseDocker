@@ -62,7 +62,7 @@ class UserController extends Controller
             'email'    => 'required|string|email|max:255|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
             'role_id'  => 'required|exists:roles,id',
-            'profile_photo' => 'nullable|image|mimes:jpg,jpeg,png,bmp,svg,webp|max:2048',
+            'profile_photo' => 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:2048',
             'status'   => 'required|in:Activo,Inactivo',
             'tipo_empleado' => 'required|in:Trabajador,Practicante',
         ]);
@@ -94,7 +94,7 @@ class UserController extends Controller
             'email'    => "required|string|email|max:255|unique:users,email,{$user->id}",
             'password' => 'nullable|string|min:8|confirmed',
             'role_id'  => 'required|exists:roles,id',
-            'profile_photo' => 'nullable|image|mimes:jpg,jpeg,png,bmp,svg,webp|max:2048',
+            'profile_photo' => 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:2048',
             'status'   => 'required|in:Activo,Inactivo',
             'tipo_empleado' => 'required|in:Trabajador,Practicante',
         ]);

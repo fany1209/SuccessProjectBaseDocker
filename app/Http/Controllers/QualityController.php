@@ -220,6 +220,11 @@ class QualityController extends Controller
 
         public function pdf2(Request $req)
         {
+            $req->validate([
+                'product_image'   => 'nullable|file|image|mimes:jpeg,jpg,png,webp|max:5120',
+                'nutricional_img' => 'nullable|file|image|mimes:jpeg,jpg,png,webp|max:5120',
+            ]);
+
             $producto = null;
 
             if ($req->filled('product_id')) {
@@ -350,7 +355,8 @@ class QualityController extends Controller
                 'product_id'    => ['nullable','integer','exists:products,product_id'],
                 'pictos'        => ['array'],
                 'pictos.*'      => ['in:explosion,inflamable,comburente,gas-a-presion,corrosivo,toxicidad-aguda,peligro-salud,peligro-grave-para-la-salud'],
-                'pictogramas.*' => ['nullable','image','max:2048'],
+                'pictogramas'   => ['nullable','array','max:6'],
+                'pictogramas.*' => ['nullable','file','image','mimes:jpeg,jpg,png,webp','max:2048'],
             ]);
 
             $producto = $req->filled('product_id')
@@ -658,7 +664,7 @@ class QualityController extends Controller
                 'obs.*.name'           => ['nullable','string','max:255'],
                 'obs.*.rev'            => ['nullable','in:cumple,no_cumple'],
                 'obs.*.fecha'          => ['nullable','date'],
-                'obs.*.evidencia_file' => ['nullable','image','max:5120'],
+                'obs.*.evidencia_file' => ['nullable','file','image','mimes:jpeg,jpg,png,webp','max:5120'],
                 'obs.*.ubicacion'      => ['nullable','string','max:255'],
             ]);
 
@@ -686,8 +692,13 @@ class QualityController extends Controller
                     if ($req->hasFile("obs.$i.evidencia_file")) {
                         $f = $req->file("obs.$i.evidencia_file");
                         if ($f && $f->isValid()) {
-                            $filename = time() . '_' . uniqid() . '.' . $f->getClientOriginalExtension();
-                            $f->move(base_path('../public_html/inspections_w/evidencias'), $filename);
+                            $ext = $f->guessExtension() ?: 'jpg';
+                            $filename = time() . '_' . Str::uuid() . '.' . $ext;
+                            $targetDir = base_path('../public_html/inspections_w/evidencias');
+                            if (!file_exists($targetDir)) {
+                                @mkdir($targetDir, 0755, true);
+                            }
+                            $f->move($targetDir, $filename);
                             $evidencia_path = 'inspections_w/evidencias/' . $filename;
                         }
                     }
@@ -974,7 +985,8 @@ class QualityController extends Controller
 
                         $file = $descFiles[$i]['imagen'] ?? null;
                         if ($file instanceof \Illuminate\Http\UploadedFile && $file->isValid()) {
-                            $name   = uniqid('inc_', true).'.'.$file->getClientOriginalExtension();
+                            $ext    = $file->guessExtension() ?: 'jpg';
+                            $name   = uniqid('inc_', true) . '.' . $ext;
                             $stored = $file->storeAs('incidencias/'.$folio, $name, 'public'); 
                             $imgRel = 'storage/'.$stored;
                             
@@ -1001,7 +1013,8 @@ class QualityController extends Controller
                     if ($request->hasFile('imagenes')) {
                         foreach ($request->file('imagenes') as $file) {
                             if (!$file->isValid()) continue;
-                            $name   = uniqid('inc_', true).'.'.$file->getClientOriginalExtension();
+                            $ext    = $file->guessExtension() ?: 'jpg';
+                            $name   = uniqid('inc_', true) . '.' . $ext;
                             $stored = $file->storeAs('incidencias/'.$folio, $name, 'public');
                             $rel    = 'storage/'.$stored;
                             $relativePublicPaths[] = $rel;
@@ -1891,7 +1904,7 @@ class QualityController extends Controller
                 'obs.*.name' => ['nullable','string','max:255'],
                 'obs.*.rev' => ['nullable','in:cumple,no_cumple'],
                 'obs.*.fecha' => ['nullable','date'],
-                'obs.*.evidencia_file' => ['nullable','image','max:5120'],
+                'obs.*.evidencia_file' => ['nullable','file','image','mimes:jpeg,jpg,png,webp','max:5120'],
                 'obs.*.ubicacion' => ['nullable','string','max:255'],
             ]);
 
@@ -1927,10 +1940,15 @@ class QualityController extends Controller
                     ? trim($obsData['ubicacion'])
                     : null;
 
-                    if(isset($obsData['evidencia_file']) && $obsData['evidencia_file'] instanceof \Illuminate\Http\UploadedFile){
+                    if(isset($obsData['evidencia_file']) && $obsData['evidencia_file'] instanceof \Illuminate\Http\UploadedFile && $obsData['evidencia_file']->isValid()){
                         $f = $obsData['evidencia_file'];
-                        $filename = time() . '_' . uniqid() . '.' . $f->getClientOriginalExtension();
-                        $f->move(base_path('../public_html/inspections_w/evidencias'), $filename);
+                        $ext = $f->guessExtension() ?: 'jpg';
+                        $filename = time() . '_' . Str::uuid() . '.' . $ext;
+                        $targetDir = base_path('../public_html/inspections_w/evidencias');
+                        if (!file_exists($targetDir)) {
+                            @mkdir($targetDir, 0755, true);
+                        }
+                        $f->move($targetDir, $filename);
                         $obs->evidencia_path = 'inspections_w/evidencias/' . $filename;
                     } elseif(isset($obsData['existing_evidencia_path'])) {
                         $obs->evidencia_path = $obsData['existing_evidencia_path'];
@@ -1967,6 +1985,16 @@ class QualityController extends Controller
 
         public function updatew(Request $request, $id)
         {
+            $request->validate([
+                'responsable'        => ['nullable', 'string', 'max:255'],
+                'comentarios'        => ['nullable', 'string'],
+                'obs'                => ['nullable', 'array'],
+                'obs.*.id'           => ['nullable', 'integer', 'exists:observaciones,id'],
+                'obs.*.name'         => ['nullable', 'string', 'max:255'],
+                'obs.*.fecha'        => ['nullable', 'date'],
+                'obs.*.ev_corr_file' => ['nullable', 'file', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
+            ]);
+
             $inspection = InspectionW::findOrFail($id);
             $inspection->responsable = $request->input('responsable');
             $inspection->comentarios = $request->input('comentarios');
@@ -1999,9 +2027,16 @@ class QualityController extends Controller
 
                 if ($request->hasFile("obs.$i.ev_corr_file")) {
                     $file = $request->file("obs.$i.ev_corr_file");
-                    $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                    $file->move(base_path('../public_html/observaciones'), $filename);
-                    $observacion->ev_corr_path = 'observaciones/' . $filename;
+                    if ($file && $file->isValid()) {
+                        $ext = $file->guessExtension() ?: 'jpg';
+                        $filename = time() . '_' . Str::uuid() . '.' . $ext;
+                        $targetDir = base_path('../public_html/observaciones');
+                        if (!file_exists($targetDir)) {
+                            @mkdir($targetDir, 0755, true);
+                        }
+                        $file->move($targetDir, $filename);
+                        $observacion->ev_corr_path = 'observaciones/' . $filename;
+                    }
                 }
 
                 $observacion->save();
