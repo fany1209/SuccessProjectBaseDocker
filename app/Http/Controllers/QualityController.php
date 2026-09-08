@@ -517,18 +517,73 @@ class QualityController extends Controller
 
             $fmt = fn($d) => $d ? \Carbon\Carbon::parse($d)->format('d/m/Y') : null;
 
-            $toDomPdfPath = function (?string $relativePath) {
-                if (!$relativePath) return null;
-                $p = base_path('../public_html/'.ltrim($relativePath, '/'));
-                return file_exists($p) ? $p : null;
+            // Función para resolver y convertir imágenes a Base64
+            // Resuelve restricciones de chroot en DomPDF y compatibilidad con WebP
+            $toDomPdfBase64 = function (?string $relativePath): ?string {
+                if (!$relativePath) {
+                    return null;
+                }
+
+                $clean = ltrim(parse_url($relativePath, PHP_URL_PATH), '/');
+
+                // 1. Matriz de directorios candidatos (prioriza public_html hermano de producción)
+                $candidates = array_values(array_filter([
+                    base_path('../public_html/' . $clean),
+                    public_path($clean),
+                    storage_path('app/public/' . str_replace('storage/', '', $clean)),
+                    public_path('storage/' . str_replace('storage/', '', $clean)),
+                    base_path($clean),
+                ]));
+
+                $realFile = null;
+                foreach ($candidates as $cand) {
+                    if (file_exists($cand) && is_file($cand) && is_readable($cand)) {
+                        $realFile = $cand;
+                        break;
+                    }
+                }
+
+                if (!$realFile) {
+                    \Illuminate\Support\Facades\Log::warning("DomPDF [pdf4]: No se encontró la imagen en disco: {$relativePath}");
+                    return null;
+                }
+
+                $ext = strtolower(pathinfo($realFile, PATHINFO_EXTENSION));
+
+                // 2. Si es WebP, convertir a JPEG en memoria con GD porque DomPDF no soporta WebP nativo
+                if ($ext === 'webp' && function_exists('imagecreatefromwebp')) {
+                    $img = @imagecreatefromwebp($realFile);
+                    if ($img !== false) {
+                        ob_start();
+                        imagejpeg($img, null, 85);
+                        $data = ob_get_clean();
+                        imagedestroy($img);
+                        return 'data:image/jpeg;base64,' . base64_encode($data);
+                    }
+                }
+
+                $mime = match ($ext) {
+                    'png'   => 'image/png',
+                    'gif'   => 'image/gif',
+                    'webp'  => 'image/webp',
+                    'svg'   => 'image/svg+xml',
+                    default => 'image/jpeg',
+                };
+
+                $content = @file_get_contents($realFile);
+                if ($content === false) {
+                    return null;
+                }
+
+                return 'data:' . $mime . ';base64,' . base64_encode($content);
             };
 
-            $obsRows = $inspection->observaciones->map(function ($o) use ($fmt, $toDomPdfPath) {
+            $obsRows = $inspection->observaciones->map(function ($o) use ($fmt, $toDomPdfBase64) {
                 return [
                     'name'          => (string) $o->name,
                     'fecha'         => $fmt($o->fecha),
-                    'evidencia_img' => $toDomPdfPath($o->evidencia_path),
-                    'ev_corr_img'   => $toDomPdfPath($o->ev_corr_path),
+                    'evidencia_img' => $toDomPdfBase64($o->evidencia_path),
+                    'ev_corr_img'   => $toDomPdfBase64($o->ev_corr_path),
                     'rev'           => $o->rev ?? null,
                     'cumple'        => ($o->rev ?? null) === 'cumple',
                     'no_cumple'     => ($o->rev ?? null) === 'no_cumple',
@@ -599,6 +654,18 @@ class QualityController extends Controller
                 $dompdf = $pdf->getDomPDF();
                 $dompdf->set_option('isHtml5ParserEnabled', true);
                 $dompdf->set_option('isRemoteEnabled', true);
+
+                // Configurar chroot para permitir el directorio public_html hermano en producción
+                $chroots = array_values(array_filter([
+                    realpath(base_path()),
+                    realpath(base_path('../public_html')),
+                    realpath(public_path()),
+                    realpath(storage_path('app/public')),
+                ]));
+                if (!empty($chroots)) {
+                    $dompdf->set_option('chroot', $chroots);
+                }
+
                 $dompdf->render();
                 $canvas = $dompdf->get_canvas();
                 $w      = $canvas->get_width();
@@ -694,7 +761,8 @@ class QualityController extends Controller
                         if ($f && $f->isValid()) {
                             $ext = $f->guessExtension() ?: 'jpg';
                             $filename = time() . '_' . Str::uuid() . '.' . $ext;
-                            $targetDir = base_path('../public_html/inspections_w/evidencias');
+                            $targetBase = is_dir(base_path('../public_html')) ? base_path('../public_html') : public_path();
+                            $targetDir = $targetBase . '/inspections_w/evidencias';
                             if (!file_exists($targetDir)) {
                                 @mkdir($targetDir, 0755, true);
                             }
@@ -1944,7 +2012,8 @@ class QualityController extends Controller
                         $f = $obsData['evidencia_file'];
                         $ext = $f->guessExtension() ?: 'jpg';
                         $filename = time() . '_' . Str::uuid() . '.' . $ext;
-                        $targetDir = base_path('../public_html/inspections_w/evidencias');
+                        $targetBase = is_dir(base_path('../public_html')) ? base_path('../public_html') : public_path();
+                        $targetDir = $targetBase . '/inspections_w/evidencias';
                         if (!file_exists($targetDir)) {
                             @mkdir($targetDir, 0755, true);
                         }
@@ -2030,7 +2099,8 @@ class QualityController extends Controller
                     if ($file && $file->isValid()) {
                         $ext = $file->guessExtension() ?: 'jpg';
                         $filename = time() . '_' . Str::uuid() . '.' . $ext;
-                        $targetDir = base_path('../public_html/observaciones');
+                        $targetBase = is_dir(base_path('../public_html')) ? base_path('../public_html') : public_path();
+                        $targetDir = $targetBase . '/observaciones';
                         if (!file_exists($targetDir)) {
                             @mkdir($targetDir, 0755, true);
                         }
