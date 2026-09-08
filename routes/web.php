@@ -643,6 +643,7 @@ Route::prefix('laboratory/equipments')->group(function () {
         ->name('makePDF');
 
     Route::get('/download-temperature-pdf/{week_a}/{week_b}/{year}/{warehouse_id}', [PdfController::class, 'makeTemperaturePDF'])
+        ->whereNumber(['week_a', 'week_b', 'year', 'warehouse_id'])
         ->name('temperature-pdf');
 
     Route::get('requisition-format/{requisition_id}', [PdfController::class, 'makeRequisitionPDF'])

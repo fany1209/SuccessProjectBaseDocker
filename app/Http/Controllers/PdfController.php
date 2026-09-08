@@ -44,11 +44,25 @@ class PdfController extends Controller
 
     public function makeTemperaturePDF($week_a, $week_b, $year, $warehouse_id)
     {
+        // 1. Sanitización y validación estricta de tipos enteros (prevención de Inyección SQL)
+        $week_a       = filter_var($week_a, FILTER_VALIDATE_INT);
+        $week_b       = filter_var($week_b, FILTER_VALIDATE_INT);
+        $year         = filter_var($year, FILTER_VALIDATE_INT);
+        $warehouse_id = filter_var($warehouse_id, FILTER_VALIDATE_INT);
 
+        if ($week_a === false || $week_b === false || $year === false || $warehouse_id === false) {
+            abort(400, 'Los parámetros del reporte deben ser números enteros válidos.');
+        }
+
+        if ($week_a < 1 || $week_a > 54 || $week_b < 1 || $week_b > 54 || $week_a > $week_b) {
+            abort(400, 'El rango de semanas especificado es inválido.');
+        }
+
+        // 2. Consulta con bindings parametrizados PDO (elimina vector de inyección SQL)
         $rows = Control::select('temperature', 'humidity', 'created_at', DB::raw('WEEK(created_at,1) as week'))
             ->where('warehouse_id', '=', $warehouse_id)
             ->whereYear('created_at', $year)
-            ->whereRaw('WEEK(created_at,1) BETWEEN ' . $week_a . ' AND ' . $week_b)
+            ->whereBetween(DB::raw('WEEK(created_at,1)'), [$week_a, $week_b])
             ->get()
             ->map(function ($item) {
                 return [
@@ -116,7 +130,7 @@ class PdfController extends Controller
 
     public function makeDeliveryNotePDF($sale_id)
     {
-        $sale = Sale::find($sale_id);
+        $sale = Sale::findOrFail($sale_id);
 
         $subtotal = 0;
         $iva = 0;
@@ -147,7 +161,7 @@ class PdfController extends Controller
 
     public function makeQuotePDF($quote_id)
     {
-        $quote = Quote::find($quote_id);
+        $quote = Quote::findOrFail($quote_id);
         $subtotal = 0;
         $iva = 0;
 
