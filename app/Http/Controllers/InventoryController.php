@@ -431,4 +431,179 @@ class InventoryController extends Controller
         }
         return response()->json(['message' => 'Updated']);
     }
+
+    public function pendingPallets()
+    {
+        $pallets = \App\Models\Pallet::with('yeastProductions')->where('inventory_status', 'Enviada')->orderBy('pallet_id', 'desc')->get();
+        
+        // Calculate total final weight for each pallet based on yeast productions or sacks * 25kg
+        foreach ($pallets as $pallet) {
+            $calculatedWeight = 0;
+            foreach ($pallet->yeastProductions as $yp) {
+                if ($yp->bags_quantity > 0 && $yp->finished_product_kg > 0) {
+                    $calculatedWeight += ($yp->finished_product_kg / $yp->bags_quantity) * ($yp->pivot->sacks_contributed ?? 0);
+                }
+            }
+            $pallet->total_weight = $calculatedWeight > 0 ? round($calculatedWeight, 2) : round(($pallet->current_sacks ?? 0) * 25, 2);
+        }
+
+        $warehouses = \App\Models\Warehouse::all();
+        $locations = \App\Models\Location::with('warehouse')->get();
+        $suppliers = \App\Models\Supplier::select('supplier_id', 'name', 'supplier_code')->get();
+        $concepts = \App\Models\Concept::select('concept_id', 'name')->get();
+        $transport_lines = \App\Models\TransportLine::select('transport_line_id', 'name')->get();
+        $products = \App\Models\Product::select('product_id', 'name', 'unit')->get();
+
+        // Ensure internal production supplier exists safely
+        $internalSupplier = \App\Models\Supplier::where('name', 'Producción Interna')
+            ->orWhere('supplier_code', 'PROD-INT')
+            ->first();
+
+        if (!$internalSupplier) {
+            $internalSupplier = \App\Models\Supplier::create([
+                'name'          => 'Producción Interna',
+                'supplier_code' => 'PROD-INT',
+                'contact'       => 'Planta Producción',
+                'phone'         => 'N/A',
+                'email'         => 'produccion@yeacali.com',
+                'rfc'           => 'XAXX010101000',
+                'address'       => 'Planta',
+                'city'          => 'Local',
+                'state'         => 'Local',
+                'sector_id'     => 1,
+            ]);
+            $suppliers = \App\Models\Supplier::select('supplier_id', 'name', 'supplier_code')->get();
+        }
+
+        // Use "Producto Terminado" as default concept
+        $internalConcept = \App\Models\Concept::where('name', 'Producto Terminado')->first()
+            ?? \App\Models\Concept::where('name', 'like', '%Terminado%')->first()
+            ?? \App\Models\Concept::firstOrCreate(['name' => 'Producto Terminado']);
+
+        if (!$concepts->contains('concept_id', $internalConcept->concept_id)) {
+            $concepts = \App\Models\Concept::select('concept_id', 'name')->get();
+        }
+
+        // Default to Yeacali sacos (Product ID 623 with unit Kg, or fallback to 622)
+        $defaultProduct = \App\Models\Product::where('product_id', 623)
+            ->orWhere('name', 'like', '%Yeacali%')
+            ->first();
+
+        return view('inventory.pallets.pending', compact(
+            'pallets', 'warehouses', 'locations', 'suppliers', 'concepts', 
+            'transport_lines', 'products', 'internalSupplier', 'internalConcept', 'defaultProduct'
+        ));
+    }
+
+    public function acceptPallet(Request $request, $id)
+    {
+        $request->validate([
+            'location_id'          => 'required|exists:locations,location_id',
+            'supplier_id'          => 'nullable|exists:suppliers,supplier_id',
+            'concept_id'           => 'nullable|exists:concepts,concept_id',
+            'product_id'           => 'nullable|exists:products,product_id',
+            'quantity'             => 'nullable|numeric|min:0.01',
+            'weight_per_unit'      => 'nullable|numeric|min:0.01',
+            'final_weight'         => 'nullable|numeric|min:0.01',
+            'warehouse_batch'      => 'nullable|string|max:50',
+            'transport_line'       => 'nullable|integer',
+            'operator'             => 'nullable|string|max:200',
+            'license_number'       => 'nullable|string|max:50',
+            'security_seal'        => 'nullable|integer',
+            'security_seal_number' => 'nullable|string|max:50',
+            'unit_plates'          => 'nullable|string|max:20',
+            'trailer_plates'       => 'nullable|string|max:20',
+            'comments'             => 'nullable|string|max:300',
+        ]);
+
+        $pallet = \App\Models\Pallet::with('yeastProductions')->findOrFail($id);
+
+        if ($pallet->inventory_status !== 'Enviada') {
+            return response()->json(['message' => 'La tarima no está pendiente de ser recibida.'], 400);
+        }
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($pallet, $request) {
+            // Resolve supplier
+            $supplierId = $request->supplier_id;
+            if (!$supplierId) {
+                $supplier = \App\Models\Supplier::where('name', 'Producción Interna')
+                    ->orWhere('supplier_code', 'PROD-INT')
+                    ->first();
+                if (!$supplier) {
+                    $supplier = \App\Models\Supplier::create([
+                        'name'          => 'Producción Interna',
+                        'supplier_code' => 'PROD-INT',
+                        'contact'       => 'Planta Producción',
+                        'sector_id'     => 1
+                    ]);
+                }
+                $supplierId = $supplier->supplier_id;
+            }
+
+            // Resolve concept (default to "Producto Terminado")
+            $conceptId = $request->concept_id;
+            if (!$conceptId) {
+                $concept = \App\Models\Concept::where('name', 'Producto Terminado')->first()
+                    ?? \App\Models\Concept::where('name', 'like', '%Terminado%')->first();
+                $conceptId = $concept ? $concept->concept_id : 2;
+            }
+
+            // Resolve product
+            $defaultProd = \App\Models\Product::where('product_id', 623)->orWhere('name', 'like', '%Yeacali%')->first();
+            $productId = $request->product_id ?: ($defaultProd->product_id ?? 623);
+
+            // Resolve quantities and weights:
+            // Sacks count:
+            $sacks = (float) ($request->quantity ?: $pallet->current_sacks);
+            $weightPerUnit = (float) ($request->weight_per_unit ?: 25);
+
+            // Final weight in Kg (this is the actual stock amount that enters inventory):
+            $finalWeight = (float) ($request->final_weight ?: ($sacks * $weightPerUnit));
+            $batch = $request->warehouse_batch ?: $pallet->pallet_number;
+
+            // 1. Create Input movement record
+            $input = \App\Models\Input::create([
+                'supplier_id'          => $supplierId,
+                'transport_line_id'    => $request->transport_line ?: null,
+                'operator'             => $request->operator,
+                'license_number'       => $request->license_number,
+                'security_seal'        => $request->security_seal ?? 0,
+                'security_seal_number' => $request->security_seal_number,
+                'unit_plates'          => $request->unit_plates,
+                'trailer_plates'       => $request->trailer_plates,
+                'comments'             => $request->comments,
+            ]);
+
+            // 2. Create Inventory record with final weight as stock (in Kg)
+            $inventory = \App\Models\Inventory::create([
+                'stock'      => $finalWeight,
+                'batch'      => $batch,
+                'product_id' => $productId,
+            ]);
+
+            // 3. Create ProductInputs record with final weight (in Kg)
+            \App\Models\ProductInputs::insert([
+                'product_id'      => $productId,
+                'input_id'        => $input->input_id,
+                'quantity'        => $finalWeight,
+                'warehouse_batch' => $batch,
+            ]);
+
+            // 4. Create CLI record (location, concept, sacks and net weight in Kg)
+            \App\Models\Cli::create([
+                'inventory_id'    => $inventory->inventory_id,
+                'concept_id'      => $conceptId,
+                'location_id'     => $request->location_id,
+                'quantity'        => $sacks,
+                'weight_per_unit' => $weightPerUnit,
+                'net_weight'      => $finalWeight,
+            ]);
+
+            // 5. Mark pallet as Ingresada
+            $pallet->inventory_status = 'Ingresada';
+            $pallet->save();
+
+            return response()->json(['message' => '¡Entrada registrada y tarima ingresada al inventario correctamente con ' . number_format($finalWeight, 2) . ' kg!']);
+        });
+    }
 }

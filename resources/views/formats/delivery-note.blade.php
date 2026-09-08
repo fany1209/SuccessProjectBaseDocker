@@ -325,12 +325,15 @@
         }
     @endphp
 
-    <div style="display: block; position: relative; width: 100%; height: 280px;">
+    <!-- AQUI ESTÁ EL CAMBIO: min-height en lugar de height fijo, permitiendo que crezca con los productos -->
+    <div style="display: block; position: relative; width: 100%; min-height: 280px; height: auto;">
         
         @if($bgImagePath != '' && file_exists($bgImagePath))
-            <img src="data:image/png;base64,{{ base64_encode(file_get_contents($bgImagePath)) }}" 
-                 style="position: absolute; top: 50%; left: 50%; width: 260px; height: 260px; margin-top: -130px; margin-left: -130px; z-index: -1; opacity: 0.18;" 
-                 alt="Fondo Marca de Agua">
+            <div style="position: absolute; top: 10px; left: 0; right: 0; text-align: center; z-index: -1;">
+                <img src="data:image/png;base64,{{ base64_encode(file_get_contents($bgImagePath)) }}" 
+                     style="width: 260px; height: 260px; opacity: 0.18;" 
+                     alt="Fondo Marca de Agua">
+            </div>
         @endif
 
         <table class="w-full table-bordered" style="background-color: transparent; position: relative; z-index: 1;">
@@ -492,16 +495,19 @@
                         @endif
                     </td>
                 </tr>
+                
+                <!-- AQUI ESTÁ EL CAMBIO: El texto MSVC ahora está DENTRO de la tabla como una fila final -->
+                @if($hasMSVC)
+                <tr style="background-color: transparent; border: none;">
+                    <td colspan="7" style="border: none; text-align: left; padding-top: 10px;">
+                        <p class="text-xs font-bold">* MSVC: MUESTRA SIN VALOR COMERCIAL</p>
+                    </td>
+                </tr>
+                @endif
 
             </tbody>
         </table>
     </div>
-
-    @if($hasMSVC)
-        <div style="width: 100%; margin-top: 5px;">
-            <p class="text-xs font-bold text-left">* MSVC: MUESTRA SIN VALOR COMERCIAL</p>
-        </div>
-    @endif
 
     <br>
     <br>

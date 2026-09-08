@@ -15,7 +15,22 @@ class YeastProductionController extends Controller
         return view('production.yeast.index', compact('yeastProductions', 'pallets'));
     }
 
+    public function sendToInventory(Request $request, $id)
+    {
+        $pallet = \App\Models\Pallet::findOrFail($id);
+
+        if ($pallet->status !== 'Cerrada' || $pallet->inventory_status !== 'Pendiente') {
+            return response()->json(['message' => 'La tarima no está disponible para enviar.'], 400);
+        }
+
+        $pallet->inventory_status = 'Enviada';
+        $pallet->save();
+
+        return response()->json(['message' => 'Tarima enviada al almacén correctamente.']);
+    }
+
     public function update(Request $request, $id)
+
     {
         $request->validate([
             'internal_weight' => 'nullable|numeric|min:0',

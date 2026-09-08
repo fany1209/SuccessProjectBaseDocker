@@ -112,6 +112,7 @@
                         <th>Tarima No.</th>
                         <th>Tipo (Color)</th>
                         <th>Estado</th>
+                        <th>Inventario</th>
                         <th>Sacos</th>
                         <th>Barcinas que la formaron</th>
                         <th>Fecha de Cierre</th>
@@ -123,6 +124,17 @@
                         <td class="font-bold text-gray-800">{{ $pallet->pallet_number }}</td>
                         <td>{{ $pallet->color_type }}</td>
                         <td><span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-green-400">Cerrada</span></td>
+                        <td>
+                            @if($pallet->inventory_status == 'Pendiente')
+                                <button type="button" onclick="sendToInventory({{ $pallet->pallet_id }})" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded text-xs">
+                                    Enviar a Almacén
+                                </button>
+                            @elseif($pallet->inventory_status == 'Enviada')
+                                <span class="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-yellow-400">En Tránsito</span>
+                            @else
+                                <span class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-emerald-400">En Inventario</span>
+                            @endif
+                        </td>
                         <td>{{ $pallet->current_sacks }}</td>
                         <td>
                             <ul class="list-disc pl-4 text-xs">
@@ -191,5 +203,65 @@
         document.getElementById('edit_finished_product_kg').value = fpk;
         
         document.getElementById('edit-yeast-modal').classList.remove('hidden');
+    }
+
+    function sendToInventory(palletId) {
+        Swal.fire({
+            title: '¿Enviar a Almacén?',
+            text: 'La tarima se marcará como "En Tránsito" y pasará a la bandeja de recepción de Almacén.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3b82f6',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sí, enviar',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Enviando...',
+                    text: 'Por favor espere un momento.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                fetch(`/production/yeast/pallet/${palletId}/send-inventory`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
+                    }
+                })
+                .then(async response => {
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Error al enviar al almacén.');
+                    }
+                    return data;
+                })
+                .then(data => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Enviada!',
+                        text: data.message || 'Tarima enviada al almacén correctamente.',
+                        timer: 1800,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: error.message || 'Hubo un error al enviar al almacén.'
+                    });
+                });
+            }
+        });
     }
 </script>

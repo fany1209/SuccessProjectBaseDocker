@@ -155,6 +155,9 @@ Route::middleware([
     Route::post('/addQuarantine', [InventoryController::class, 'addQuarantine'])->middleware('can:inventory.show')->name('inventory.addQuarantine');
     Route::put('/updateComment/{type}/{id}', [InventoryController::class, 'updateComment'])->middleware('can:inventory.show')->name('inventory.updateComment');
 
+    Route::get('/inventory/pallets/pending', [InventoryController::class, 'pendingPallets'])->middleware('can:inventory.show')->name('inventory.pallets.pending');
+    Route::post('/inventory/pallets/{id}/accept', [InventoryController::class, 'acceptPallet'])->middleware('can:inventory.show')->name('inventory.pallets.accept');
+    
     //Inputs
     Route::resource('inputs',InputController::class)->middleware('can:inventory.show');
 
@@ -301,6 +304,7 @@ Route::middleware([
         'index' => 'production.yeast.index',
         'update' => 'production.yeast.update',
     ]);
+    Route::post('/production/yeast/pallet/{id}/send-inventory', [\App\Http\Controllers\YeastProductionController::class, 'sendToInventory'])->name('production.yeast.sendToInventory');
     
     Route::post('/quality/pd4', [QualityController::class, 'pdf4'])->name('quality.pdf4');
     Route::get('/quality/pdf5/form', [QualityController::class, 'pdf5Form'])->name('quality.pdf5.form');
