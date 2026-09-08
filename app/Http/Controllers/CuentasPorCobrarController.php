@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use App\Models\CxcDetail;
 use App\Models\CxcPayment;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -303,8 +304,13 @@ class CuentasPorCobrarController extends Controller
         $comprobanteName = null;
         if ($request->hasFile('comprobante')) {
             $file = $request->file('comprobante');
-            $comprobanteName = time() . '_' . $file->getClientOriginalName();
-            $file->move(base_path('storage/app/public/comprobantes'), $comprobanteName);
+            $ext = $file->guessExtension() ?: 'pdf';
+            $comprobanteName = time() . '_' . Str::uuid() . '.' . $ext;
+            $dest = base_path('storage/app/public/comprobantes');
+            if (!file_exists($dest)) {
+                @mkdir($dest, 0755, true);
+            }
+            $file->move($dest, $comprobanteName);
         }
 
         $cxc->payments()->create([

@@ -24,26 +24,31 @@
                 <x-input-1 name="empresa" id="edit_empresa" required></x-input-1>
             </x-wrapper-form-2>
             <x-wrapper-form-2>
-                <x-label for="edit_producto">Producto</x-label>
-                <select name="producto" id="edit_producto" class="w-full border-gray-300 focus:border-green-500 focus:ring-green-500 rounded-md shadow-sm text-sm">
-                    <option value="">Seleccione un producto...</option>
-                    @foreach($productos as $prod)
-                        <option value="{{ $prod->name }}">{{ $prod->name }}</option>
-                    @endforeach
-                </select>
-            </x-wrapper-form-2>
-        </x-wrapper-form-1>
-
-        <x-wrapper-form-1>
-            <x-wrapper-form-2>
-                <x-label for="edit_cantidad">Cantidad</x-label>
-                <x-input-1 type="text" name="cantidad" id="edit_cantidad" placeholder="Ej: 500 kg"></x-input-1>
-            </x-wrapper-form-2>
-            <x-wrapper-form-2>
                 <x-label for="edit_po">PO</x-label>
                 <x-input-1 name="po" id="edit_po"></x-input-1>
             </x-wrapper-form-2>
         </x-wrapper-form-1>
+
+        <!-- Sección Dinámica de Productos en Edición -->
+        <div class="w-full bg-gray-50/90 rounded-xl p-3 border border-gray-200 my-2">
+            <div class="flex justify-between items-center mb-2 px-1">
+                <div>
+                    <h4 class="text-sm font-bold text-gray-700">Productos del Pedido</h4>
+                    <p class="text-[11px] text-gray-500">Modifica o añade productos a este pedido</p>
+                </div>
+                <button type="button" id="edit-add-product-btn" 
+                        class="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg transition shadow-xs">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    + Agregar Producto
+                </button>
+            </div>
+            
+            <div id="edit-order-items-container" class="space-y-2">
+                <!-- Filas de productos inyectadas al cargar el pedido -->
+            </div>
+        </div>
 
         <x-wrapper-form-1>
             <x-wrapper-form-2>

@@ -15,13 +15,11 @@
                 <p id="view_empresa" class="font-semibold text-gray-800"></p>
             </div>
             
-            <div>
-                <p class="font-bold text-gray-500">Producto:</p>
-                <p id="view_producto" class="text-gray-800"></p>
-            </div>
-            <div>
-                <p class="font-bold text-gray-500">Cantidad:</p>
-                <p id="view_cantidad" class="text-green-700 font-bold"></p>
+            <div class="col-span-2 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <p class="font-bold text-gray-700 text-xs uppercase tracking-wider mb-2">Productos del Pedido</p>
+                <div id="view_products_container" class="space-y-1.5">
+                    <!-- Lista de productos -->
+                </div>
             </div>
 
             <div>
