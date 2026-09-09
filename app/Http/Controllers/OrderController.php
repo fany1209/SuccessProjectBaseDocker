@@ -148,7 +148,7 @@ class OrderController extends Controller
                 return response()->json(['error' => 'No autorizado'], 403);
             }
 
-            $data = $request->except(['items']);
+            $data = $request->only(['año', 'semana', 'empresa', 'po']);
 
             // Soportar items múltiples o fallback
             $itemsData = [];
@@ -216,17 +216,40 @@ class OrderController extends Controller
             $order = Order::findOrFail($id);
             $user = auth()->user();
 
-            if ($request->has('estatus_almacen') && !$user->hasRole('Warehouse')) {
-                return response()->json(['error' => 'No autorizado'], 403);
-            }
-            if ($request->has('estatus_calidad') && !$user->hasRole('Quality')) {
-                return response()->json(['error' => 'No autorizado'], 403);
-            }
-            if ($request->has('estatus_administrativo') && !$user->hasRole('Admin')) {
-                return response()->json(['error' => 'No autorizado'], 403);
+            $request->validate([
+                'estatus_almacen'        => 'nullable|string|max:50',
+                'estatus_calidad'        => 'nullable|string|max:50',
+                'estatus_administrativo' => 'nullable|string|max:50',
+            ]);
+
+            $fieldsToUpdate = [];
+
+            if ($request->has('estatus_almacen')) {
+                if (!$user->hasRole('Warehouse') && !$user->hasRole('Admin')) {
+                    return response()->json(['error' => 'No autorizado para modificar estatus de almacén'], 403);
+                }
+                $fieldsToUpdate['estatus_almacen'] = $request->input('estatus_almacen');
             }
 
-            $order->update($request->all());
+            if ($request->has('estatus_calidad')) {
+                if (!$user->hasRole('Quality') && !$user->hasRole('Admin')) {
+                    return response()->json(['error' => 'No autorizado para modificar estatus de calidad'], 403);
+                }
+                $fieldsToUpdate['estatus_calidad'] = $request->input('estatus_calidad');
+            }
+
+            if ($request->has('estatus_administrativo')) {
+                if (!$user->hasRole('Admin')) {
+                    return response()->json(['error' => 'No autorizado para modificar estatus administrativo'], 403);
+                }
+                $fieldsToUpdate['estatus_administrativo'] = $request->input('estatus_administrativo');
+            }
+
+            if (empty($fieldsToUpdate)) {
+                return response()->json(['error' => 'No se especificó ningún campo de estatus válido para actualizar'], 422);
+            }
+
+            $order->update($fieldsToUpdate);
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

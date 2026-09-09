@@ -97,7 +97,6 @@ Route::post('/contact', [ContactoController::class, 'store'])
 Route::get('/portal-clientes', [PortalAuthController::class, 'showLoginForm'])->name('portal.login');
 Route::post('/portal-clientes', [PortalAuthController::class, 'login'])->name('portal.login.submit');
 Route::post('/portal-logout', [PortalAuthController::class, 'logout'])->name('portal.logout');
-Route::get('admin/portal-users/{portalUserId}/sales', [PortalUserController::class, 'getClientSales']);
 
 // Rutas de restablecimiento de contraseña — Portal de Clientes
 Route::get('/portal/forgot-password', [PortalPasswordResetController::class, 'showForgotForm'])
@@ -622,6 +621,10 @@ Route::prefix('laboratory/equipments')->group(function () {
     Route::resource('admin/portal-users', PortalUserController::class)
         ->except(['show'])
         ->names('admin.portal-users');
+
+    Route::get('admin/portal-users/{portalUserId}/sales', [PortalUserController::class, 'getClientSales'])
+        ->whereNumber('portalUserId')
+        ->name('admin.portal-users.sales');
 
     Route::post('admin/sales/{saleId}/upload-docs', [PortalUserController::class, 'uploadDocs'])
         ->name('admin.sales.uploadDocs');
