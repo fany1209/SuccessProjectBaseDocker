@@ -56,6 +56,8 @@ use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\RhController;
 use App\Http\Controllers\RecursosHumanosController;
+use App\Http\Controllers\ContratoController;
+use App\Http\Controllers\NominaController;
 use App\Http\Controllers\CuentasPorCobrarController;
 use App\Http\Controllers\PortalAuthController;
 use App\Http\Controllers\PortalPasswordResetController;
@@ -207,8 +209,8 @@ Route::middleware([
     Route::post('/gPurchaseOrder', [PurchaseController::class, 'gPurchaseOrder'])->name('purchases.gPurchaseOrder');
 
     // Purchase Orders
-    Route::get('/purchases/orders', [PurchasesController::class, 'orders'])->name('purchases.orders');
-    Route::get('/purchases/get-orders', [PurchasesController::class, 'getPurchaseOrders']) ->name('purchases.getPurchaseOrders');
+    Route::get('/purchases/orders', [PurchaseController::class, 'orders'])->name('purchases.orders');
+    Route::get('/purchases/get-orders', [PurchaseController::class, 'getPurchaseOrders']) ->name('purchases.getPurchaseOrders');
     Route::resource('purchases', PurchaseController::class);
     Route::get('/purchases/order-pdf/{id}', [PurchaseController::class, 'streamPdf'])->name('purchases.streamPdf');
     Route::get('/purchases/orders/{id}/edit', [PurchaseController::class, 'edit'])->name('purchases.editOrder');
@@ -613,6 +615,21 @@ Route::prefix('laboratory/equipments')->group(function () {
     // Cursos
     Route::post('/rh/cursos', [\App\Http\Controllers\RecursosHumanosController::class, 'storeCurso'])->name('rh.cursos.store');
     Route::get('/rh/cursos/resultados', [\App\Http\Controllers\RecursosHumanosController::class, 'indexCursos'])->name('rh.cursos.resultados');
+
+    // Nóminas
+    Route::prefix('rh/nominas')->name('rh.nominas.')->group(function () {
+        Route::get('/', [NominaController::class, 'index'])->name('index');
+        Route::get('/datatable', [NominaController::class, 'datatable'])->name('datatable');
+        Route::post('/', [NominaController::class, 'store'])->name('store');
+        Route::get('/export-excel', [NominaController::class, 'exportExcel'])->name('export-excel');
+        Route::get('/{id}', [NominaController::class, 'show'])->name('show');
+        Route::post('/{id}/update', [NominaController::class, 'update'])->name('update');
+        Route::delete('/{id}', [NominaController::class, 'destroy'])->name('destroy');
+    });
+
+    // Contratos
+    Route::get('/rh/contratos', [ContratoController::class, 'index'])->name('rh.contratos.index');
+    Route::post('/rh/contratos/update', [ContratoController::class, 'update'])->name('rh.contratos.update');
 
     //portal users
     Route::get('admin/get-json-portal-users', [PortalUserController::class, 'getPortalUsers'])
