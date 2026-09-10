@@ -459,36 +459,39 @@ Route::prefix('laboratory/equipments')->group(function () {
     Route::get('/image/{name}', [ImageController::class, 'mostrar']);
     Route::get('/profile-photo/{name}', [ImageController::class, 'profilePhoto']);
 
-    //finance
-    Route::get('/finance', [FinanceController::class, 'index'])->name('finance.index');
-    Route::get('/finance/datatable', [FinanceController::class, 'datatable'])->name('finance.datatable');
-    Route::patch('/finance/{id}/status', [FinanceController::class, 'updateStatus'])->name('finance.update-status');
-    Route::post('/finance', [FinanceController::class, 'store'])->name('finance.store');
+    // Finance, Pagos y Facturación (Protegidos con middleware can:finance.show)
+    Route::middleware('can:finance.show')->group(function () {
+        // Finance core
+        Route::get('/finance', [FinanceController::class, 'index'])->name('finance.index');
+        Route::get('/finance/datatable', [FinanceController::class, 'datatable'])->name('finance.datatable');
+        Route::patch('/finance/{id}/status', [FinanceController::class, 'updateStatus'])->name('finance.update-status')->whereNumber('id');
+        Route::post('/finance', [FinanceController::class, 'store'])->name('finance.store');
 
-    // Historial de Compras (antes de finance/{id} para evitar conflicto de rutas)
-    Route::get('/finance/historial-compras/dashboard', [FinanceController::class, 'getDashboardData'])->middleware('can:finance.show')->name('historial-compras.dashboard');
-    Route::get('/finance/historial-compras', [FinanceController::class, 'purchaseHistory'])->middleware('can:finance.show')->name('historial-compras.index');
-    Route::get('/finance/historial-compras/{customerId}', [FinanceController::class, 'getPurchaseHistoryData'])->middleware('can:finance.show')->name('historial-compras.data');
+        // Historial de Compras (antes de finance/{id} para evitar conflicto de rutas)
+        Route::get('/finance/historial-compras/dashboard', [FinanceController::class, 'getDashboardData'])->name('historial-compras.dashboard');
+        Route::get('/finance/historial-compras', [FinanceController::class, 'purchaseHistory'])->name('historial-compras.index');
+        Route::get('/finance/historial-compras/{customerId}', [FinanceController::class, 'getPurchaseHistoryData'])->name('historial-compras.data');
 
-    Route::get('/finance/{id}', [FinanceController::class, 'show'])->name('finance.show');
-    Route::delete('/finance/{id}', [FinanceController::class, 'destroy'])->name('finance.destroy');
-    Route::patch('/finance/{id}', [FinanceController::class, 'update'])->name('finance.update');
+        Route::get('/finance/{id}', [FinanceController::class, 'show'])->name('finance.show')->whereNumber('id');
+        Route::delete('/finance/{id}', [FinanceController::class, 'destroy'])->name('finance.destroy')->whereNumber('id');
+        Route::patch('/finance/{id}', [FinanceController::class, 'update'])->name('finance.update')->whereNumber('id');
+
+        // Pagos
+        Route::get('/pagos', [PagoController::class, 'index'])->name('pagos.index');
+
+        // Facturas
+        Route::prefix('facturas')->group(function () {
+            Route::get('/', [FacturaController::class, 'index'])->name('facturas.index');
+            Route::get('/datatable', [FacturaController::class, 'datatable'])->name('facturas.datatable');
+            Route::post('/', [FacturaController::class, 'store'])->name('facturas.store');
+            Route::get('/{id}', [FacturaController::class, 'show'])->name('facturas.show')->whereNumber('id');
+            Route::patch('/{id}', [FacturaController::class, 'update'])->name('facturas.update')->whereNumber('id');
+            Route::delete('/{id}', [FacturaController::class, 'destroy'])->name('facturas.destroy')->whereNumber('id');
+        });
+    });
 
     //insumos entradas
     Route::resource('insumos_entradas', InsumoEntradaController::class);
-
-    //pagos y facturas 
-    Route::get('/pagos', [PagoController::class, 'index'])->name('pagos.index');
-    Route::get('/facturas', [FacturaController::class, 'index'])->name('facturas.index');
-    
-    Route::prefix('facturas')->group(function () {
-    Route::get('/', [FacturaController::class, 'index'])->name('facturas.index');
-    Route::get('/datatable', [FacturaController::class, 'datatable'])->name('facturas.datatable');
-    Route::post('/', [FacturaController::class, 'store'])->name('facturas.store');
-    Route::get('/{id}', [FacturaController::class, 'show'])->name('facturas.show');
-    Route::patch('/{id}', [FacturaController::class, 'update'])->name('facturas.update');
-    Route::delete('/{id}', [FacturaController::class, 'destroy'])->name('facturas.destroy');
-    });
 
     Route::prefix('cuentas-por-cobrar')->middleware('can:finance.show')->group(function () {
         Route::get('/', [CuentasPorCobrarController::class, 'index'])->name('cuentas-por-cobrar.index');
