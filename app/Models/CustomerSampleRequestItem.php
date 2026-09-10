@@ -46,4 +46,12 @@ class CustomerSampleRequestItem extends Model
     {
         return $this->product ? $this->product->name : '';
     }
+
+      public function getSkuAttribute($value)
+    {
+        if (!empty($value)) {
+            return $value;
+        }
+        return $this->product ? $this->product->sku : '';
+    }
 }

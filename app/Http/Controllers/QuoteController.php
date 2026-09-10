@@ -226,7 +226,7 @@ class QuoteController extends Controller
             'folio'               => $quote->folio,
             'atencion'            => $quote->attention,
             'departamento'        => $quote->department ?? 'Compras',
-            'fecha_texto'         => 'Apaseo el Grande, Guanajuato, México. a ' . \Carbon\Carbon::parse($quote->date)->translatedFormat('d \d\e F \d\e\l Y') . '.',
+            'fecha_texto'         => 'Apaseo el Grande, Guanajuato, México a ' . \Carbon\Carbon::parse($quote->date)->translatedFormat('d \d\e F \d\e\l Y') . '.',
             'productos'           => $quote->details,
             'incoterm'            => $quote->place_of_delivery ?? 'LAB Apaseo El Grande.',
             'phone'               => $quote->phone ?? 'N/A',

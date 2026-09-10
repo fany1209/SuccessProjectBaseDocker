@@ -450,6 +450,7 @@ Route::prefix('laboratory/equipments')->group(function () {
     Route::patch('/lot-requests/{id}', [LotRequestController::class, 'updateStatus'])->name('lot.request.update');
     Route::get('/lot-requests', [LotRequestController::class, 'index'])->name('lot.request.index');
     Route::get('/lot-requests/datatable', [LotRequestController::class, 'datatable'])->name('lot.request.datatable');
+    Route::get('/lot-requests/count-completed', [LotRequestController::class, 'countCompleted'])->name('lot.request.count_completed');
 
     // sales new
     Route::get('/purchases/po/demo', [PurchaseController::class, 'demoPdf'])->name('purchases.po.demo');

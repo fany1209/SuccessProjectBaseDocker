@@ -297,7 +297,9 @@ class ReceptionController extends Controller
     public function checkPendingQuality()
     {
         $user = Auth::user();
-        if (!$user->roles()->where('name', 'Quality')->exists()) return response()->json(['pending' => []]);
+        if (!$user || !$user->hasRole('Quality')) {
+            return response()->json(['pending' => []]);
+        }
         $pending = ReceptionOfSample::where('estatus', 0)->get();
         return response()->json(['pending' => $pending]);
     }

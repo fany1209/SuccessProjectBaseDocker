@@ -304,21 +304,38 @@ Fecha de actualización: 15-06-2026
 
                                 father.find('#customer-1')
                                     .val(`${response.sale.customer_id} - ${response.sale.client_name}`);
+                                father.find('#prospect-2').val('');
+
 
                                 father.find('#customer-1-id').val(response.sale.customer_id);
                                 father.find('#prospect-2-id').val('');
+
+                                father.find('#customer-btn')
+                                    .text('Yes')
+                                    .addClass('border-green-400 bg-green-400 text-white pointer-events-none opacity-60')
+                                    .removeClass('border-gray-400 hover:bg-green-300 text-gray-700');
+                                
+                                father.find('#customer-1').prop('disabled', false).removeClass('hidden');
+                                father.find('#prospect-2').prop('disabled', true).addClass('hidden');
 
                             } else {
                                 father.find('#is-customer').val('0');
                                 father.find('#client-tag').text('Prospect name');
 
-                                // Put the prospect name into the single customer input so it's visible. 
-                                // If they clear it and search again, it will lock onto a customer.
-                                father.find('#customer-1')
+                                father.find('#prospect-2')
                                     .val(`${response.sale.prospect_id} - ${response.sale.client_name}`);
+                                father.find('#customer-1').val('');
 
                                 father.find('#prospect-2-id').val(response.sale.prospect_id);
                                 father.find('#customer-1-id').val('');
+
+                                father.find('#customer-btn')
+                                    .text('No')
+                                    .removeClass('border-green-400 bg-green-400 text-white pointer-events-none opacity-60')
+                                    .addClass('border-gray-400 hover:bg-green-300 text-gray-700');
+                                
+                                father.find('#prospect-2').prop('disabled', false).removeClass('hidden');
+                                father.find('#customer-1').prop('disabled', true).addClass('hidden');
                             }
 
                             father.find('#client-name, #client-selected').text(response.sale['client_name']);

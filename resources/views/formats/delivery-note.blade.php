@@ -328,7 +328,7 @@
     <!-- AQUI ESTÁ EL CAMBIO: min-height en lugar de height fijo, permitiendo que crezca con los productos -->
     <div style="display: block; position: relative; width: 100%; min-height: 280px; height: auto;">
         
-        @if($bgImagePath != '' && file_exists($bgImagePath))
+      @if($bgImagePath != '' && file_exists($bgImagePath))
             <div style="position: absolute; top: 10px; left: 0; right: 0; text-align: center; z-index: -1;">
                 <img src="data:image/png;base64,{{ base64_encode(file_get_contents($bgImagePath)) }}" 
                      style="width: 260px; height: 260px; opacity: 0.18;" 

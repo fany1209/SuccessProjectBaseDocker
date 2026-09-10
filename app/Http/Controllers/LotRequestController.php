@@ -62,6 +62,7 @@ class LotRequestController extends Controller
             ])
             ->orderByDesc('requested_at')
             ->orderByDesc('id')
+            ->limit(500)
             ->get();
 
         $productSkus = DB::table('lot_requests')
