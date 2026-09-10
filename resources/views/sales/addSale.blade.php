@@ -1,14 +1,3 @@
-
-{{--
-Sales
-addSales
-Fecha de creación: 24-09-2025
-Actualizado por: Stefany
-Fecha de actualización: 27-02-2026
-Actualizado por: Emilio
-Fecha de actualización: 15-06-2026
---}}
-
 <section id="add-sale-blade" class="flex flex-col items-center w-full lg:w-3/4 rounded-lg bg-gray-50 shadow-md px-4 py-2 hidden">
     <div class="flex justify-between items-center w-full gap-2">
         <h2 class="my-2 text-2xl row-span-1 row-start-1 w-full border-s-4 border-green-700 ps-2">Create Sale {{ $total_sales + 1 }}</h2>
@@ -219,21 +208,13 @@ Fecha de actualización: 15-06-2026
 
                     <div class="flex flex-col lg:flex-row lg:justify-between items-center w-full gap-2">
                         <div class="flex justify-between items-center w-full gap-2">
-                            <div id="invoice-value-opt" class="flex flex-col items-start gap-1 w-full">
+                            <div class="flex flex-col items-start gap-1 w-full">
                                 <label class="mb-1 block font-medium text-md text-gray-700">Invoice Value?</label>
-                                <span class="invoice-value-btn flex justify-center items-center w-full transition border-2 border-gray-400 hover:bg-green-300 text-gray-700 hover:text-white p-1 tracking-[3px] text-lg cursor-pointer rounded-md">No</span>
-                                <input type="hidden" class="invoice-val" value="0">
-                            </div>
-
-                            <div class="zero-cost-container flex flex-col items-start gap-1 w-full hidden">
-                                <label class="mb-1 block font-medium text-md text-gray-700">Type (Cost 0)</label>
-                                <select class="zero-cost-type w-full rounded-lg border border-gray-300 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2">
+                                <select name="invoice_val[]" class="invoice-val-select w-full rounded-lg border border-gray-300 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2">
                                     <option value="0">MSVC</option>
                                     <option value="1">Valor Factura</option>
                                 </select>
                             </div>
-
-                            <input type="hidden" class="invoice-val-real" name="invoice_val[]" value="0">
 
                             <div class="flex flex-col items-start gap-1 w-full">
                                 <label class="mb-1 block font-medium text-md text-gray-700">IVA</label>
@@ -330,21 +311,13 @@ Fecha de actualización: 15-06-2026
 
             <div class="flex flex-col lg:flex-row lg:justify-between items-center w-full gap-2">
                 <div class="flex justify-between items-center w-full gap-2">
-                    <div id="invoice-value-opt" class="flex flex-col items-start gap-1 w-full">
+                    <div class="flex flex-col items-start gap-1 w-full">
                         <label class="mb-1 block font-medium text-md text-gray-700">Invoice Value?</label>
-                        <span class="invoice-value-btn flex justify-center items-center w-full transition border-2 border-gray-400 hover:bg-green-300 text-gray-700 hover:text-white p-1 tracking-[3px] text-lg cursor-pointer rounded-md">No</span>
-                        <input type="hidden" class="invoice-val" value="0">
-                    </div>
-
-                    <div class="zero-cost-container flex flex-col items-start gap-1 w-full hidden">
-                        <label class="mb-1 block font-medium text-md text-gray-700">Type (Cost 0)</label>
-                        <select class="zero-cost-type w-full rounded-lg border border-gray-300 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2">
+                        <select name="invoice_val[]" class="invoice-val-select w-full rounded-lg border border-gray-300 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2">
                             <option value="0">MSVC</option>
                             <option value="1">Valor Factura</option>
                         </select>
                     </div>
-
-                    <input type="hidden" class="invoice-val-real" name="invoice_val[]" value="0">
 
                     <div class="flex flex-col items-start gap-1 w-full">
                         <label class="mb-1 block font-medium text-md text-gray-700">IVA</label>
@@ -482,19 +455,13 @@ $(function(){
                     </div>
                     <div class="flex flex-col lg:flex-row lg:justify-between items-center w-full gap-2">
                         <div class="flex justify-between items-center w-full gap-2">
-                            <div id="invoice-value-opt" class="flex flex-col items-start gap-1 w-full">
+                            <div class="flex flex-col items-start gap-1 w-full">
                                 <label class="mb-1 block font-medium text-md text-gray-700">Invoice Value?</label>
-                                <span class="invoice-value-btn flex justify-center items-center w-full transition border-2 border-gray-400 hover:bg-green-300 text-gray-700 hover:text-white p-1 tracking-[3px] text-lg cursor-pointer rounded-md">No</span>
-                                <input type="hidden" class="invoice-val" value="0">
-                            </div>
-                            <div class="zero-cost-container flex flex-col items-start gap-1 w-full hidden">
-                                <label class="mb-1 block font-medium text-md text-gray-700">Type (Cost 0)</label>
-                                <select class="zero-cost-type w-full rounded-lg border border-gray-300 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2">
+                                <select name="invoice_val[]" class="invoice-val-select w-full rounded-lg border border-gray-300 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2">
                                     <option value="0">MSVC</option>
                                     <option value="1">Valor Factura</option>
                                 </select>
                             </div>
-                            <input type="hidden" class="invoice-val-real" name="invoice_val[]" value="0">
                             <div class="flex flex-col items-start gap-1 w-full">
                                 <label class="mb-1 block font-medium text-md text-gray-700">IVA</label>
                                 <span class="tax-btn flex justify-center items-center w-full transition border-2 border-gray-400 hover:bg-blue-300 text-gray-700 hover:text-white p-1 tracking-[3px] text-lg cursor-pointer rounded-md">No</span>
@@ -691,20 +658,16 @@ $(function(){
             $body.slideToggle();
         });
 
-        $(document).on('click','.invoice-value-btn',function () {
+        $(document).on('change', '.invoice-val-select', function () {
             const father = $(this).closest('.wrapper');
-            const btn = $(this);
-            if(btn.hasClass('border-green-400')){
-                btn.text('No').removeClass('border-green-400 bg-green-400 text-white').addClass('border-gray-400 hover:bg-green-300 text-gray-700 hover:text-white');
-                father.find('.cost').removeClass('hidden');
-                father.find('.cost-tag').text('Cost');
-                father.find('.invoice-val-real').val('0');
-            }else{
-                btn.text('Yes').removeClass('border-gray-400 hover:bg-green-300 text-gray-700 hover:text-white').addClass('border-green-400 bg-green-400 text-white');
-                father.find('.cost').addClass('hidden').val('');
+            const val = $(this).val();
+            if (val === '1') {
+                father.find('.cost').addClass('hidden').val('0');
                 father.find('.cost-tag').text('Cost: Invoice value');
                 father.find('.import-total').text('$00.00');
-                father.find('.invoice-val-real').val('1');
+            } else {
+                father.find('.cost').removeClass('hidden');
+                father.find('.cost-tag').text('Cost');
             }
             updateWrapperImport(father);
             updateGrandTotal();
@@ -786,31 +749,8 @@ $(function(){
 
         $(document).on('input', '.cost, .quantity', function () {
             const wrapper = $(this).closest('.wrapper');
-            const costInput = wrapper.find('.cost');
-            const costValue = parseFloat(costInput.val());
-
-            if (costValue === 0 || costInput.val() === '') {
-                wrapper.find('.zero-cost-container').removeClass('hidden');
-                wrapper.find('#invoice-value-opt').addClass('hidden');
-                
-                const selectedType = wrapper.find('.zero-cost-type').val();
-                wrapper.find('.invoice-val-real').val(selectedType);
-            } else {
-                wrapper.find('.zero-cost-container').addClass('hidden');
-                wrapper.find('#invoice-value-opt').removeClass('hidden');
-                
-                const isInvoiceBtnActive = wrapper.find('.invoice-value-btn').hasClass('border-green-400');
-                wrapper.find('.invoice-val-real').val(isInvoiceBtnActive ? '1' : '0');
-            }
-
             updateWrapperImport(wrapper);
             updateGrandTotal();
-        });
-
-        $(document).on('change', '.zero-cost-type', function() {
-            const wrapper = $(this).closest('.wrapper');
-            const val = $(this).val();
-            wrapper.find('.invoice-val-real').val(val);
         });
 
         $('#add-sale-form #add-product-sales').on('click', function () {

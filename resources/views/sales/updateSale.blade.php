@@ -229,20 +229,13 @@ Fecha de actualización: 27-02-2026
         <div class="flex flex-col lg:flex-row lg:justify-between items-center w-full gap-2">
             <div class="flex justify-between items-center w-full gap-2">
                 
-                <div id="invoice-value-opt" class="flex flex-col items-start gap-1 w-full">
-                    <label id="invoice-value-tag" class="mb-1 block font-medium text-md text-gray-700">Invoice Value?</label>
-                    <span class="invoice-value-btn-2 flex justify-center items-center w-full transition border-2 border-gray-400 hover:bg-green-300 text-gray-700 hover:text-white p-1 tracking-[3px] text-lg cursor-pointer rounded-md">No</span>
-                    <input type="hidden" class="invoice-val" value="0"> </div>
-
-                <div class="zero-cost-container flex flex-col items-start gap-1 w-full hidden">
-                    <label class="mb-1 block font-medium text-md text-gray-700">Type (Cost 0)</label>
-                    <select class="zero-cost-type w-full rounded-lg border border-gray-300 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2">
+                <div class="flex flex-col items-start gap-1 w-full">
+                    <label class="mb-1 block font-medium text-md text-gray-700">Invoice Value?</label>
+                    <select name="invoice_val[]" class="invoice-val-select w-full rounded-lg border border-gray-300 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2">
                         <option value="0">MSVC</option>
                         <option value="1">Valor Factura</option>
                     </select>
                 </div>
-                
-                <input type="hidden" class="invoice-val-real" name="invoice_val[]" value="0">
 
                 <div class="flex flex-col items-start gap-1 w-full">
                     <label class="mb-1 block font-medium text-md text-gray-700">IVA</label>
@@ -431,50 +424,24 @@ Fecha de actualización: 27-02-2026
                 $body.slideToggle();
             });
 
-        $(document).on('click','.invoice-value-btn-2',function () {
-            const father = $(this).closest('.wrapper');
-            const btn = $(this);
-            if(btn.hasClass('border-green-400')){
-                btn.text('No').removeClass('border-green-400 bg-green-400 text-white').addClass('border-gray-400 hover:bg-green-300 text-gray-700 hover:text-white');
-                father.find('.cost').removeClass('hidden');
-                father.find('.cost-tag').text('Cost');
-                father.find('.invoice-val-real').val('0'); 
-            }else{
-                btn.text('Yes').removeClass('border-gray-400 hover:bg-green-300 text-gray-700 hover:text-white').addClass('border-green-400 bg-green-400 text-white');
-                father.find('.cost').addClass('hidden').val('');
-                father.find('.cost-tag').text('Cost: Invoice value');
-                father.find('.invoice-val-real').val('1'); 
+        $(document).on('change', '.invoice-val-select', function () {
+            const wrapper = $(this).closest('.wrapper');
+            const val = $(this).val();
+            if (val === '1') {
+                wrapper.find('.cost').addClass('hidden').val('0');
+                wrapper.find('.cost-tag').text('Cost: Invoice value');
+            } else {
+                wrapper.find('.cost').removeClass('hidden');
+                wrapper.find('.cost-tag').text('Cost');
             }
-            window.updateWrapperUpdate(father);
+            window.updateWrapperUpdate(wrapper);
             window.updateGrandTotalUpdate();
         });
 
         $(document).on('input', '.cost, .quantity', function () {
             const wrapper = $(this).closest('.wrapper');
-            const costInput = wrapper.find('.cost');
-            const costValue = parseFloat(costInput.val());
-
-            if (costValue === 0 || costInput.val() === '') {
-                wrapper.find('.zero-cost-container').removeClass('hidden');
-                wrapper.find('#invoice-value-opt').addClass('hidden');
-                
-                const selectedType = wrapper.find('.zero-cost-type').val();
-                wrapper.find('.invoice-val-real').val(selectedType);
-            } else {
-                wrapper.find('.zero-cost-container').addClass('hidden');
-                wrapper.find('#invoice-value-opt').removeClass('hidden');
-                
-                const isInvoiceBtnActive = wrapper.find('.invoice-value-btn-2').hasClass('border-green-400');
-                wrapper.find('.invoice-val-real').val(isInvoiceBtnActive ? '1' : '0');
-            }
-
             window.updateWrapperUpdate(wrapper);
             window.updateGrandTotalUpdate();
-        });
-
-        $(document).on('change', '.zero-cost-type', function() {
-            const wrapper = $(this).closest('.wrapper');
-            wrapper.find('.invoice-val-real').val($(this).val());
         });
 
             $(document).on('click', '.tax-btn-2', function () {

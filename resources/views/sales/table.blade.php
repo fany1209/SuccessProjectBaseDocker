@@ -394,15 +394,15 @@ Fecha de actualización: 15-06-2026
                                     newProduct.find('.tax-btn-2').text('No');
                                 }
 
-                                if (item['invoice_val'] == 1) {
-                                    newProduct.find('.invoice-val').val('1');
-                                    newProduct.find('.invoice-value-btn-2')
-                                        .text('Yes')
-                                        .addClass('border-green-400 bg-green-400 text-white')
-                                        .removeClass('border-gray-400 text-gray-700');
+                                const invoiceVal = (item['invoice_val'] == 1 || item['invoice_val'] === true || item['invoice_val'] === '1') ? '1' : '0';
+                                newProduct.find('.invoice-val-select').val(invoiceVal);
 
+                                if (invoiceVal === '1') {
                                     newProduct.find('.cost').addClass('hidden');
                                     newProduct.find('.cost-tag').text('Cost: Invoice value');
+                                } else {
+                                    newProduct.find('.cost').removeClass('hidden');
+                                    newProduct.find('.cost-tag').text('Cost');
                                 }
 
                                 $('#update-sale-form #products-sales').append(newProduct);
