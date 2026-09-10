@@ -81,19 +81,20 @@ class InputController extends Controller{
             ];
         }
 
-        Input::where('input_id', $request->id)->update(
-            $request->only([
-                'operator',
-                'license_number',
-                'security_seal',
-                'security_seal_number',
-                'unit_plates',
-                'trailer_plates',
-                'comments',
-                'supplier_id',
-                'transport_line_id'
-            ])
-        );
+       
+        $updateData = $request->only([
+            'operator',
+            'license_number',
+            'security_seal',
+            'security_seal_number',
+            'unit_plates',
+            'trailer_plates',
+            'comments',
+            'supplier_id',
+            'transport_line_id'
+        ]);
+
+        DB::table('inputs')->where('input_id', $request->id)->update($updateData);
 
         foreach ($products as $product) {
 

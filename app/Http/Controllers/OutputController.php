@@ -80,20 +80,20 @@ public function update(Request $request)
             'label_batch.*' => 'required|string|max:50',
         ]);
 
-        Output::where('output_id', $request->id)->update(
-            $request->only([
-                'operator',
-                'license_number',
-                'security_seal',
-                'security_seal_number',
-                'unit_plates',
-                'trailer_plates',
-                'comments',
-                'customer_id',
-                'transport_line_id',
-                'vendedor', 
-            ])
-        );
+        $updateData = $request->only([
+            'operator',
+            'license_number',
+            'security_seal',
+            'security_seal_number',
+            'unit_plates',
+            'trailer_plates',
+            'comments',
+            'customer_id',
+            'transport_line_id',
+            'vendedor', 
+        ]);
+
+        DB::table('outputs')->where('output_id', $request->id)->update($updateData);
 
         $products = $request->input('product_id', []);
 
