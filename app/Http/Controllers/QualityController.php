@@ -994,7 +994,7 @@ class QualityController extends Controller
                 'incidencia'       => 'nullable|string|max:100',
                 'descripcion'      => 'nullable',
                 'descripcion.*.texto'      => 'nullable|string|max:1000',
-                'descripcion.*.imagen'     => 'nullable|file|mimes:jpg,jpeg,png,webp|max:5120',
+                'descripcion.*.imagenes.*' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:5120',
                 'imagenes'         => 'nullable|array',
                 'imagenes.*'       => 'file|mimes:jpg,jpeg,png,webp|max:5120',
                 'firma_nombre'     => 'nullable|string|max:150',
@@ -1048,10 +1048,15 @@ class QualityController extends Controller
                 if ($esFormatoNuevo) {
                     foreach ($descInput as $i => $row) {
                         $texto = trim((string)($row['texto'] ?? ''));
-                        $imgAbs = null;
-                        $imgRel = null;
-
-                        $file = $descFiles[$i]['imagen'] ?? null;
+                        
+                    $imgsAbsForThisRow = [];
+                    
+                    $files = $descFiles[$i]['imagenes'] ?? [];
+                    if (!is_array($files)) {
+                        $files = [$files];
+                    }
+                    
+                    foreach ($files as $file) {
                         if ($file instanceof \Illuminate\Http\UploadedFile && $file->isValid()) {
                             $ext    = $file->guessExtension() ?: 'jpg';
                             $name   = uniqid('inc_', true) . '.' . $ext;
@@ -1061,11 +1066,18 @@ class QualityController extends Controller
                             $imgAbs = storage_path('app/public/'.$stored); 
                             
                             $relativePublicPaths[] = $imgRel;
+                            if (file_exists($imgAbs)) {
+                                $b64 = base64_encode(file_get_contents($imgAbs));
+                                $ext = strtolower(pathinfo($imgAbs, PATHINFO_EXTENSION));
+                                $imgsAbsForThisRow[] = 'data:image/'.$ext.';base64,'.$b64;
+                            } else {
+                                $imgsAbsForThisRow[] = $imgAbs;
+                            }
                         }
-
-                        if ($texto !== '' || $imgRel) {
-                            $descArr[] = $texto;
-                            $descItemsForView[] = ['texto' => $texto, 'img' => $imgAbs];
+                    }
+                         if ($texto !== '' || count($imgsAbsForThisRow) > 0) {
+                        $descArr[] = $texto;
+                        $descItemsForView[] = ['texto' => $texto, 'imgs' => $imgsAbsForThisRow];
                         }
                     }
                 } else {
@@ -1093,9 +1105,20 @@ class QualityController extends Controller
                     for ($i = 0; $i < $max; $i++) {
                         $texto = $descArr[$i] ?? '';
                         $imgRel= $relativePublicPaths[$i] ?? null;
+                        $imgData = null;
+                    if ($imgRel) {
+                        $imgAbs = base_path('../public_html/' . $imgRel);
+                        if (file_exists($imgAbs)) {
+                            $b64 = base64_encode(file_get_contents($imgAbs));
+                            $ext = strtolower(pathinfo($imgAbs, PATHINFO_EXTENSION));
+                            $imgData = 'data:image/'.$ext.';base64,'.$b64;
+                        } else {
+                            $imgData = $imgAbs;
+                        }
+                    }
                         $descItemsForView[] = [
                             'texto' => $texto,
-                            'img'   => $imgRel ? storage_path('app/public/' . str_replace('storage/', '', $imgRel)) : null,
+                            'img'   => $imgData,
                         ];
                     }
                 }

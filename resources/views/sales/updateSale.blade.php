@@ -82,16 +82,16 @@ Fecha de actualización: 27-02-2026
                 <div class="flex flex-col items-start gap-1 w-full">
                     <label for="name" id="client-tag" class="mb-1 block font-medium text-md text-gray-700">Prospect name</label>
 
-                    <input required type="text" id="prospect-2" placeholder="Double click to show all" list="prospects" maxlength="200" class="w-full rounded-lg border border-gray-300 text-gray-400 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2">
-                    <datalist id="prospects">
+                     <input required type="text" id="prospect-2" placeholder="Double click to show all" list="prospects-update" maxlength="200" class="w-full rounded-lg border border-gray-300 text-gray-400 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2">
+                    <datalist id="prospects-update">
                         @foreach ($prospects as $prospect)
                             <option value="{{ $prospect->prospect_id }} - {{ $prospect->name }}"></option>
                         @endforeach
                     </datalist>
                     <input type="hidden" id="prospect-2-id" name="prospect_id" value="">
 
-                    <input required disabled type="text" id="customer-1" placeholder="Double click to show all" list="customers" maxlength="200" class="w-full rounded-lg border border-gray-300 text-gray-400 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2 hidden">
-                    <datalist id="customers">
+                     <input required disabled type="text" id="customer-1" placeholder="Double click to show all" list="customers-update" maxlength="200" class="w-full rounded-lg border border-gray-300 text-gray-400 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2 hidden">
+                    <datalist id="customers-update">
                         @foreach ($customers as $customer)
                             <option value="{{ $customer->customer_id }} - {{ $customer->name }}"></option>
                         @endforeach
@@ -202,8 +202,8 @@ Fecha de actualización: 27-02-2026
             <div class="flex justify-between items-center w-full gap-2">
                 <div class="flex flex-col items-start gap-1 w-full">
                     <label for="product-id" class="mb-1 block font-medium text-md text-gray-700">Product<span></span></label>
-                    <input required type="text" name="product_id[]" list="products" class="product-id w-full rounded-lg border border-gray-300 text-gray-400 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2">
-                    <datalist id="products">
+                    <input required type="text" name="product_id[]" list="products-update" class="product-id w-full rounded-lg border border-gray-300 text-gray-400 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2">
+                    <datalist id="products-update">
                         @foreach ($products as $product)
                             <option value="{{ $product->product_id }}">{{ $product->name }}</option>
                         @endforeach

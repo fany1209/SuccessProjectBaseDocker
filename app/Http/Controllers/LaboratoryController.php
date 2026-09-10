@@ -91,20 +91,20 @@ class LaboratoryController extends Controller
                 'p.product_id',
                 'sup.supplier_id',
             ])
-            ->orderBy('ls.id', 'asc')
-            ->limit(1000)
+            ->orderBy('ls.id', 'desc')
+            ->limit(200)
             ->get();
 
         $folios = \DB::table('soil_internal_analyses')
             ->whereNotNull('report_code')
             ->whereRaw("TRIM(report_code) <> ''")
             ->orderByDesc('id')
-            ->limit(1000)
+            ->limit(200)
             ->pluck('report_code')
             ->unique()
             ->values();
 
-        $customerRequests = \App\Models\CustomerSampleRequest::orderByDesc('id')->get();
+        $customerRequests = \App\Models\CustomerSampleRequest::orderByDesc('id')->limit(200)->get();
 
         return view('laboratory', compact(
             'products',
@@ -253,6 +253,7 @@ class LaboratoryController extends Controller
     public function pdf2(Request $request)
     {
         $validated = $request->validate([
+            'folio'                      => ['nullable', 'string', 'max:50'],
             'fecha_solicitud'            => ['nullable', 'date'],
             'fecha_recoleccion'          => ['nullable', 'date'],
             'cliente_nombre'             => ['required', 'string', 'max:255'],
@@ -294,7 +295,9 @@ class LaboratoryController extends Controller
         $b = fn(string $k) => $request->boolean($k);
 
         $data = [
+            'folio'                      => $validated['folio'] ?? $request->input('folio', ''),
             'fecha_solicitud'            => $validated['fecha_solicitud'] ?? '',
+            'fecha_recoleccion'          => $validated['fecha_recoleccion'] ?? '',
             'cliente_nombre'             => $validated['cliente_nombre'] ?? '',
             'cliente_direccion'          => $validated['cliente_direccion'] ?? '',
             'cliente_correo'             => $validated['cliente_correo'] ?? '',
@@ -316,8 +319,9 @@ class LaboratoryController extends Controller
         foreach ($request->input('items', []) as $itemReq) {
             $prod = \App\Models\Product::find($itemReq['product_id']);
             $itemData = [
+                'product_id'                 => $itemReq['product_id'],
                 'producto'                   => $prod ? $prod->name : 'N/A',
-                'sku'                        => $itemReq['sku'] ?? '',
+                'sku'                        => !empty($itemReq['sku']) ? $itemReq['sku'] : ($prod ? $prod->sku : ''),
                 'um'                         => $itemReq['um'] ?? '',
                 'cantidad'                   => $itemReq['cantidad'] ?? '',
                 'pres_ziploc'                => isset($itemReq['pres_ziploc']) && filter_var($itemReq['pres_ziploc'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0,
@@ -337,6 +341,28 @@ class LaboratoryController extends Controller
                 'docs_otro_txt'              => isset($itemReq['docs_otro']) && filter_var($itemReq['docs_otro'], FILTER_VALIDATE_BOOLEAN) ? ($itemReq['docs_otro_txt'] ?? '') : null,
             ];
             $data['items'][] = $itemData;
+        }
+        
+        if (!empty($data['items'][0])) {
+            $first = $data['items'][0];
+            $data['producto']        = $first['producto'] ?? '';
+            $data['sku']             = $first['sku'] ?? '';
+            $data['cantidad']        = $first['cantidad'] ?? '';
+            $data['um']              = $first['um'] ?? '';
+            $data['pres_ziploc']     = $first['pres_ziploc'] ?? 0;
+            $data['pres_whirlpak']   = $first['pres_whirlpak'] ?? 0;
+            $data['pres_metalizada'] = $first['pres_metalizada'] ?? 0;
+            $data['pres_frasco']     = $first['pres_frasco'] ?? 0;
+            $data['pres_bidon']      = $first['pres_bidon'] ?? 0;
+            $data['pres_otro']       = $first['pres_otro'] ?? 0;
+            $data['pres_otro_txt']   = $first['pres_otro_txt'] ?? '';
+            $data['lote_almacen']    = $first['lote_almacen'] ?? '';
+            $data['lote_venta']      = $first['lote_venta'] ?? '';
+            $data['docs_cc']         = $first['docs_cc'] ?? 0;
+            $data['docs_ft']         = $first['docs_ft'] ?? 0;
+            $data['docs_hs']         = $first['docs_hs'] ?? 0;
+            $data['docs_otro']       = $first['docs_otro'] ?? 0;
+            $data['docs_otro_txt']   = $first['docs_otro_txt'] ?? '';
         }
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('formats.laboratory.02', $data)->setPaper('letter');
@@ -445,7 +471,8 @@ class LaboratoryController extends Controller
                 return response()->json([
                     'ok'      => true,
                     'message' => 'Request saved successfully with folio ' . $record->folio,
-                    'id'      => $record->id
+                    'id'      => $record->id,
+                    'folio'   => $record->folio
                 ], 201);
             });
         } catch (\Exception $e) {
@@ -459,7 +486,7 @@ class LaboratoryController extends Controller
     
     public function getCustomerRequestsJson() 
     {
-        $data = CustomerSampleRequest::with('items.product')->orderBy('id', 'desc')->get();
+        $data = CustomerSampleRequest::with('items.product')->orderBy('id', 'desc')->limit(500)->get();
         
         $data = $data->map(function ($req) {
             $productNames = $req->items->pluck('product.name')->filter()->implode(', ');
@@ -588,13 +615,70 @@ class LaboratoryController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function reprintPdf2($id) 
+      public function reprintPdf2($id) 
     {
-        $record = CustomerSampleRequest::with('items')->findOrFail($id);
-        $pdf = Pdf::loadView('formats.laboratory.02', $record->toArray())->setPaper('letter');
+        $record = CustomerSampleRequest::with('items.product')->findOrFail($id);
+        $data = $record->toArray();
+
+        if ($record->items && $record->items->isNotEmpty()) {
+            $data['items'] = $record->items->map(function ($it) {
+                $itemArr = $it->toArray();
+                $itemArr['producto'] = $it->producto ?: ($it->product ? $it->product->name : 'N/A');
+                $itemArr['sku'] = $it->sku ?: ($it->product ? $it->product->sku : '');
+                return $itemArr;
+            })->toArray();
+
+            $first = $data['items'][0];
+            $data['producto']        = $first['producto'] ?? '';
+            $data['sku']             = $first['sku'] ?? '';
+            $data['cantidad']        = $first['cantidad'] ?? '';
+            $data['um']              = $first['um'] ?? '';
+            $data['pres_ziploc']     = $first['pres_ziploc'] ?? 0;
+            $data['pres_whirlpak']   = $first['pres_whirlpak'] ?? 0;
+            $data['pres_metalizada'] = $first['pres_metalizada'] ?? 0;
+            $data['pres_frasco']     = $first['pres_frasco'] ?? 0;
+            $data['pres_bidon']      = $first['pres_bidon'] ?? 0;
+            $data['pres_otro']       = $first['pres_otro'] ?? 0;
+            $data['pres_otro_txt']   = $first['pres_otro_txt'] ?? '';
+            $data['lote_almacen']    = $first['lote_almacen'] ?? '';
+            $data['lote_venta']      = $first['lote_venta'] ?? '';
+            $data['docs_cc']         = $first['docs_cc'] ?? 0;
+            $data['docs_ft']         = $first['docs_ft'] ?? 0;
+            $data['docs_hs']         = $first['docs_hs'] ?? 0;
+            $data['docs_otro']       = $first['docs_otro'] ?? 0;
+            $data['docs_otro_txt']   = $first['docs_otro_txt'] ?? '';
+        } elseif (!empty($record->product_id)) {
+            $prod = $record->product ?? \App\Models\Product::find($record->product_id);
+            $legacyItem = [
+                'producto'        => $prod ? $prod->name : ($record->producto ?? 'N/A'),
+                'sku'             => $record->sku ?: ($prod ? $prod->sku : ''),
+                'cantidad'        => $record->cantidad ?? '',
+                'um'              => $record->um ?? '',
+                'pres_ziploc'     => $record->pres_ziploc ?? 0,
+                'pres_whirlpak'   => $record->pres_whirlpak ?? 0,
+                'pres_metalizada' => $record->pres_metalizada ?? 0,
+                'pres_frasco'     => $record->pres_frasco ?? 0,
+                'pres_bidon'      => $record->pres_bidon ?? 0,
+                'pres_otro'       => $record->pres_otro ?? 0,
+                'pres_otro_txt'   => $record->pres_otro_txt ?? '',
+                'lote_almacen'    => $record->lote_almacen ?? '',
+                'lote_venta'      => $record->lote_venta ?? '',
+                'docs_cc'         => $record->docs_cc ?? 0,
+                'docs_ft'         => $record->docs_ft ?? 0,
+                'docs_hs'         => $record->docs_hs ?? 0,
+                'docs_otro'       => $record->docs_otro ?? 0,
+                'docs_otro_txt'   => $record->docs_otro_txt ?? '',
+            ];
+            $data['items'] = [$legacyItem];
+            $data['producto'] = $legacyItem['producto'];
+            $data['sku']      = $legacyItem['sku'];
+        } else {
+            $data['items'] = [];
+        }
+
+        $pdf = Pdf::loadView('formats.laboratory.02', $data)->setPaper('letter');
         return $pdf->stream("Solicitud_{$record->folio}.pdf");
     }
-
     public function muestrasIndex()
     {
         $products = \App\Models\Product::all(); 

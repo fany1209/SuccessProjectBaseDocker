@@ -93,11 +93,11 @@
                         </x-nav-link>
                     @endcan
 
-                    @auth
+                    @can('quality.show')
                         <x-nav-link href="{{ route('production.yeast.index') }}" :active="request()->routeIs('production.yeast.index')">
                             {{ __('Producción') }}
                         </x-nav-link>
-                    @endauth
+                    @endcan
 
                     @can('finance.show')
                         <x-nav-link href="{{ route('finance.index') }}" :active="request()->routeIs('finance.index')">
@@ -115,9 +115,11 @@
                         {{ __('Tasks') }}
                     </x-nav-link>
 
-                    <x-nav-link href="{{ route('orders.index') }}" :active="request()->routeIs('orders.index')">
-                        {{ __('Orders') }}
-                    </x-nav-link>
+                    @hasanyrole('Admin|Sales|Warehouse|Quality')
+                        <x-nav-link href="{{ route('orders.index') }}" :active="request()->routeIs('orders.index')">
+                            {{ __('Orders') }}
+                        </x-nav-link>
+                    @endhasanyrole
                 </div>
             </div>
 
@@ -338,9 +340,11 @@
                 {{ __('Tasks') }}
             </x-responsive-nav-link>
 
+            @hasanyrole('Admin|Sales|Warehouse|Quality')
             <x-responsive-nav-link href="{{ route('orders.index') }}" :active="request()->routeIs('orders.index')">
                 {{ __('Orders') }}
             </x-responsive-nav-link>
+            @endhasanyrole
         </div>
 
         <div class="pt-4 pb-1 border-t border-gray-200">
