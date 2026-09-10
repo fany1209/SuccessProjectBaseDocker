@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
 
 class FacturaController extends Controller
 {
@@ -180,16 +181,21 @@ class FacturaController extends Controller
 
         } catch (\Throwable $e) {
             DB::rollBack();
+            Log::error('Error al guardar documento en FacturaController@store: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error al guardar el documento',
-                'error'   => $e->getMessage()
+                'message' => 'Ocurrió un error al guardar el documento.'
             ], 500);
         }
     }
 
     public function show($id)
     {
+        $id = filter_var($id, FILTER_VALIDATE_INT);
+        if (!$id) {
+            return response()->json(['success' => false, 'message' => 'Identificador de factura inválido'], 400);
+        }
+
         $factura = DB::table('facturas')->where('factura_id', $id)->first();
 
         if (!$factura) {
@@ -226,6 +232,11 @@ class FacturaController extends Controller
 
     public function update(Request $request, $id)
     {
+        $id = filter_var($id, FILTER_VALIDATE_INT);
+        if (!$id) {
+            return response()->json(['success' => false, 'message' => 'Identificador de factura inválido'], 400);
+        }
+
         $request->validate([
             'tipo_documento' => 'required|in:factura,nota_venta',
             'insumo'         => 'required|in:directo,indirecto', 
@@ -334,12 +345,34 @@ class FacturaController extends Controller
 
         } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+            Log::error('Error al actualizar factura ID ' . $id . ': ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Ocurrió un error al actualizar el documento.'], 500);
         }
     }
 
     public function destroy($id)
     {
+        $id = filter_var($id, FILTER_VALIDATE_INT);
+        if (!$id) {
+            return response()->json(['success' => false, 'message' => 'Identificador de factura inválido'], 400);
+        }
+
+        $factura = DB::table('facturas')->where('factura_id', $id)->first();
+        if (!$factura) {
+            return response()->json(['success' => false, 'message' => 'Factura no encontrada'], 404);
+        }
+
+        // Verificación de integridad referencial antes de eliminar
+        $hasPayments = DB::table('finance_payments')->where('factura', $id)->exists();
+        $hasCxp = DB::table('cxp_details')->where('factura_id', $id)->exists();
+
+        if ($hasPayments || $hasCxp) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No es posible eliminar la factura porque cuenta con pagos o registros contables vinculados.'
+            ], 422);
+        }
+
         DB::beginTransaction();
         try {
             DB::table('factura_detalles')->where('factura_id', $id)->delete();
@@ -349,7 +382,8 @@ class FacturaController extends Controller
             return response()->json(['success' => true, 'message' => 'Documento eliminado correctamente']);
         } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+            Log::error('Error al eliminar factura ID ' . $id . ': ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Ocurrió un error al eliminar el documento.'], 500);
         }
     }
 }

@@ -57,6 +57,11 @@ class FinanceController extends Controller
     
     public function updateStatus(Request $request, $id)
     {
+        $id = filter_var($id, FILTER_VALIDATE_INT);
+        if (!$id) {
+            return response()->json(['success' => false, 'message' => 'Identificador inválido'], 400);
+        }
+
         $request->validate([
             'estatus' => 'required|in:PENDIENTE,PAGADO,CANCELADO',
         ]);
@@ -116,6 +121,11 @@ class FinanceController extends Controller
 
     public function show($id)
     {
+        $id = filter_var($id, FILTER_VALIDATE_INT);
+        if (!$id) {
+            return response()->json(['success' => false, 'message' => 'Identificador inválido'], 400);
+        }
+
         $row = DB::table('finance_payments')->where('id', $id)->first();
 
         if (!$row) {
@@ -127,6 +137,11 @@ class FinanceController extends Controller
 
     public function destroy($id)
     {
+        $id = filter_var($id, FILTER_VALIDATE_INT);
+        if (!$id) {
+            return response()->json(['success' => false, 'message' => 'Identificador inválido'], 400);
+        }
+
         $deleted = DB::table('finance_payments')->where('id', $id)->delete();
 
         if (!$deleted) {
@@ -138,6 +153,11 @@ class FinanceController extends Controller
 
     public function update(Request $request, $id)
     {
+        $id = filter_var($id, FILTER_VALIDATE_INT);
+        if (!$id) {
+            return response()->json(['success' => false, 'message' => 'Identificador inválido'], 400);
+        }
+
         $data = $request->validate([
             'empresa'       => 'required|string|max:150',
             'cantidad'      => 'required|numeric|min:0',
