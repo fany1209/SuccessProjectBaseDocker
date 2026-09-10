@@ -8,6 +8,7 @@ use App\Models\Output;
 use App\Models\ProductOutputs;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OutputController extends Controller
 {
