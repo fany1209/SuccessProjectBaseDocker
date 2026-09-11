@@ -52,7 +52,7 @@
       @include('laboratory.modals.01pr')
 
     <a href="{{ route('production.yeast.index') }}" class="{{ $btnBase }} {{ $btnCard }}">
-        <img src="{{ asset('images/successIconG.ico') }}" alt="Levadura" class="{{ $imgCls }}">
+        <img src="{{ asset('images/formats/pecuario.png') }}" alt="Levadura" class="{{ $imgCls }}">
         <span>Producción de Levadura</span>
     </a>
     
