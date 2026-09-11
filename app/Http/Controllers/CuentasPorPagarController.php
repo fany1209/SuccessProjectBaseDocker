@@ -83,6 +83,8 @@ class CuentasPorPagarController extends Controller
                 'f.empresa',
                 'f.departamento',
                 'f.total',
+                'f.moneda',
+                'f.tipo_cambio',
                 'f.fecha_factura'
             )
             ->get();
@@ -120,6 +122,10 @@ class CuentasPorPagarController extends Controller
             $pagos = isset($paymentsGrouped[$factura->cxp_id]) ? $paymentsGrouped[$factura->cxp_id] : collect();
             $pagado = $pagos->sum('amount');
             $saldo = round($factura->total - $pagado, 2);
+
+            $tc = ($factura->moneda === 'USD' && !empty($factura->tipo_cambio)) ? (float)$factura->tipo_cambio : 1.0;
+            $totalMXN = $factura->total * $tc;
+            $saldoMXN = $saldo * $tc;
             
             // Chart 4: Departamentos que más gastan (Total Facturado, sin importar si se pagó o no)
             if (!$factura->is_canceled) {
@@ -129,24 +135,24 @@ class CuentasPorPagarController extends Controller
                     if (!isset($departamentosMap[$dep])) {
                         $departamentosMap[$dep] = 0;
                     }
-                    $departamentosMap[$dep] += $factura->total;
+                    $departamentosMap[$dep] += $totalMXN;
                 }
             }
 
             if (!$factura->is_canceled && $factura->estatus !== 'PAGADO' && $saldo > 0) {
                 // KPI 1: Total por pagar
-                $totalPorPagar += $saldo;
+                $totalPorPagar += $saldoMXN;
 
                 if (!empty($factura->fecha_pago)) {
                     $dueDate = \Carbon\Carbon::parse($factura->fecha_pago)->startOfDay();
                     
                     // KPI 2: Pagos vencidos
                     if ($today->gt($dueDate)) {
-                        $pagosVencidos += $saldo;
+                        $pagosVencidos += $saldoMXN;
                     } 
                     // KPI 3: Próximos a vencer (entre hoy y +3 días)
                     elseif ($dueDate->between($today, $threeDaysFromNow)) {
-                        $proximosVencer += $saldo;
+                        $proximosVencer += $saldoMXN;
                     }
                 }
 
@@ -157,7 +163,7 @@ class CuentasPorPagarController extends Controller
                 if (!isset($proveedoresMap[$emp])) {
                     $proveedoresMap[$emp] = 0;
                 }
-                $proveedoresMap[$emp] += $saldo;
+                $proveedoresMap[$emp] += $saldoMXN;
 
                 // Chart 3: Antigüedad (Basado en fecha_factura)
                 if (!empty($factura->fecha_factura)) {
@@ -165,16 +171,16 @@ class CuentasPorPagarController extends Controller
                     $daysOld = $ffDate->diffInDays($today, false); // if positive, it means in the past
                     
                     if ($daysOld <= 30) {
-                        $agingBuckets['0_30'] += $saldo;
+                        $agingBuckets['0_30'] += $saldoMXN;
                     } elseif ($daysOld <= 60) {
-                        $agingBuckets['31_60'] += $saldo;
+                        $agingBuckets['31_60'] += $saldoMXN;
                     } elseif ($daysOld <= 90) {
-                        $agingBuckets['61_90'] += $saldo;
+                        $agingBuckets['61_90'] += $saldoMXN;
                     } else {
-                        $agingBuckets['90_plus'] += $saldo;
+                        $agingBuckets['90_plus'] += $saldoMXN;
                     }
                 } else {
-                    $agingBuckets['0_30'] += $saldo; // default if no date
+                    $agingBuckets['0_30'] += $saldoMXN; // default if no date
                 }
             }
         }
@@ -295,6 +301,8 @@ class CuentasPorPagarController extends Controller
                 'f.descripcion as motivo',
                 'f.banco',
                 'f.metodo_pago',
+                'f.moneda',
+                'f.tipo_cambio',
                 'f.total'
             )
             ->orderByDesc('f.factura_id')

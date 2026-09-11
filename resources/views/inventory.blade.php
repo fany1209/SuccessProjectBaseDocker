@@ -1,14 +1,10 @@
-{{--
-Inventario
-Inventario (Make transaction)
-Fecha de creación: 13-08-2025
-Creado por: Jacob
-Actualizado por: Stefany
-Fecha de actualización: 26-01-2026
---}}
 @extends('layouts.app')
 
 @section('content')
+
+@php
+    $currentTab = request('tab', 'inventory');
+@endphp
 
 <div id="inventory-module" class="flex flex-col lg:flex-row lg:justify-between items-start gap-2 m-2">
 
@@ -18,18 +14,18 @@ Fecha de actualización: 26-01-2026
         </x-tittle-form>
 
         <x-nav-button data-button="inventory" icon="ri-file-list-fill"
-            class="option-btn border-2 border-green-500">
+            class="option-btn {{ $currentTab === 'inventory' ? 'border-2 border-green-500' : '' }}">
             Inventory
         </x-nav-button>
 
         <x-nav-button data-button="make-input" icon="ri-contract-right-fill"
-            class="option-btn">
+            class="option-btn {{ $currentTab === 'make-input' ? 'border-2 border-green-500' : '' }}">
             Make Input
         </x-nav-button>
 
         @hasanyrole('Warehouse|Admin')
         <x-nav-button data-button="sales" icon="ri-shopping-cart-fill"
-            class="option-btn">
+            class="option-btn {{ $currentTab === 'sales' ? 'border-2 border-green-500' : '' }}">
             Sales
         </x-nav-button>
         @endhasanyrole
@@ -38,7 +34,7 @@ Fecha de actualización: 26-01-2026
 
         @if ($quarantine->isNotEmpty())
             <x-nav-button data-button="quarantine" icon="ri-error-warning-line"
-                class="option-btn">
+                class="option-btn {{ $currentTab === 'quarantine' ? 'border-2 border-green-500' : '' }}">
                 Quarantine
             </x-nav-button>
         @endif
@@ -47,7 +43,7 @@ Fecha de actualización: 26-01-2026
     
     <div class="flex flex-col bg-white shadow-md rounded-lg w-full lg:w-[85%] p-2 overflow-hidden">
 
-        <div id="inventory-layout" class="w-full">
+        <div id="inventory-layout" class="{{ $currentTab === 'inventory' ? '' : 'hidden' }} w-full">
             <x-tittle-form id="opt-tittle" class="border-s-2 border-green-700 ps-2 ms-2">
                 Inventory
             </x-tittle-form>
@@ -63,11 +59,11 @@ Fecha de actualización: 26-01-2026
             @include('inventory.home.modals.viewStock')
         </div>
 
-        <div id="make-input-layout" class="hidden w-full">
+        <div id="make-input-layout" class="{{ $currentTab === 'make-input' ? '' : 'hidden' }} w-full">
             @include('inventory.inputs.makeInput')
         </div>
 
-        <div id="quarantine-layout" class="hidden w-full">
+        <div id="quarantine-layout" class="{{ $currentTab === 'quarantine' ? '' : 'hidden' }} w-full">
             <div class="w-full overflow-x-auto">
                 @include('inventory.quarantine.table')
             </div>
@@ -75,7 +71,7 @@ Fecha de actualización: 26-01-2026
 
 
 
-        <div id="sales-layout" class="hidden w-full">
+        <div id="sales-layout" class="{{ $currentTab === 'sales' ? '' : 'hidden' }} w-full">
             <x-tittle-form class="border-s-2 border-green-700 ps-2 ms-2">
                 Sales
             </x-tittle-form>
@@ -100,13 +96,12 @@ Fecha de actualización: 26-01-2026
 $(function () {
     const inventory_module = $('#inventory-module');
 
-    inventory_module.on('click', '.option-btn', function () {
-        const option = $(this).data('button');
-
+    function switchTab(option) {
         inventory_module.find('.option-btn')
             .removeClass('border-2 border-green-500');
 
-        $(this).addClass('border-2 border-green-500');
+        inventory_module.find(`.option-btn[data-button="${option}"]`)
+            .addClass('border-2 border-green-500');
 
         inventory_module.find(
             '#inventory-layout, #make-input-layout, #quarantine-layout, #sales-layout'
@@ -116,26 +111,45 @@ $(function () {
             case 'inventory':
                 $('#inventory-layout').removeClass('hidden');
                 $('#opt-tittle').text('Inventory');
+                if ($.fn.dataTable) {
+                    $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+                }
                 break;
 
             case 'make-input':
                 $('#make-input-layout').removeClass('hidden');
-                $('#opt-tittle').text('Make Input');
                 break;
 
             case 'quarantine':
                 $('#quarantine-layout').removeClass('hidden');
-                $('#opt-tittle').text('Quarantine');
                 break;
 
-
-                
             case 'sales':
                 $('#sales-layout').removeClass('hidden');
-                $('#opt-tittle').text('Sales');
                 break;
         }
+    }
+
+    inventory_module.on('click', '.option-btn', function () {
+        const option = $(this).data('button');
+        switchTab(option);
+
+        const url = new URL(window.location);
+        url.searchParams.set('tab', option);
+        window.history.pushState({ tab: option }, '', url);
     });
+
+    window.addEventListener('popstate', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab') || 'inventory';
+        switchTab(tab);
+    });
+
+    const initialParams = new URLSearchParams(window.location.search);
+    const initialTab = initialParams.get('tab');
+    if (initialTab && ['inventory', 'make-input', 'quarantine', 'sales'].includes(initialTab)) {
+        switchTab(initialTab);
+    }
 });
 </script>
 @endpush

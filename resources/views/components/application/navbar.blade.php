@@ -40,7 +40,7 @@
                     @endcan
 
                     @can('inventory.show')
-                        <x-nav-link href="{{ route('inventory.index') }}" :active="request()->routeIs('inventory.index')">
+                        <x-nav-link href="{{ route('inventory.index') }}" :active="request()->routeIs('inventory.index') && request('tab') !== 'sales'">
                             {{ __('Inventory') }}
                         </x-nav-link>
                     @endcan
@@ -73,6 +73,12 @@
                         <x-nav-link href="{{ route('sales.index') }}" :active="request()->routeIs('sales.index')">
                             {{ __('Sales') }}
                         </x-nav-link>
+                    @else
+                        @role('Warehouse')
+                            <x-nav-link href="{{ route('inventory.index', ['tab' => 'sales']) }}" :active="(request()->routeIs('inventory.index') && request('tab') === 'sales') || request()->routeIs('sales.almacen_detail')">
+                                {{ __('Sales') }}
+                            </x-nav-link>
+                        @endrole
                     @endcan
 
                     @can('purchases.show')
@@ -271,7 +277,7 @@
             @endcan
 
             @can('inventory.show')
-                <x-responsive-nav-link href="{{ route('inventory.index') }}" :active="request()->routeIs('inventory.index')">
+                <x-responsive-nav-link href="{{ route('inventory.index') }}" :active="request()->routeIs('inventory.index') && request('tab') !== 'sales'">
                     {{ __('Inventory') }}
                 </x-responsive-nav-link>
             @endcan
@@ -304,6 +310,12 @@
                 <x-responsive-nav-link href="{{ route('sales.index') }}" :active="request()->routeIs('sales.index')">
                     {{ __('Sales') }}
                 </x-responsive-nav-link>
+            @else
+                @role('Warehouse')
+                    <x-responsive-nav-link href="{{ route('inventory.index', ['tab' => 'sales']) }}" :active="(request()->routeIs('inventory.index') && request('tab') === 'sales') || request()->routeIs('sales.almacen_detail')">
+                        {{ __('Sales') }}
+                    </x-responsive-nav-link>
+                @endrole
             @endcan
 
             @can('purchases.show')
