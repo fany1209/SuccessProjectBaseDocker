@@ -18,7 +18,9 @@ Fecha de actualización: 08-10-2025
         <a href="{{ route('inventory.pallets.pending') }}" class="relative px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-semibold flex items-center gap-1 shadow-sm transition-colors cursor-pointer">
             <i class="ri-inbox-archive-line"></i> Tarimas por Recibir
             @php
-                $pendingCount = \App\Models\Pallet::where('inventory_status', 'Enviada')->count();
+                $pendingCount = \Illuminate\Support\Facades\Schema::hasTable('pallets')
+                    ? \App\Models\Pallet::where('inventory_status', 'Enviada')->count()
+                    : 0;
             @endphp
             @if($pendingCount > 0)
                 <span class="absolute -top-2 -right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full shadow-md border-2 border-white">
