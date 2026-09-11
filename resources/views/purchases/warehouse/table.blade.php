@@ -1,12 +1,13 @@
 @php
   $isAdmin = auth()->user()->canany(['purchases.admin', 'quality.purchases']);
-  $colCount = $isAdmin ? 10 : 5; 
+  $colCount = $isAdmin ? 11 : 6; 
 @endphp
 
 <table id="warehouse-table" class="display w-full divide-y divide-gray-200 table-fixed text-md text-left">
     <thead class="bg-gray-50 text-gray-700 uppercase text-md">
         <tr>
-            <th scope="col" class="px-6 py-4 text-right">FECHA</th>
+            <th scope="col" class="px-6 py-4 text-right">FECHA ENTRADA</th>
+            <th scope="col" class="px-6 py-4 text-right">FECHA SALIDA</th>
             <th scope="col" class="px-6 py-4 text-right">PROVEEDOR</th>
             <th scope="col" class="px-6 py-4 text-right">DESCRIPCIÓN</th>
             <th scope="col" class="px-6 py-4 text-right">CANTIDAD</th>
@@ -26,6 +27,7 @@
         @forelse(($warehouse_entries ?? []) as $row)
             <tr>
                 <td class="px-6 py-3 text-right">{{ $row->fecha_llegada }}</td>
+                <td class="px-6 py-3 text-right">{{ $row->fecha_salida ?? '-' }}</td>
                 <td class="px-6 py-3 text-right">{{ $row->proveedor }}</td>
                 <td class="px-6 py-3 text-right">
                     {{ \Illuminate\Support\Str::limit($row->descripcion, 80) }}
@@ -66,9 +68,9 @@
         @empty
             <tr>
                 @can('purchases.admin')
-                    <td colspan="10" class="px-6 py-6 text-center text-gray-500">No hay entradas registradas.</td>
+                    <td colspan="11" class="px-6 py-6 text-center text-gray-500">No hay entradas registradas.</td>
                 @else
-                    <td colspan="5" class="px-6 py-6 text-center text-gray-500">No hay entradas registradas.</td>
+                    <td colspan="6" class="px-6 py-6 text-center text-gray-500">No hay entradas registradas.</td>
                 @endcan
             </tr>
         @endforelse
@@ -117,6 +119,7 @@ $(document).ready(function () {
 
                 $('#wh_id').val(e.id);
                 $('#wh_fecha_llegada').val(e.fecha_llegada);
+                $('#wh_fecha_salida').val(e.fecha_salida);
                 $('#wh_proveedor').val(e.proveedor);
                 $('#wh_insumo').val(e.insumo);
                 $('#wh_lote').val(e.lote);

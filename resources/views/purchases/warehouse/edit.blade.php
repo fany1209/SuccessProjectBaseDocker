@@ -11,9 +11,17 @@
 
         <x-wrapper-form-1>
             <x-wrapper-form-2>
-                <x-label for="wh_fecha_llegada">Fecha llegada</x-label>
+                <x-label for="wh_fecha_llegada">Fecha de entrada</x-label>
                 <x-input-1 required type="date" name="fecha_llegada" id="wh_fecha_llegada"></x-input-1>
             </x-wrapper-form-2>
+
+            <x-wrapper-form-2>
+                <x-label for="wh_fecha_salida">Fecha de salida</x-label>
+                <x-input-1 type="date" name="fecha_salida" id="wh_fecha_salida"></x-input-1>
+            </x-wrapper-form-2>
+        </x-wrapper-form-1>
+
+        <x-wrapper-form-1>
 
             <x-wrapper-form-2>
                 <x-label for="categoria">Categoría</x-label>

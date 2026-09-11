@@ -107,6 +107,7 @@ class InsumoEntradaController extends Controller
 
         $validated = $request->validate([
             'fecha_llegada' => ['required','date'],
+            'fecha_salida'  => ['nullable','date'],
             'categoria'     => ['required','in:warehouse,purchases,laboratory,quality,Human resources,finance'],
             'proveedor'     => ['required','string','max:255'],
             'descripcion'   => ['nullable','string','max:2000'],
@@ -119,6 +120,7 @@ class InsumoEntradaController extends Controller
 
         DB::table('insumos_entradas')->where('id', $id)->update([
             'fecha_llegada' => $validated['fecha_llegada'],
+            'fecha_salida'  => $validated['fecha_salida'] ?? null,
             'categoria'     => $validated['categoria'],
             'proveedor'     => $validated['proveedor'],
             'descripcion'   => $validated['descripcion'] ?? null,
