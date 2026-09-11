@@ -4,10 +4,11 @@
         <div class="flex justify-between items-start border-b pb-2">
             <div>
                 <h2 class="text-xl font-bold text-gray-800" id="show-empresa"></h2>
-                <div class="flex gap-2 mt-1">
+                <div class="flex gap-2 mt-1 items-center flex-wrap">
                     <span id="show-tipo" class="text-[10px] font-bold px-2 py-0.5 rounded inline-block uppercase border"></span>
-                    
                     <span id="show-insumo" class="text-[10px] font-bold px-2 py-0.5 rounded inline-block uppercase border"></span>
+                    <span id="show-moneda" class="text-[10px] font-bold px-2 py-0.5 rounded inline-block uppercase border bg-green-50 text-green-700 border-green-200"></span>
+                    <span id="show-tc-badge" class="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded inline-block border hidden"></span>
                 </div>
             </div>
             <div class="text-right">
@@ -53,11 +54,11 @@
                     <span id="show-descuentos" class="font-semibold"></span>
                 </div>
                 <div class="flex justify-between text-blue-600">
-                    <span>(+) Impuestos (IVA/Trasl):</span>
+                    <span>(+) Impuestos (IVA/Trasl/ILC):</span>
                     <span id="show-impuestos" class="font-semibold"></span>
                 </div>
                 <div class="flex justify-between text-red-600">
-                    <span>(-) Retenciones (Ret/ISR/ILC):</span>
+                    <span>(-) Retenciones (Ret/ISR):</span>
                     <span id="show-retenciones" class="font-semibold"></span>
                 </div>
                 <div class="flex justify-between text-lg border-t border-gray-300 pt-2 mt-2">

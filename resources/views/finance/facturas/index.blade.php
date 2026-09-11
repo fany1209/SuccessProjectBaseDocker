@@ -124,15 +124,27 @@ Modificado:
 
                 {
                     data: 'subtotal',
-                    render: d => `$${(parseFloat(d) || 0).toFixed(2)}`
+                    render: d => `$${(parseFloat(d) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 },
                 {
                     data: 'iva',
-                    render: d => `$${(parseFloat(d) || 0).toFixed(2)}`
+                    render: d => `$${(parseFloat(d) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 },
                 {
                     data: 'total',
-                    render: d => `<span class="font-bold text-green-700">$${(parseFloat(d) || 0).toFixed(2)}</span>`
+                    render: (d, type, row) => {
+                        const formatted = (parseFloat(d) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        const moneda = row.moneda || 'MXN';
+                        const badgeClass = moneda === 'USD' 
+                            ? 'bg-amber-100 text-amber-800 border-amber-300' 
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-300';
+                        return `
+                            <div class="flex items-center gap-1.5 whitespace-nowrap">
+                                <span class="font-bold text-gray-900">$${formatted}</span>
+                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border ${badgeClass}">${moneda}</span>
+                            </div>
+                        `;
+                    }
                 },
                 
                 {
@@ -184,21 +196,36 @@ Modificado:
             const tbody = $('#show-products-body');
             tbody.empty();
 
-            const formatoMoneda = new Intl.NumberFormat('es-MX', {
-                style: 'currency',
-                currency: 'MXN',
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
-
             $.get("{{ route('facturas.show', ':id') }}".replace(':id', id), function(res) {
                 if (!res.success) return;
 
                 const f = res.factura;
+                const moneda = f.moneda || 'MXN';
+
+                const formatoMoneda = new Intl.NumberFormat('es-MX', {
+                    style: 'currency',
+                    currency: moneda,
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
 
                 $('#show-empresa').text(f.empresa);
                 $('#show-folio').text(f.folio_factura);
                 $('#show-fecha').text(f.fecha_factura ? f.fecha_factura : 'Sin fecha');
+
+                const monedaBadge = $('#show-moneda');
+                monedaBadge.text(moneda);
+                if (moneda === 'USD') {
+                    monedaBadge.removeClass('bg-green-50 text-green-700 border-green-200').addClass('bg-amber-100 text-amber-800 border-amber-300');
+                    if (f.tipo_cambio && parseFloat(f.tipo_cambio) > 0) {
+                        $('#show-tc-badge').text('TC: ' + parseFloat(f.tipo_cambio).toFixed(4)).removeClass('hidden');
+                    } else {
+                        $('#show-tc-badge').addClass('hidden');
+                    }
+                } else {
+                    monedaBadge.removeClass('bg-amber-100 text-amber-800 border-amber-300').addClass('bg-green-50 text-green-700 border-green-200');
+                    $('#show-tc-badge').addClass('hidden');
+                }
                 
                 const tipoBadge = $('#show-tipo');
                 if(f.tipo_documento === 'factura'){
@@ -231,9 +258,9 @@ Modificado:
                     
                     const montoIva   = (importe - descuento) * ((parseFloat(p.iva_porcentaje)||0) / 100);
                     const montoOtro  = (importe - descuento) * ((parseFloat(p.otro_impuesto)||0) / 100);
-                    const traslados  = montoIva + montoOtro + (parseFloat(p.traslado)||0);
+                    const traslados  = montoIva + montoOtro + (parseFloat(p.traslado)||0) + (parseFloat(p.ilc)||0);
                     
-                    const retenciones = (parseFloat(p.retencion)||0) + (parseFloat(p.isr)||0) + (parseFloat(p.ilc)||0);
+                    const retenciones = (parseFloat(p.retencion)||0) + (parseFloat(p.isr)||0);
 
                     const totalFila = importe - descuento + traslados - retenciones;
 
@@ -260,18 +287,18 @@ Modificado:
                 const totalImpNeg  = parseFloat(f.retencion_total) || 0;
                 const granTotal    = parseFloat(f.total) || 0;
 
-                $('#show-subtotal').text(formatoMoneda.format(subtotalBase));
+                $('#show-subtotal').text(formatoMoneda.format(subtotalBase) + ' ' + moneda);
                 
                 if(totalDesc > 0){
                     $('#row-show-descuentos').show();
-                    $('#show-descuentos').text(formatoMoneda.format(totalDesc));
+                    $('#show-descuentos').text(formatoMoneda.format(totalDesc) + ' ' + moneda);
                 } else {
                     $('#row-show-descuentos').hide();
                 }
 
-                $('#show-impuestos').text(formatoMoneda.format(totalImpPos));
-                $('#show-retenciones').text(formatoMoneda.format(totalImpNeg));
-                $('#show-total').text(formatoMoneda.format(granTotal));
+                $('#show-impuestos').text(formatoMoneda.format(totalImpPos) + ' ' + moneda);
+                $('#show-retenciones').text(formatoMoneda.format(totalImpNeg) + ' ' + moneda);
+                $('#show-total').text(formatoMoneda.format(granTotal) + ' ' + moneda);
             });
         });
         /* EDITAR FACTURA  */
@@ -294,6 +321,13 @@ Modificado:
                 $('#edit-folio_factura').val(res.factura.folio_factura);
                 $('#edit-fecha_factura').val(res.factura.fecha_factura || '');
                 $('#edit-descripcion').val(res.factura.descripcion || '');
+                $('#edit-moneda').val(res.factura.moneda || 'MXN');
+                $('#edit-moneda').trigger('change');
+                if (res.factura.moneda === 'USD') {
+                    $('#edit-tipo_cambio').val(res.factura.tipo_cambio || '');
+                } else {
+                    $('#edit-tipo_cambio').val('1.0000');
+                }
 
                 res.detalles.forEach(p => {
                     container.append(`
@@ -319,46 +353,46 @@ Modificado:
                                 </div>
                                 <div class="md:col-span-1">
                                     <label class="text-sm font-medium text-gray-700">P. Unit</label>
-                                    <input name="productos[${editIndex}][precio_unitario]" type="number" step="0.00001" value="${p.precio_unitario || 0}" class="w-full border rounded px-2 py-1 text-sm precio-unitario" required>
+                                    <input name="productos[${editIndex}][precio_unitario]" type="number" step="any" value="${p.precio_unitario || 0}" class="w-full border rounded px-2 py-1 text-sm precio-unitario" required>
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="text-sm font-medium text-gray-700">Importe Base</label>
-                                    <input name="productos[${editIndex}][precio]" type="number" step="0.00001" value="${p.precio || 0}" readonly class="w-full border border-gray-300 rounded px-2 py-1 text-sm precio bg-gray-200 font-bold text-right" required>
+                                    <input name="productos[${editIndex}][precio]" type="number" step="any" value="${p.precio || 0}" readonly class="w-full border border-gray-300 rounded px-2 py-1 text-sm precio bg-gray-200 font-bold text-right" required>
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-2 md:grid-cols-9 gap-2 items-end pt-2 border-t border-gray-200">
                                 <div class="flex flex-col">
                                     <label class="text-sm font-medium text-orange-600">Desc. $</label>
-                                    <input name="productos[${editIndex}][descuento]" type="number" step="0.00001" value="${p.descuento || 0}" class="w-full border rounded px-2 py-1 text-sm descuento text-orange-600 font-semibold">
+                                    <input name="productos[${editIndex}][descuento]" type="number" step="any" value="${p.descuento || 0}" class="w-full border rounded px-2 py-1 text-sm descuento text-orange-600 font-semibold">
                                 </div>
                                 <div class="flex flex-col">
                                     <label class="text-sm font-medium text-green-600">Base IVA</label>
-                                    <input name="productos[${editIndex}][base_iva]" type="number" step="0.00001" value="${p.base_iva || ''}" class="w-full border rounded px-2 py-1 text-sm base-iva text-center font-semibold text-green-600" placeholder="Auto">
+                                    <input name="productos[${editIndex}][base_iva]" type="number" step="any" value="${p.base_iva || ''}" class="w-full border rounded px-2 py-1 text-sm base-iva text-center font-semibold text-green-600" placeholder="Auto">
                                 </div>
                                 <div class="flex flex-col">
                                     <label class="text-sm font-medium text-gray-700">% IVA</label>
-                                    <input name="productos[${editIndex}][iva_porcentaje]" value="${p.iva_porcentaje || 0}" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm iva-pct text-center">
+                                    <input name="productos[${editIndex}][iva_porcentaje]" value="${p.iva_porcentaje || 0}" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm iva-pct text-center">
                                 </div>
                                 <div class="flex flex-col">
                                     <label class="text-sm font-medium text-gray-700">% Otro</label>
-                                    <input name="productos[${editIndex}][otro_impuesto]" value="${p.otro_impuesto_porcentaje || p.otro_impuesto || 0}" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm otro-pct text-center">
+                                    <input name="productos[${editIndex}][otro_impuesto]" value="${p.otro_impuesto_porcentaje || p.otro_impuesto || 0}" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm otro-pct text-center">
                                 </div>
                                 <div class="flex flex-col">
                                     <label class="text-sm font-medium text-blue-600">Trasl. $</label>
-                                    <input name="productos[${editIndex}][traslado]" value="${p.traslado || 0}" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm traslado text-center font-semibold text-blue-600">
+                                    <input name="productos[${editIndex}][traslado]" value="${p.traslado || 0}" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm traslado text-center font-semibold text-blue-600">
                                 </div>
                                 <div class="flex flex-col">
                                     <label class="text-sm font-medium text-purple-600">ILC $</label>
-                                    <input name="productos[${editIndex}][ilc]" value="${p.ilc || 0}" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm ilc text-center font-semibold text-purple-600">
+                                    <input name="productos[${editIndex}][ilc]" value="${p.ilc || 0}" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm ilc text-center font-semibold text-purple-600">
                                 </div>
                                 <div class="flex flex-col">
                                     <label class="text-sm font-medium text-red-600">Reten. $</label>
-                                    <input name="productos[${editIndex}][retencion]" value="${p.retencion || 0}" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm retencion text-center font-semibold text-red-600">
+                                    <input name="productos[${editIndex}][retencion]" value="${p.retencion || 0}" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm retencion text-center font-semibold text-red-600">
                                 </div>
                                 <div class="flex flex-col">
                                     <label class="text-sm font-medium text-red-800">ISR $</label>
-                                    <input name="productos[${editIndex}][isr]" value="${p.isr || 0}" type="number" step="0.00001" class="w-full border rounded px-2 py-1 text-sm isr text-center font-semibold text-red-800">
+                                    <input name="productos[${editIndex}][isr]" value="${p.isr || 0}" type="number" step="any" class="w-full border rounded px-2 py-1 text-sm isr text-center font-semibold text-red-800">
                                 </div>
                                 
                                 <div class="flex justify-center md:justify-end pb-1 h-full">
@@ -370,67 +404,11 @@ Modificado:
                     editIndex++;
                 });
 
-                calcularEditTotales();
+                if (typeof calcularEditTotales === 'function') {
+                    calcularEditTotales();
+                }
             });
         });
-
-       function calcularEditTotales() {
-            let subtotalG = 0;
-            let totalDescuentosG = 0;
-            let totalIvaG = 0;
-            let totalTrasladosExtraG = 0;
-            let totalRetencionesG = 0;
-
-            $('#edit-productos-container .producto-row').each(function() {
-                const row = $(this);
-                const cant = parseFloat(row.find('.cantidad').val()) || 0;
-                const unit = parseFloat(row.find('.precio-unitario').val()) || 0;
-                const importeBase = cant * unit;
-                
-                row.find('.precio').val(importeBase.toFixed(2));
-
-                const descLinea = parseFloat(row.find('.descuento').val()) || 0;
-                const ivaPct    = parseFloat(row.find('.iva-pct').val()) || 0;
-                const otroPct   = parseFloat(row.find('.otro-pct').val()) || 0;
-                const trasMan   = parseFloat(row.find('.traslado').val()) || 0;
-                
-                const retMan    = parseFloat(row.find('.retencion').val()) || 0;
-                const isrMan    = parseFloat(row.find('.isr').val()) || 0;
-                const ilcMan    = parseFloat(row.find('.ilc').val()) || 0;
-
-                const baseGravable = importeBase - descLinea;
-
-                const baseIvaInput = row.find('.base-iva');
-                let baseIvaVal = parseFloat(baseIvaInput.val());
-                let baseParaIva = baseGravable;
-
-                if (!isNaN(baseIvaVal)) {
-                    baseParaIva = baseIvaVal;
-                } else {
-                    baseIvaInput.attr('placeholder', baseGravable.toFixed(2));
-                }
-
-                const ivaCalculado = baseParaIva * (ivaPct / 100);
-                const otroImpCalculado = baseGravable * (otroPct / 100);
-
-                subtotalG += importeBase;
-                totalDescuentosG += descLinea;
-                totalIvaG += ivaCalculado + otroImpCalculado;
-                totalTrasladosExtraG += trasMan;
-                totalRetencionesG += (retMan + isrMan + ilcMan);
-
-                row.find('.aplica-iva-hidden').val(ivaPct > 0 ? 1 : 0);
-            });
-
-            const granTotal = (subtotalG - totalDescuentosG) + totalIvaG + totalTrasladosExtraG - totalRetencionesG;
-
-            $('#edit-factura-subtotal').val(subtotalG.toFixed(2));
-            $('#edit-factura-descuentos').val(totalDescuentosG.toFixed(2));
-            $('#edit-factura-iva-calc').val(totalIvaG.toFixed(2));
-            $('#edit-factura-traslados-manual').val(totalTrasladosExtraG.toFixed(2));
-            $('#edit-factura-retenciones').val(totalRetencionesG.toFixed(2));
-            $('#edit-factura-total').val(granTotal.toFixed(2));
-        }
 
         /*ELIMINAR */
         $(document).on('click', '.btn-delete-factura', function() {

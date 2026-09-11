@@ -46,6 +46,21 @@
 
         <x-wrapper-form-1>
             <x-wrapper-form-2>
+                <x-label>Moneda</x-label>
+                <select name="moneda" id="edit-moneda" class="w-full border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500 text-sm py-2 px-3 bg-white">
+                    <option value="MXN">MXN (Peso Mexicano)</option>
+                    <option value="USD">USD (Dólar Estadounidense)</option>
+                </select>
+            </x-wrapper-form-2>
+
+            <x-wrapper-form-2 id="edit-tc-container" class="hidden">
+                <x-label>Tipo de Cambio</x-label>
+                <x-input-1 type="number" step="any" min="0.0001" name="tipo_cambio" id="edit-tipo_cambio" value="1.0000" placeholder="Ej. 19.50"></x-input-1>
+            </x-wrapper-form-2>
+        </x-wrapper-form-1>
+
+        <x-wrapper-form-1>
+            <x-wrapper-form-2>
                 <x-label>Descripción / Observaciones</x-label>
                 <x-input-1 id="edit-descripcion" name="descripcion" placeholder="Ej. Pago de servicios..."></x-input-1>
             </x-wrapper-form-2>
@@ -128,9 +143,16 @@ $(function(){
 
     let editIndexNew = 1000; 
 
-    /* =========================
-     * CALCULAR TOTALES (EDICIÓN)
-     * ========================= */
+    $('#edit-moneda').on('change', function() {
+        if ($(this).val() === 'USD') {
+            $('#edit-tc-container').removeClass('hidden');
+            $('#edit-tipo_cambio').attr('required', true);
+        } else {
+            $('#edit-tc-container').addClass('hidden');
+            $('#edit-tipo_cambio').removeAttr('required').val('1.0000');
+        }
+    }); 
+
     function calcularEditTotales(){
         let subtotalGeneral = 0;
         let totalDescuentos = 0;
@@ -147,15 +169,15 @@ $(function(){
             const descuento = parseFloat(row.find('.descuento').val()) || 0;
             
             const importeBase = cantidad * pUnitario;
-            row.find('.precio').val(importeBase.toFixed(6));
+            row.find('.precio').val(importeBase.toFixed(2));
 
-            const baseImpuestos = importeBase - descuento;
+            const baseImpuestos = Math.max(0, importeBase - descuento);
 
             const baseIvaInput = row.find('.base-iva');
             let baseIvaVal = parseFloat(baseIvaInput.val());
             let baseParaIva = baseImpuestos;
 
-            if (!isNaN(baseIvaVal)) {
+            if (!isNaN(baseIvaVal) && String(baseIvaInput.val()).trim() !== '') {
                 baseParaIva = baseIvaVal;
             } else {
                 baseIvaInput.attr('placeholder', baseImpuestos.toFixed(2));
@@ -177,24 +199,26 @@ $(function(){
             subtotalGeneral     += importeBase;
             totalDescuentos     += descuento;
             totalIvaCalculado   += (montoIva + montoOtro); 
-            totalTrasladoMasIlc += trasladoManual; 
-            totalRetenciones    += (retencionManual + ilcManual); 
+            totalTrasladoMasIlc += (trasladoManual + ilcManual); 
+            totalRetenciones    += retencionManual; 
             totalIsr            += isrManual;
         });
 
         const granTotal = subtotalGeneral - totalDescuentos + totalIvaCalculado + totalTrasladoMasIlc - totalRetenciones - totalIsr;
 
-        $('#edit-factura-subtotal').val(subtotalGeneral.toFixed(6));
-        $('#edit-factura-descuentos').val(totalDescuentos.toFixed(6));
-        $('#edit-factura-iva-calc').val(totalIvaCalculado.toFixed(6));
-        $('#edit-factura-traslados-manual').val(totalTrasladoMasIlc.toFixed(6));
-        $('#edit-factura-retenciones').val(totalRetenciones.toFixed(6));
-        $('#edit-factura-isr').val(totalIsr.toFixed(6));
-        $('#edit-factura-total').val(granTotal.toFixed(6));
+        $('#edit-factura-subtotal').val(subtotalGeneral.toFixed(2));
+        $('#edit-factura-descuentos').val(totalDescuentos.toFixed(2));
+        $('#edit-factura-iva-calc').val(totalIvaCalculado.toFixed(2));
+        $('#edit-factura-traslados-manual').val(totalTrasladoMasIlc.toFixed(2));
+        $('#edit-factura-retenciones').val(totalRetenciones.toFixed(2));
+        $('#edit-factura-isr').val(totalIsr.toFixed(2));
+        $('#edit-factura-total').val(granTotal.toFixed(2));
     }
 
+    window.calcularEditTotales = calcularEditTotales;
+
     $(document).on(
-        'input change',
+        'input change keyup paste',
         '#edit-productos-container .cantidad, #edit-productos-container .precio-unitario, #edit-productos-container .descuento, #edit-productos-container .base-iva, #edit-productos-container .traslado, #edit-productos-container .ilc, #edit-productos-container .retencion, #edit-productos-container .isr, #edit-productos-container .iva-pct, #edit-productos-container .otro-pct',
         calcularEditTotales
     );
@@ -275,6 +299,7 @@ $(function(){
             </div>
         `);
         editIndexNew++;
+        calcularEditTotales();
     });
 
     $(document).on('click', '#edit-productos-container .remove-product', function(){

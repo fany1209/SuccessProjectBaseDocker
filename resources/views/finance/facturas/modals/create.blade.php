@@ -52,7 +52,7 @@
 
             <x-wrapper-form-2 id="tc-container" class="hidden">
                 <x-label>Tipo de Cambio</x-label>
-                <x-input-1 type="number" step="0.0001" min="0.01" name="tipo_cambio" id="factura-tipo-cambio" value="1.0000" placeholder="Ej. 19.50"></x-input-1>
+                <x-input-1 type="number" step="any" min="0.0001" name="tipo_cambio" id="factura-tipo-cambio" value="1.0000" placeholder="Ej. 19.50"></x-input-1>
             </x-wrapper-form-2>
         </x-wrapper-form-1>
 
@@ -234,7 +234,7 @@ $(function(){
         let totalRetenciones = 0;
         let totalIsr = 0;
 
-        $('.producto-row').each(function(){
+        $('#productos-container .producto-row').each(function(){
             const row = $(this);
 
             const cantidad  = parseFloat(row.find('.cantidad').val()) || 0;
@@ -242,15 +242,15 @@ $(function(){
             const descuento = parseFloat(row.find('.descuento').val()) || 0;
             
             const importeBase = cantidad * pUnitario;
-            row.find('.precio').val(importeBase.toFixed(6));
+            row.find('.precio').val(importeBase.toFixed(2));
 
-            const baseImpuestos = importeBase - descuento;
+            const baseImpuestos = Math.max(0, importeBase - descuento);
 
             const baseIvaInput = row.find('.base-iva');
             let baseIvaVal = parseFloat(baseIvaInput.val());
             let baseParaIva = baseImpuestos;
 
-            if (!isNaN(baseIvaVal)) {
+            if (!isNaN(baseIvaVal) && String(baseIvaInput.val()).trim() !== '') {
                 baseParaIva = baseIvaVal;
             } else {
                 baseIvaInput.attr('placeholder', baseImpuestos.toFixed(2));
@@ -272,27 +272,31 @@ $(function(){
             subtotalGeneral     += importeBase;
             totalDescuentos     += descuento;
             totalIvaCalculado   += (montoIva + montoOtro); 
-            totalTrasladoMasIlc += trasladoManual; 
-            totalRetenciones    += (retencionManual + ilcManual); 
+            totalTrasladoMasIlc += (trasladoManual + ilcManual); 
+            totalRetenciones    += retencionManual; 
             totalIsr            += isrManual;
         });
 
         const granTotal = subtotalGeneral - totalDescuentos + totalIvaCalculado + totalTrasladoMasIlc - totalRetenciones - totalIsr;
 
-        $('#factura-subtotal').val(subtotalGeneral.toFixed(6));
-        $('#factura-descuentos').val(totalDescuentos.toFixed(6));
-        $('#factura-iva-calc').val(totalIvaCalculado.toFixed(6));
-        $('#factura-traslados-manual').val(totalTrasladoMasIlc.toFixed(6));
-        $('#factura-retenciones').val(totalRetenciones.toFixed(6));
-        $('#factura-isr').val(totalIsr.toFixed(6));
-        $('#factura-total').val(granTotal.toFixed(6));
+        $('#factura-subtotal').val(subtotalGeneral.toFixed(2));
+        $('#factura-descuentos').val(totalDescuentos.toFixed(2));
+        $('#factura-iva-calc').val(totalIvaCalculado.toFixed(2));
+        $('#factura-traslados-manual').val(totalTrasladoMasIlc.toFixed(2));
+        $('#factura-retenciones').val(totalRetenciones.toFixed(2));
+        $('#factura-isr').val(totalIsr.toFixed(2));
+        $('#factura-total').val(granTotal.toFixed(2));
     }
 
+    window.calcularTotales = calcularTotales;
+
     $(document).on(
-        'input change',
-        '.cantidad, .precio-unitario, .descuento, .base-iva, .traslado, .ilc, .retencion, .isr, .iva-pct, .otro-pct',
+        'input change keyup paste',
+        '#productos-container .cantidad, #productos-container .precio-unitario, #productos-container .descuento, #productos-container .base-iva, #productos-container .traslado, #productos-container .ilc, #productos-container .retencion, #productos-container .isr, #productos-container .iva-pct, #productos-container .otro-pct',
         calcularTotales
     );
+
+    calcularTotales();
 
     /* =========================
      * AGREGAR PRODUCTO
@@ -372,16 +376,17 @@ $(function(){
         `);
 
         index++;
+        calcularTotales();
     });
 
-    $(document).on('click', '.remove-product', function() {
-        if($('.producto-row').length > 1){
+    $(document).on('click', '#productos-container .remove-product', function() {
+        if($('#productos-container .producto-row').length > 1){
             $(this).closest('.producto-row').remove();
             calcularTotales();
         } else {
             const row = $(this).closest('.producto-row');
             row.find('input[type="text"], input[type="number"]').not('.iva-pct').val('');
-            row.find('.precio, .descuento, .base-iva, .traslado, .ilc, .retencion, .isr').val(0);
+            row.find('.precio, .descuento, .base-iva, .traslado, .ilc, .retencion, .isr, .otro-pct').val(0);
             row.find('.iva-pct').val(16);
             calcularTotales();
         }
@@ -406,6 +411,7 @@ $(function(){
                     $('.close-modal').trigger('click');
                     
                     $('#add-factura-form')[0].reset();
+                    $('#factura-moneda').trigger('change');
                     
                     $('#productos-container .producto-row:not(:first)').remove();
                     

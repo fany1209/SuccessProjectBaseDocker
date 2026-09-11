@@ -2,8 +2,8 @@
 @section('content')
 <div class="container mt-4">
     <div class="mb-3">
-        <a href="{{ route('inventory.index') }}" class="btn btn-secondary">
-            <i class="ri-arrow-left-line"></i> Regresar a Inventario
+        <a href="{{ route('inventory.index', ['tab' => 'sales']) }}" class="btn btn-secondary">
+            <i class="ri-arrow-left-line"></i> Regresar a Lista de Pedidos
         </a>
     </div>
     <div class="card shadow">
