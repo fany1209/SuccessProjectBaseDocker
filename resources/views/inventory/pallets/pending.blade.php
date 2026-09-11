@@ -109,203 +109,130 @@
             </div>
 
             <!-- Modal body -->
-            <div class="p-6 space-y-6 overflow-y-auto">
-                <form id="accept-inventory-form" class="space-y-6">
+            <div class="p-6 overflow-y-auto">
+                <form id="accept-inventory-form" class="flex flex-col items-center w-full gap-2">
                     @csrf
                     <input type="hidden" id="accept_pallet_id" name="pallet_id">
 
-                    <!-- Section 1: Tipo & Proveedor & Concepto -->
-                    <div class="bg-gray-50/70 p-4 rounded-xl border border-gray-200/80 space-y-4">
-                        <div class="flex items-center justify-between border-b border-gray-200 pb-2">
-                            <span class="text-xs font-bold uppercase tracking-wider text-gray-600 flex items-center gap-1.5">
-                                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                1. Datos de la Transacción
-                            </span>
-                            <span class="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full">
-                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                Tipo: Input (Entrada)
-                            </span>
-                        </div>
+                    <x-wrapper-form-1>
+                        <x-wrapper-form-2>
+                            <x-label for="modal_supplier_id">Proveedor</x-label>
+                            <x-select-1 id="modal_supplier_id" name="supplier_id" required>
+                                @foreach($suppliers as $sup)
+                                    <option value="{{ $sup->supplier_id }}" {{ ($sup->supplier_id == ($internalSupplier->supplier_id ?? null)) ? 'selected' : '' }}>
+                                        {{ $sup->name }} ({{ $sup->supplier_code }})
+                                    </option>
+                                @endforeach
+                            </x-select-1>
+                        </x-wrapper-form-2>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label for="modal_supplier_id" class="block mb-1 text-xs font-semibold text-gray-700">Proveedor</label>
-                                <select id="modal_supplier_id" name="supplier_id" class="bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5" required>
-                                    @foreach($suppliers as $sup)
-                                        <option value="{{ $sup->supplier_id }}" {{ ($sup->supplier_id == ($internalSupplier->supplier_id ?? null)) ? 'selected' : '' }}>
-                                            {{ $sup->name }} ({{ $sup->supplier_code }})
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
+                        <x-wrapper-form-2>
+                            <x-label for="modal_concept_id">Concepto de Entrada</x-label>
+                            <x-select-1 id="modal_concept_id" name="concept_id" required>
+                                @foreach($concepts as $con)
+                                    <option value="{{ $con->concept_id }}" {{ ($con->concept_id == ($internalConcept->concept_id ?? 2)) ? 'selected' : '' }}>
+                                        {{ $con->name }}
+                                    </option>
+                                @endforeach
+                            </x-select-1>
+                        </x-wrapper-form-2>
+                    </x-wrapper-form-1>
 
-                            <div>
-                                <label for="modal_concept_id" class="block mb-1 text-xs font-semibold text-gray-700">Concepto de Entrada</label>
-                                <select id="modal_concept_id" name="concept_id" class="bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5" required>
-                                    @foreach($concepts as $con)
-                                        <option value="{{ $con->concept_id }}" {{ ($con->concept_id == ($internalConcept->concept_id ?? 2)) ? 'selected' : '' }}>
-                                            {{ $con->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                    </div>
+                    <x-wrapper-form-1 class="flex-col border-2 border-gray-200 rounded-md p-2">
+                        <x-wrapper-form-1>
+                            <span class="tracking-[3px] bg-blue-500 text-white font-semibold px-2 py-1 rounded-md">Products</span>
+                        </x-wrapper-form-1>
 
-                    <!-- Section 2: Producto, Lote y Pesos -->
-                    <div class="bg-gray-50/70 p-4 rounded-xl border border-gray-200/80 space-y-4">
-                        <div class="border-b border-gray-200 pb-2 flex justify-between items-center">
-                            <span class="text-xs font-bold uppercase tracking-wider text-gray-600 flex items-center gap-1.5">
-                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-                                2. Producto, Sacos y Peso Final
-                            </span>
-                            <span class="text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                                Unidad de inventario: Kilogramos (Kg)
-                            </span>
-                        </div>
+                        <div class="w-full">
+                            <div class="wrapper border-2 border-dashed border-gray-200 rounded-md p-2 my-1 relative">
+                                <x-wrapper-form-1>
+                                    <x-wrapper-form-2>
+                                        <x-label for="modal_product_id">Product</x-label>
+                                        <x-select-1 id="modal_product_id" name="product_id" required>
+                                            @foreach($products as $prod)
+                                                <option value="{{ $prod->product_id }}" {{ ($prod->product_id == ($defaultProduct->product_id ?? 623)) ? 'selected' : '' }}>
+                                                    {{ $prod->name }} ({{ $prod->unit ?? 'Kg' }})
+                                                </option>
+                                            @endforeach
+                                        </x-select-1>
+                                    </x-wrapper-form-2>
+                                </x-wrapper-form-1>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="md:col-span-2">
-                                <label for="modal_product_id" class="block mb-1 text-xs font-semibold text-gray-700">Producto</label>
-                                <select id="modal_product_id" name="product_id" class="bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5" required>
-                                    @foreach($products as $prod)
-                                        <option value="{{ $prod->product_id }}" {{ ($prod->product_id == ($defaultProduct->product_id ?? 623)) ? 'selected' : '' }}>
-                                            {{ $prod->name }} ({{ $prod->unit ?? 'Kg' }})
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
+                                <x-wrapper-form-1>
+                                    <x-wrapper-form-2>
+                                        <x-label for="modal_quantity">Quantity (Sacos)</x-label>
+                                        <x-input-1 type="number" step="1" min="1" id="modal_quantity" name="quantity" required oninput="recalculateWeights('sacks')"></x-input-1>
+                                    </x-wrapper-form-2>
 
-                            <div>
-                                <label for="modal_warehouse_batch" class="block mb-1 text-xs font-semibold text-gray-700">Lote / No. Tarima</label>
-                                <input type="text" id="modal_warehouse_batch" name="warehouse_batch" class="bg-white border border-gray-300 text-gray-800 text-sm font-semibold rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5" required>
-                            </div>
-                        </div>
+                                    <x-wrapper-form-2>
+                                        <x-label for="modal_weight_per_unit">Weight per unit</x-label>
+                                        <x-input-1 type="number" step="0.01" min="0.1" id="modal_weight_per_unit" name="weight_per_unit" value="25" required oninput="recalculateWeights('wpu')"></x-input-1>
+                                    </x-wrapper-form-2>
+                                </x-wrapper-form-1>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                            <div>
-                                <label for="modal_quantity" class="block mb-1 text-xs font-semibold text-gray-700">Sacos en Tarima</label>
-                                <input type="number" step="1" min="1" id="modal_quantity" name="quantity" class="bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5" required oninput="recalculateWeights('sacks')">
-                            </div>
+                                <x-wrapper-form-1 class="location-assignment-wrapper">
+                                    <x-wrapper-form-2>
+                                        <x-label for="modal_warehouse_id">Warehouse (Optional)</x-label>
+                                        <x-select-1 id="modal_warehouse_id" onchange="filterLocationsByWarehouse()">
+                                            <option value="">Select a warehouse</option>
+                                            @foreach($warehouses as $wh)
+                                                <option value="{{ $wh->warehouse_id }}">{{ $wh->name }}</option>
+                                            @endforeach
+                                        </x-select-1>
+                                    </x-wrapper-form-2>
 
-                            <div>
-                                <label for="modal_weight_per_unit" class="block mb-1 text-xs font-semibold text-gray-700">Peso Promedio por Saco (kg)</label>
-                                <input type="number" step="0.01" min="0.1" id="modal_weight_per_unit" name="weight_per_unit" value="25" class="bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5" required oninput="recalculateWeights('wpu')">
-                            </div>
+                                    <x-wrapper-form-2 class="location-id-wrapper">
+                                        <x-label for="modal_location_id">Location</x-label>
+                                        <x-select-1 id="modal_location_id" name="location_id" required>
+                                            <option value="">Select a location</option>
+                                            @foreach($locations as $loc)
+                                                <option value="{{ $loc->location_id }}" data-warehouse="{{ $loc->warehouse_id }}">
+                                                    {{ $loc->warehouse->name ?? 'Almacén General' }} - {{ $loc->name }}
+                                                </option>
+                                            @endforeach
+                                        </x-select-1>
+                                    </x-wrapper-form-2>
+                                </x-wrapper-form-1>
 
-                            <div>
-                                <label for="modal_final_weight" class="block mb-1 text-xs font-bold text-blue-900 flex items-center justify-between">
-                                    <span>Peso Final a Ingresar (Kg)</span>
-                                    <span class="text-emerald-600 text-[11px] font-normal">Stock Real</span>
-                                </label>
-                                <input type="number" step="0.01" min="0.1" id="modal_final_weight" name="final_weight" class="bg-blue-50/70 border-2 border-blue-400 text-blue-950 font-black text-lg rounded-lg block w-full p-2 focus:ring-2 focus:ring-blue-500" required oninput="recalculateWeights('final')">
-                            </div>
-                        </div>
-                        <p class="text-xs text-blue-700 bg-blue-50/60 p-2 rounded-lg border border-blue-200/60 flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            El valor de <strong>Peso Final a Ingresar (Kg)</strong> es la cantidad exacta que sumará a las existencias disponibles de Yeacali en Almacén.
-                        </p>
-                    </div>
-
-                    <!-- Section 3: Ubicación -->
-                    <div class="bg-gray-50/70 p-4 rounded-xl border border-gray-200/80 space-y-4">
-                        <div class="border-b border-gray-200 pb-2">
-                            <span class="text-xs font-bold uppercase tracking-wider text-gray-600 flex items-center gap-1.5">
-                                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                3. Asignación de Almacén y Ubicación
-                            </span>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label for="modal_warehouse_id" class="block mb-1 text-xs font-semibold text-gray-700">Almacén</label>
-                                <select id="modal_warehouse_id" onchange="filterLocationsByWarehouse()" class="bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5">
-                                    <option value="">-- Todos los Almacenes --</option>
-                                    @foreach($warehouses as $wh)
-                                        <option value="{{ $wh->warehouse_id }}">{{ $wh->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div>
-                                <label for="modal_location_id" class="block mb-1 text-xs font-semibold text-gray-700">Ubicación (Rack / Posición) <span class="text-red-500">*</span></label>
-                                <select id="modal_location_id" name="location_id" class="bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5" required>
-                                    <option value="">Seleccione una ubicación</option>
-                                    @foreach($locations as $loc)
-                                        <option value="{{ $loc->location_id }}" data-warehouse="{{ $loc->warehouse_id }}">
-                                            {{ $loc->warehouse->name ?? 'Almacén General' }} - {{ $loc->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
+                                <x-wrapper-form-1>
+                                    <x-wrapper-form-2>
+                                        <x-label for="modal_warehouse_batch">Warehouse batch</x-label>
+                                        <x-input-1 type="text" id="modal_warehouse_batch" name="warehouse_batch" required readonly></x-input-1>
+                                    </x-wrapper-form-2>
+                                    
+                                    <x-wrapper-form-2>
+                                        <x-label for="modal_final_weight">Total Final Weight (Kg)</x-label>
+                                        <x-input-1 type="number" step="0.01" min="0.1" id="modal_final_weight" name="final_weight" required oninput="recalculateWeights('final')"></x-input-1>
+                                    </x-wrapper-form-2>
+                                </x-wrapper-form-1>
+                                
+                                <x-wrapper-form-1>
+                                    <x-wrapper-form-2><p class="total mt-2 text-sm font-semibold rounded-md tracking-[2px] text-white bg-gray-700 px-2 py-1" id="total_weight_display">Total: 0</p></x-wrapper-form-2>
+                                </x-wrapper-form-1>
                             </div>
                         </div>
-                    </div>
+                    </x-wrapper-form-1>
 
-                    <!-- Section 4: Datos de Transporte / Operador / Comentarios (Opcional) -->
-                    <div class="bg-gray-50/70 p-4 rounded-xl border border-gray-200/80 space-y-4">
-                        <div class="flex items-center justify-between border-b border-gray-200 pb-2">
-                            <span class="text-xs font-bold uppercase tracking-wider text-gray-600 flex items-center gap-1.5">
-                                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                                4. Datos de Recepción y Transporte (Opcional)
-                            </span>
-                            <button type="button" onclick="toggleTransportSection()" class="text-xs font-semibold text-blue-600 hover:text-blue-800 cursor-pointer">
-                                <span id="toggle-transport-btn-text">Mostrar / Ocultar</span>
-                            </button>
-                        </div>
 
-                        <div id="transport-fields-container" class="space-y-4">
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <label for="modal_transport_line" class="block mb-1 text-xs font-semibold text-gray-700">Línea de Transporte</label>
-                                    <select id="modal_transport_line" name="transport_line" class="bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5">
-                                        <option value="">-- Ninguna / Interno --</option>
-                                        @foreach($transport_lines as $tl)
-                                            <option value="{{ $tl->transport_line_id }}">{{ $tl->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
 
-                                <div>
-                                    <label for="modal_operator" class="block mb-1 text-xs font-semibold text-gray-700">Operador / Entregó</label>
-                                    <input type="text" id="modal_operator" name="operator" placeholder="Nombre de quien entrega" class="bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5">
-                                </div>
+                    <x-wrapper-form-1>
+                        <x-wrapper-form-2>
+                            <x-label for="modal_comments">Comments</x-label>
+                            <x-textarea-1 id="modal_comments" name="comments" rows="2" placeholder="Observaciones de la recepción..."></x-textarea-1>
+                        </x-wrapper-form-2>
+                    </x-wrapper-form-1>
 
-                                <div>
-                                    <label for="modal_license_number" class="block mb-1 text-xs font-semibold text-gray-700">No. Licencia</label>
-                                    <input type="text" id="modal_license_number" name="license_number" placeholder="Opcional" class="bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5">
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label for="modal_unit_plates" class="block mb-1 text-xs font-semibold text-gray-700">Placas Unidad</label>
-                                    <input type="text" id="modal_unit_plates" name="unit_plates" placeholder="Placas o vehículo" class="bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5">
-                                </div>
-
-                                <div>
-                                    <label for="modal_trailer_plates" class="block mb-1 text-xs font-semibold text-gray-700">Placas Remolque</label>
-                                    <input type="text" id="modal_trailer_plates" name="trailer_plates" placeholder="Placas remolque" class="bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5">
-                                </div>
-                            </div>
-
-                            <div>
-                                <label for="modal_comments" class="block mb-1 text-xs font-semibold text-gray-700">Comentarios / Observaciones</label>
-                                <textarea id="modal_comments" name="comments" rows="2" placeholder="Observaciones de la recepción o condiciones de la tarima..." class="bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5"></textarea>
-                            </div>
-                        </div>
-                    </div>
                 </form>
             </div>
 
             <!-- Modal footer -->
-            <div class="flex items-center justify-end px-6 py-4 border-t border-gray-200 bg-gray-50 gap-3">
-                <button type="button" onclick="closeAcceptModal()" class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-xs cursor-pointer">
-                    Cancelar
-                </button>
-                <button type="button" onclick="submitAcceptPallet()" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    Registrar Entrada a Inventario
-                </button>
+            <div class="flex items-center justify-end px-6 py-4 border-t border-gray-200 bg-gray-50 gap-3 w-full">
+                <x-wrapper-form-1>
+                    <x-wrapper-form-1>
+                        <x-button-1 type="button" colorBtn="red" onclick="closeAcceptModal()">Close</x-button-1>
+                    </x-wrapper-form-1>
+                    <x-button-1 id="save-transaction" type="button" colorBtn="green" onclick="submitAcceptPallet()">Finish</x-button-1>
+                </x-wrapper-form-1>
             </div>
         </div>
     </div>
@@ -331,6 +258,9 @@
         
         let calculatedFinal = finalWeight ? parseFloat(finalWeight) : (sacks * 25);
         document.getElementById('modal_final_weight').value = calculatedFinal.toFixed(2);
+        
+        let displayTotal = document.getElementById('total_weight_display');
+        if(displayTotal) displayTotal.innerText = 'Total: ' + calculatedFinal.toFixed(2);
 
         // Reset warehouse filter and location
         document.getElementById('modal_warehouse_id').value = '';
@@ -347,6 +277,7 @@
         const qtyInput = document.getElementById('modal_quantity');
         const wpuInput = document.getElementById('modal_weight_per_unit');
         const finalInput = document.getElementById('modal_final_weight');
+        const display = document.getElementById('total_weight_display');
 
         let sacks = parseFloat(qtyInput.value) || 0;
         let wpu = parseFloat(wpuInput.value) || 0;
@@ -354,10 +285,12 @@
 
         if (source === 'sacks' || source === 'wpu') {
             finalInput.value = (sacks * wpu).toFixed(2);
+            if(display) display.innerText = 'Total: ' + (sacks * wpu).toFixed(2);
         } else if (source === 'final') {
             if (sacks > 0) {
                 wpuInput.value = (finalWeight / sacks).toFixed(2);
             }
+            if(display) display.innerText = 'Total: ' + finalWeight.toFixed(2);
         }
     }
 
@@ -377,10 +310,7 @@
         });
     }
 
-    function toggleTransportSection() {
-        const cont = document.getElementById('transport-fields-container');
-        cont.classList.toggle('hidden');
-    }
+
 
     function submitAcceptPallet() {
         const palletId = document.getElementById('accept_pallet_id').value;
@@ -450,12 +380,12 @@
             quantity: quantity,
             weight_per_unit: weightPerUnit,
             final_weight: finalWeight,
-            transport_line: document.getElementById('modal_transport_line').value || null,
-            operator: document.getElementById('modal_operator').value || null,
-            license_number: document.getElementById('modal_license_number').value || null,
-            unit_plates: document.getElementById('modal_unit_plates').value || null,
-            trailer_plates: document.getElementById('modal_trailer_plates').value || null,
-            comments: document.getElementById('modal_comments').value || null
+            transport_line: null,
+            operator: null,
+            license_number: null,
+            unit_plates: null,
+            trailer_plates: null,
+            comments: document.querySelector('textarea[name="comments"]') ? document.querySelector('textarea[name="comments"]').value : null
         };
 
         fetch(`/inventory/pallets/${palletId}/accept`, {
