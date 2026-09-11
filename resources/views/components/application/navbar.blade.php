@@ -93,11 +93,7 @@
                         </x-nav-link>
                     @endcan
 
-                    @can('quality.show')
-                        <x-nav-link href="{{ route('production.yeast.index') }}" :active="request()->routeIs('production.yeast.index')">
-                            {{ __('Producción') }}
-                        </x-nav-link>
-                    @endcan
+
 
                     @can('finance.show')
                         <x-nav-link href="{{ route('finance.index') }}" :active="request()->routeIs('finance.index')">
