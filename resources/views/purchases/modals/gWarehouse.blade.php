@@ -1,6 +1,5 @@
 @php
     $imgCls   = 'h-16 w-16 bg-green-400 rounded-md p-1 object-contain pointer-events-none select-none me-2';
-    $monedas  = ['MXN','USD','EUR'];
 @endphp
 
 <x-modal id="g-warehouse">
@@ -89,24 +88,7 @@
             </x-wrapper-form-2>
         </x-wrapper-form-1>
 
-        <x-wrapper-form-1>
-            <x-wrapper-form-2>
-                <x-label for="costo">Costo</x-label>
-                <x-input-1 required type="number" step="0.0001" min="0" name="costo" id="costo"
-                           value="{{ old('costo') }}"
-                           placeholder="0.0000"></x-input-1>
-            </x-wrapper-form-2>
 
-            <x-wrapper-form-2>
-                <x-label for="moneda">Moneda</x-label>
-                <select name="moneda" id="moneda" required
-                        class="w-full rounded-md border border-gray-300 px-3 py-2">
-                    @foreach($monedas as $m)
-                        <option value="{{ $m }}" @selected(old('moneda', 'MXN') === $m)>{{ $m }}</option>
-                    @endforeach
-                </select>
-            </x-wrapper-form-2>
-        </x-wrapper-form-1>
 
         <x-wrapper-form-2>
             <x-label for="categoria">Categoría</x-label>
@@ -119,6 +101,13 @@
                 <option value="finance" @selected(old('categoria')==='finance')>Finance</option>
             </select>
         </x-wrapper-form-2>
+
+        <x-wrapper-form-1>
+            <x-wrapper-form-2>
+                <x-label for="lote">Lote de entrada</x-label>
+                <x-input-1 name="lote" id="lote" maxlength="255" value="{{ old('lote') }}" placeholder="Ej: LOTE-12345"></x-input-1>
+            </x-wrapper-form-2>
+        </x-wrapper-form-1>
 
         <x-wrapper-form-1>
             <x-wrapper-form-2>

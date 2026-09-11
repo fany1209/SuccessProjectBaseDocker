@@ -62,8 +62,7 @@ class InsumoEntradaController extends Controller
             'cantidad'      => ['required','numeric','min:0'],
             'unidad'        => ['required','string','max:20'],
             'insumo'        => ['required','string','max:255'],
-            'costo'         => ['required','numeric','min:0'],
-            'moneda'        => ['required','string','size:3'],
+            'lote'          => ['nullable','string','max:255'],
         ]);
 
         DB::transaction(function () use ($validated) {
@@ -78,8 +77,7 @@ class InsumoEntradaController extends Controller
                 'cantidad'      => $validated['cantidad'],
                 'unidad'        => $validated['unidad'],
                 'insumo'        => $validated['insumo'],
-                'costo'         => $validated['costo'],
-                'moneda'        => strtoupper($validated['moneda']),
+                'lote'          => $validated['lote'] ?? null,
                 'created_at'    => now(),
                 'updated_at'    => now(),
             ]);
@@ -115,8 +113,8 @@ class InsumoEntradaController extends Controller
             'cantidad'      => ['required','numeric','min:0'],
             'unidad'        => ['required','string','max:20'],
             'insumo'        => ['required','string','max:255'],
-            'costo'         => ['required','numeric','min:0'],
-            'moneda'        => ['required','string','size:3'],
+            'lote'          => ['nullable','string','max:255'],
+            'lote_salida'   => ['nullable','string','max:255'],
         ]);
 
         DB::table('insumos_entradas')->where('id', $id)->update([
@@ -127,8 +125,8 @@ class InsumoEntradaController extends Controller
             'cantidad'      => $validated['cantidad'],
             'unidad'        => $validated['unidad'],
             'insumo'        => $validated['insumo'],
-            'costo'         => $validated['costo'],
-            'moneda'        => strtoupper($validated['moneda']),
+            'lote'          => $validated['lote'] ?? null,
+            'lote_salida'   => $validated['lote_salida'] ?? null,
             'updated_at'    => now(),
         ]);
 

@@ -15,8 +15,8 @@
             @can('purchases.admin')
                 <th scope="col" class="px-6 py-4 text-right">CATEGORÍA</th>
                 <th scope="col" class="px-6 py-4 text-right">INSUMO</th>
-                <th scope="col" class="px-6 py-4 text-right">COSTO</th>
-                <th scope="col" class="px-6 py-4 text-right">MONEDA</th>
+                <th scope="col" class="px-6 py-4 text-right">LOTE ENTRADA</th>
+                <th scope="col" class="px-6 py-4 text-right">LOTE SALIDA</th>
                 <th scope="col" class="px-6 py-4">ACTIONS</th>
             @endcan
         </tr>
@@ -40,8 +40,8 @@
                         {{ $row->categoria ?? '-' }}
                     </td>
                     <td class="px-6 py-3 text-right font-semibold">{{ $row->insumo }}</td>
-                    <td class="px-6 py-3 text-right">{{ number_format((float)($row->costo ?? 0), 4, '.', ',') }}</td>
-                    <td class="px-6 py-3 text-right">{{ $row->moneda }}</td>
+                    <td class="px-6 py-3 text-right">{{ $row->lote ?? '-' }}</td>
+                    <td class="px-6 py-3 text-right">{{ $row->lote_salida ?? '-' }}</td>
 
                     <td class="px-6 py-3 text-center align-middle">
                         <div class="flex justify-center gap-2">
@@ -119,10 +119,10 @@ $(document).ready(function () {
                 $('#wh_fecha_llegada').val(e.fecha_llegada);
                 $('#wh_proveedor').val(e.proveedor);
                 $('#wh_insumo').val(e.insumo);
+                $('#wh_lote').val(e.lote);
+                $('#wh_lote_salida').val(e.lote_salida);
                 $('#wh_cantidad').val(e.cantidad);
                 $('#wh_unidad').val(e.unidad);
-                $('#wh_costo').val(e.costo);
-                $('#wh_moneda').val(e.moneda);
 
                 const desc = (e.descripcion ?? '');
                 const $modal = $('#edit-warehouse-entry');
