@@ -383,7 +383,7 @@ $(function(){
                     modal.find('#supplier-name').text(r.input.sName);
                     
                     modal.find('.transport-info-wrapper').removeClass('hidden').show();
-                    modal.find('#transport_line, #operator, #license_number, #unit_plates, #trailer_plates').prop('required', true);
+                    modal.find('#transport_line, #operator, #license_number, #unit_plates, #trailer_plates').prop('required', false);
 
                 }else{
                     // OUTPUT

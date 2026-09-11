@@ -62,8 +62,7 @@ class InsumoEntradaController extends Controller
             'cantidad'      => ['required','numeric','min:0'],
             'unidad'        => ['required','string','max:20'],
             'insumo'        => ['required','string','max:255'],
-            'costo'         => ['required','numeric','min:0'],
-            'moneda'        => ['required','string','size:3'],
+            'lote'          => ['nullable','string','max:255'],
         ]);
 
         DB::transaction(function () use ($validated) {
@@ -78,8 +77,7 @@ class InsumoEntradaController extends Controller
                 'cantidad'      => $validated['cantidad'],
                 'unidad'        => $validated['unidad'],
                 'insumo'        => $validated['insumo'],
-                'costo'         => $validated['costo'],
-                'moneda'        => strtoupper($validated['moneda']),
+                'lote'          => $validated['lote'] ?? null,
                 'created_at'    => now(),
                 'updated_at'    => now(),
             ]);
@@ -109,26 +107,28 @@ class InsumoEntradaController extends Controller
 
         $validated = $request->validate([
             'fecha_llegada' => ['required','date'],
+            'fecha_salida'  => ['nullable','date'],
             'categoria'     => ['required','in:warehouse,purchases,laboratory,quality,Human resources,finance'],
             'proveedor'     => ['required','string','max:255'],
             'descripcion'   => ['nullable','string','max:2000'],
             'cantidad'      => ['required','numeric','min:0'],
             'unidad'        => ['required','string','max:20'],
             'insumo'        => ['required','string','max:255'],
-            'costo'         => ['required','numeric','min:0'],
-            'moneda'        => ['required','string','size:3'],
+            'lote'          => ['nullable','string','max:255'],
+            'lote_salida'   => ['nullable','string','max:255'],
         ]);
 
         DB::table('insumos_entradas')->where('id', $id)->update([
             'fecha_llegada' => $validated['fecha_llegada'],
+            'fecha_salida'  => $validated['fecha_salida'] ?? null,
             'categoria'     => $validated['categoria'],
             'proveedor'     => $validated['proveedor'],
             'descripcion'   => $validated['descripcion'] ?? null,
             'cantidad'      => $validated['cantidad'],
             'unidad'        => $validated['unidad'],
             'insumo'        => $validated['insumo'],
-            'costo'         => $validated['costo'],
-            'moneda'        => strtoupper($validated['moneda']),
+            'lote'          => $validated['lote'] ?? null,
+            'lote_salida'   => $validated['lote_salida'] ?? null,
             'updated_at'    => now(),
         ]);
 

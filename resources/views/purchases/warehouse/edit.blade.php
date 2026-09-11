@@ -11,9 +11,17 @@
 
         <x-wrapper-form-1>
             <x-wrapper-form-2>
-                <x-label for="wh_fecha_llegada">Fecha llegada</x-label>
+                <x-label for="wh_fecha_llegada">Fecha de entrada</x-label>
                 <x-input-1 required type="date" name="fecha_llegada" id="wh_fecha_llegada"></x-input-1>
             </x-wrapper-form-2>
+
+            <x-wrapper-form-2>
+                <x-label for="wh_fecha_salida">Fecha de salida</x-label>
+                <x-input-1 type="date" name="fecha_salida" id="wh_fecha_salida"></x-input-1>
+            </x-wrapper-form-2>
+        </x-wrapper-form-1>
+
+        <x-wrapper-form-1>
 
             <x-wrapper-form-2>
                 <x-label for="categoria">Categoría</x-label>
@@ -46,6 +54,17 @@
 
         <x-wrapper-form-1>
             <x-wrapper-form-2>
+                <x-label for="wh_lote">Lote de entrada</x-label>
+                <x-input-1 name="lote" id="wh_lote" maxlength="255"></x-input-1>
+            </x-wrapper-form-2>
+            <x-wrapper-form-2>
+                <x-label for="wh_lote_salida">Lote de salida</x-label>
+                <x-input-1 name="lote_salida" id="wh_lote_salida" maxlength="255"></x-input-1>
+            </x-wrapper-form-2>
+        </x-wrapper-form-1>
+
+        <x-wrapper-form-1>
+            <x-wrapper-form-2>
                 <x-label for="wh_cantidad">Cantidad</x-label>
                 <x-input-1 required type="number" step="0.001" min="0" name="cantidad" id="wh_cantidad"></x-input-1>
             </x-wrapper-form-2>
@@ -56,22 +75,7 @@
             </x-wrapper-form-2>
         </x-wrapper-form-1>
 
-        <x-wrapper-form-1>
-            <x-wrapper-form-2>
-                <x-label for="wh_costo">Costo</x-label>
-                <x-input-1 required type="number" step="0.0001" min="0" name="costo" id="wh_costo"></x-input-1>
-            </x-wrapper-form-2>
 
-            <x-wrapper-form-2>
-                <x-label for="wh_moneda">Moneda</x-label>
-                <select name="moneda" id="wh_moneda" required
-                        class="w-full rounded-md border border-gray-300 px-3 py-2">
-                    <option value="MXN">MXN</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                </select>
-            </x-wrapper-form-2>
-        </x-wrapper-form-1>
 
         <x-wrapper-form-1>
             <x-wrapper-form-2>

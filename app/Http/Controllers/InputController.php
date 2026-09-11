@@ -18,8 +18,8 @@ class InputController extends Controller{
     public function show($id){
         $input = Input::select('inputs.supplier_id','security_seal','security_seal_number','inputs.transport_line_id','operator','license_number','unit_plates','trailer_plates','comments','suppliers.name as sName','transport_lines.name as tName')
             ->where('input_id',$id)
-            ->join('suppliers','suppliers.supplier_id','=','inputs.supplier_id')
-            ->join('transport_lines','transport_lines.transport_line_id','=','inputs.transport_line_id')
+            ->leftJoin('suppliers','suppliers.supplier_id','=','inputs.supplier_id')
+            ->leftJoin('transport_lines','transport_lines.transport_line_id','=','inputs.transport_line_id')
             ->first();
         $products = ProductInputs::where('input_id',$id)
             ->join('products','products.product_id','=','product_inputs.product_id')
@@ -49,15 +49,15 @@ class InputController extends Controller{
         ]);
 
         $request->validate([
-            'operator' => 'required|string|max:200',
-            'license_number' => 'required|string|max:50',
-            'security_seal' => 'required|integer|in:0,1',
+            'operator' => 'nullable|string|max:200',
+            'license_number' => 'nullable|string|max:50',
+            'security_seal' => 'nullable|integer|in:0,1',
             'security_seal_number' => 'nullable|string|max:50',
-            'unit_plates' => 'required|string|max:20',
+            'unit_plates' => 'nullable|string|max:20',
             'trailer_plates' => 'nullable|string|max:20',
             'comments' => 'nullable|string|max:300',
             'supplier_id' => 'required|integer',
-            'transport_line_id' => 'required|integer',
+            'transport_line_id' => 'nullable|integer',
             'warehouse_batch' => 'required|array|min:1',
             'warehouse_batch.*' => 'required|string|max:50',
             'quantity' => 'required|array|min:1',

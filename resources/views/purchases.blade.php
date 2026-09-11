@@ -21,7 +21,7 @@ Fecha de actualización: 18-02-2026
 
         <x-nav-button data-button="comparative2" class="option-btn">Yours Comparative Table</x-nav-button>
 
-        @canany(['purchases.warehouse', 'quality.purchases'])
+        @canany(['purchases.warehouse', 'quality.purchases', 'warehouse.show'])
             <x-nav-button data-button="warehouse" class="option-btn">Warehouse</x-nav-button>
         @endcanany
 
