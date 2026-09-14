@@ -93,27 +93,31 @@ Route::get('/contact', function () {
 })->name('contact');
 
 Route::post('/contact', [ContactoController::class, 'store'])
+    ->middleware('throttle:contact-form')
     ->name('contact.store');
 
     // Rutas Públicas del Portal de Clientes
 Route::get('/portal-clientes', [PortalAuthController::class, 'showLoginForm'])->name('portal.login');
-Route::post('/portal-clientes', [PortalAuthController::class, 'login'])->name('portal.login.submit');
+Route::post('/portal-clientes', [PortalAuthController::class, 'login'])
+    ->middleware('throttle:portal-login')
+    ->name('portal.login.submit');
 Route::post('/portal-logout', [PortalAuthController::class, 'logout'])->name('portal.logout');
 
 // Rutas de restablecimiento de contraseña — Portal de Clientes
 Route::get('/portal/forgot-password', [PortalPasswordResetController::class, 'showForgotForm'])
     ->name('portal.password.request');
 Route::post('/portal/forgot-password', [PortalPasswordResetController::class, 'sendResetLink'])
-    ->middleware('throttle:5,1')  // máx. 5 intentos por minuto por IP
+    ->middleware('throttle:portal-reset-password')
     ->name('portal.password.email');
 Route::get('/portal/reset-password/{token}', [PortalPasswordResetController::class, 'showResetForm'])
     ->name('portal.password.reset');
 Route::post('/portal/reset-password', [PortalPasswordResetController::class, 'resetPassword'])
+    ->middleware('throttle:portal-reset-password')
     ->name('portal.password.update');
 
 Route::middleware(RedirectIfClientUnauthenticated::class)->get('/portal/venta/{id}', [PortalAuthController::class, 'verDetalle'])->name('portal.ver-detalle');
 Route::middleware(RedirectIfClientUnauthenticated::class)->get('/portal/dashboard', [PortalAuthController::class, 'dashboard'])->name('portal.dashboard');
-Route::middleware(RedirectIfClientUnauthenticated::class)->get('/portal/descargar-pdf/{id}', [PortalAuthController::class, 'descargarPdf'])->name('portal.descargar-pdf');
+Route::middleware([RedirectIfClientUnauthenticated::class, 'throttle:pdf-reports'])->get('/portal/descargar-pdf/{id}', [PortalAuthController::class, 'descargarPdf'])->name('portal.descargar-pdf');
 Route::middleware(RedirectIfClientUnauthenticated::class)->post('/portal/change-password', [PortalPasswordResetController::class, 'changePassword'])->name('portal.password.change');
 
 Route::middleware([
@@ -212,7 +216,7 @@ Route::middleware([
     Route::get('/purchases/orders', [PurchaseController::class, 'orders'])->name('purchases.orders');
     Route::get('/purchases/get-orders', [PurchaseController::class, 'getPurchaseOrders']) ->name('purchases.getPurchaseOrders');
     Route::resource('purchases', PurchaseController::class);
-    Route::get('/purchases/order-pdf/{id}', [PurchaseController::class, 'streamPdf'])->name('purchases.streamPdf');
+    Route::get('/purchases/order-pdf/{id}', [PurchaseController::class, 'streamPdf'])->middleware('throttle:pdf-reports')->name('purchases.streamPdf');
     Route::get('/purchases/orders/{id}/edit', [PurchaseController::class, 'edit'])->name('purchases.editOrder');
     Route::put('/purchases/orders/{id}', [PurchaseController::class, 'update'])->name('purchases.updateOrder');
     Route::delete('/purchases/orders/{id}', [PurchaseController::class, 'destroy'])->name('purchases.destroyOrder');
@@ -232,7 +236,7 @@ Route::middleware([
     Route::post('/comparative/store', [ComparativeController::class, 'store'])->name('comparative.store');
     Route::get('/comparative', [ComparativeController::class, 'index'])->name('comparative.index');
     Route::delete('/purchases/comparative/{folio}', [ComparativeController::class, 'destroyByFolio'])->name('purchases.comparative.destroy');
-    Route::get('/purchases/comparative-pdf/{folio}', [ComparativeController::class, 'generatePDF'])->name('purchases.comparative.pdf');
+    Route::get('/purchases/comparative-pdf/{folio}', [ComparativeController::class, 'generatePDF'])->middleware('throttle:pdf-reports')->name('purchases.comparative.pdf');
     Route::put('/purchases/comparative/update-all', [ComparativeController::class, 'updateAll'])->name('purchases.comparative.update.all');
 
     Route::get('suppliers-get-directory', [DirectoryController::class, 'getDirectory'])->name('suppliers.getDirectory');
@@ -275,7 +279,7 @@ Route::middleware([
     //quote
     Route::resource('quotes', QuoteController::class)->names([
     'index' => 'quotes',]);
-    Route::get('quotes/{id}/pdf', [QuoteController::class, 'generatePdf'])->name('quotes.pdf');
+    Route::get('quotes/{id}/pdf', [QuoteController::class, 'generatePdf'])->middleware('throttle:pdf-reports')->name('quotes.pdf');
     Route::patch('/quotes/{id}/update-status', [QuoteController::class, 'updateStatus'])->name('quotes.updateStatus');
     
     //quality
@@ -545,7 +549,7 @@ Route::prefix('laboratory/equipments')->group(function () {
     Route::get('/minutas/{id}', [MinutaController::class, 'show']);                    
     Route::post('/minutas/{id}', [MinutaController::class, 'update']);                 
     Route::delete('/minutas/{id}', [MinutaController::class, 'destroy']);
-    Route::get('/minutas/{id}/pdf', [MinutaController::class, 'downloadPDF'])->name('minutas.pdf');
+    Route::get('/minutas/{id}/pdf', [MinutaController::class, 'downloadPDF'])->middleware('throttle:pdf-reports')->name('minutas.pdf');
 
     // Tasks 
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
@@ -654,32 +658,34 @@ Route::prefix('laboratory/equipments')->group(function () {
         ->name('admin.sales.deleteDoc');
 
     //documents
-    Route::get('/delivery-note/{sale_id}', [PdfController::class, 'makeDeliveryNotePDF'])
-        ->name('delivery-note');
-
     Route::get('/open-file/{fileName}', [FileController::class, 'openFile'])
         ->name('openFile');
+
+    Route::middleware('throttle:pdf-reports')->group(function () {
+        Route::get('/delivery-note/{sale_id}', [PdfController::class, 'makeDeliveryNotePDF'])
+            ->name('delivery-note');
+            
+        Route::get('/download-pdf/{movType}/{movId}', [PdfController::class, 'downloadPDF'])
+            ->name('makePDF');
+
+        Route::get('/make-pdf', [PDFController::class, 'make'])
+            ->name('makePDF');
+
+        Route::get('/download-temperature-pdf/{week_a}/{week_b}/{year}/{warehouse_id}', [PdfController::class, 'makeTemperaturePDF'])
+            ->whereNumber(['week_a', 'week_b', 'year', 'warehouse_id'])
+            ->name('temperature-pdf');
+
+        Route::get('requisition-format/{requisition_id}', [PdfController::class, 'makeRequisitionPDF'])
+            ->name('requisition.download');
         
-    Route::get('/download-pdf/{movType}/{movId}', [PdfController::class, 'downloadPDF'])
-        ->name('makePDF');
+        Route::get('/export-inventory', [XlsController::class, 'inventoryXls'])
+            ->name('export-inventory');
+        Route::get('/export-protein', [XlsController::class, 'proteinXls'])
+            ->name('export-protein');
 
-    Route::get('/make-pdf', [PDFController::class, 'make'])
-        ->name('makePDF');
-
-    Route::get('/download-temperature-pdf/{week_a}/{week_b}/{year}/{warehouse_id}', [PdfController::class, 'makeTemperaturePDF'])
-        ->whereNumber(['week_a', 'week_b', 'year', 'warehouse_id'])
-        ->name('temperature-pdf');
-
-    Route::get('requisition-format/{requisition_id}', [PdfController::class, 'makeRequisitionPDF'])
-        ->name('requisition.download');
-    
-    Route::get('/export-inventory', [XlsController::class, 'inventoryXls'])
-        ->name('export-inventory');
-    Route::get('/export-protein', [XlsController::class, 'proteinXls'])
-        ->name('export-protein');
-
-    Route::get('/reports-excel-inventory', [XlsController::class, 'reports'])
-        ->name('reports');
+        Route::get('/reports-excel-inventory', [XlsController::class, 'reports'])
+            ->name('reports');
+    });
     /*
     Route::get('/download-quote/{quote_id}', [PdfController::class, 'makeQuotePDF'])
         ->name('quote');
