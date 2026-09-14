@@ -39,10 +39,11 @@ $(function(){
 
     // Alerta emergente de retención de clientes
     @if(auth()->check() && auth()->user()->unreadNotifications->where('type', 'App\Notifications\CustomerRetentionAlert')->count() > 0)
-        let retentionAlerts = {!! json_encode(auth()->user()->unreadNotifications->where('type', 'App\Notifications\CustomerRetentionAlert')->pluck('data.message')) !!};
+        let retentionAlerts = @json(auth()->user()->unreadNotifications->where('type', 'App\Notifications\CustomerRetentionAlert')->pluck('data.message'));
+        let safeEscape = window.escapeHtml || function(str){ return (str ?? '').toString().replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s])); };
         let htmlContent = '<div style="text-align: left; font-size: 14px; max-height: 200px; overflow-y: auto;">';
         retentionAlerts.forEach(function(msg) {
-            htmlContent += '<div style="padding: 10px; border-bottom: 1px solid #eee; margin-bottom: 5px;">⚠️ ' + msg + '</div>';
+            htmlContent += '<div style="padding: 10px; border-bottom: 1px solid #eee; margin-bottom: 5px;">⚠️ ' + safeEscape(msg) + '</div>';
         });
         htmlContent += '</div>';
 

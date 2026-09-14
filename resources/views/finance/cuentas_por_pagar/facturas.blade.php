@@ -172,7 +172,7 @@ $(function(){
       }
     },
     columns: [
-      { data: 'empresa', render: data => `<span class="font-bold text-gray-700">${data}</span>` },
+      { data: 'empresa', render: data => `<span class="font-bold text-gray-700">${escapeHtml(data)}</span>` },
       { data: 'total', className: 'text-right font-medium', render: function(data, type, row) {
           if (row.moneda === 'USD') {
               const mxn = data * (row.tipo_cambio || 1);
@@ -181,8 +181,8 @@ $(function(){
           }
           return `<div class="whitespace-nowrap">${formatCurrency(data)}</div>`;
       } },
-      { data: 'motivo', render: data => `<span class="text-xs truncate max-w-[150px] block" title="${data}">${data || '—'}</span>` },
-      { data: 'folio_factura', render: data => `<span class="font-semibold text-blue-800">${data || '—'}</span>` },
+      { data: 'motivo', render: data => `<span class="text-xs truncate max-w-[150px] block" title="${escapeHtml(data)}">${escapeHtml(data) || '—'}</span>` },
+      { data: 'folio_factura', render: data => `<span class="font-semibold text-blue-800">${escapeHtml(data) || '—'}</span>` },
       { data: 'fecha_factura', render: data => `<span class="text-xs text-gray-500">${formatDate(data)}</span>` },
       { data: 'fecha_pago', render: data => `<span class="text-xs text-gray-800 font-medium">${formatDate(data)}</span>` },
       { data: 'semana', className: 'text-center', render: data => data ? `<span class="px-2 py-1 bg-gray-100 rounded text-xs font-semibold">Semana ${data}</span>` : '—' },
@@ -198,7 +198,7 @@ $(function(){
       { data: 'comentarios', render: function(data, type, row) {
           let html = '';
           if (data) {
-              html += `<span class="text-xs text-gray-600 break-words max-w-[150px] block" title="${data}">${data}</span>`;
+              html += `<span class="text-xs text-gray-600 break-words max-w-[150px] block" title="${escapeHtml(data)}">${escapeHtml(data)}</span>`;
           } else if (!row.comentario_img) {
               html += `<span class="text-xs text-gray-600">—</span>`;
           }

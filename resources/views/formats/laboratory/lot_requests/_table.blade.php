@@ -184,11 +184,12 @@ $(function () {
   // ver comentario completo
   $(document).on('click', '.view-comment', function () {
     const comment = decodeURIComponent($(this).data('comment'));
+    const safeEscape = window.escapeHtml || function(str){ return (str ?? '').toString().replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s])); };
 
     if (window.Swal) {
       Swal.fire({
         title: 'Comentario completo',
-        html: `<div class="text-left whitespace-pre-wrap text-gray-700">${comment}</div>`,
+        html: `<div class="text-left whitespace-pre-wrap text-gray-700">${safeEscape(comment)}</div>`,
         width: '600px',
         confirmButtonText: 'Cerrar'
       });

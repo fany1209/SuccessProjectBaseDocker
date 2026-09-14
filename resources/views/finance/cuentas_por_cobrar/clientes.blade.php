@@ -124,11 +124,11 @@ $(function(){
       }
     },
     columns: [
-      { data: 'folio', render: data => `<span class="font-bold text-gray-700">#${data}</span>` },
+      { data: 'folio', render: data => `<span class="font-bold text-gray-700">#${escapeHtml(data)}</span>` },
       { data: 'fecha_emision', render: formatDate },
-      { data: 'cliente_name', render: data => `<span class="font-semibold text-blue-800">${data}</span>` },
-      { data: 'asesor' },
-      { data: 'documento', render: data => `<span class="px-2 py-1 bg-gray-100 rounded text-xs font-medium">${data}</span>` },
+      { data: 'cliente_name', render: data => `<span class="font-semibold text-blue-800">${escapeHtml(data)}</span>` },
+      { data: 'asesor', render: data => escapeHtml(data || '—') },
+      { data: 'documento', render: data => `<span class="px-2 py-1 bg-gray-100 rounded text-xs font-medium">${escapeHtml(data)}</span>` },
       { data: 'metodo_pago', render: data => {
           let color = data === 'PPD' ? 'bg-orange-100 text-orange-800' : (data === 'PUE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800');
           return `<span class="px-2 py-1 rounded text-xs font-semibold ${color}">${data}</span>`;

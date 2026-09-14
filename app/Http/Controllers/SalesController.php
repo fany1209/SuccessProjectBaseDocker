@@ -623,13 +623,14 @@ class SalesController extends Controller
                 } 
                 elseif ($action === 'postpone') {
                     $request->validate(['reason' => 'required', 'date' => 'required|date']);
+                    $cleanedReason = strip_tags($request->reason);
                     $sale->almacen_status = 'postponed';
-                    $sale->almacen_comment = $request->reason;
+                    $sale->almacen_comment = $cleanedReason;
                     $sale->almacen_postponed_date = $request->date;
                     $sale->save();
                     
                     if ($userVentas) {
-                        $userVentas->notify(new SaleAlmacenNotification($sale, 'postponed', "Tu venta Folio " . $sale->folio . " fue pospuesta por almacén. Recordatorio: " . $request->date, $request->reason, $request->date));
+                        $userVentas->notify(new SaleAlmacenNotification($sale, 'postponed', "Tu venta Folio " . $sale->folio . " fue pospuesta por almacén. Recordatorio: " . $request->date, $cleanedReason, $request->date));
                     }
                     return response()->json(['success' => true, 'message' => 'Venta pospuesta. Se te recordará el ' . $request->date]);
                 }
@@ -643,8 +644,9 @@ class SalesController extends Controller
                 }
                 elseif ($action === 'cancel') {
                     $request->validate(['reason' => 'required']);
+                    $cleanedReason = strip_tags($request->reason);
                     $sale->almacen_status = 'cancelled';
-                    $sale->almacen_comment = $request->reason;
+                    $sale->almacen_comment = $cleanedReason;
                     $sale->sales_status_id = 5; // Cancelada
                     $sale->save();
                     
@@ -652,7 +654,7 @@ class SalesController extends Controller
                     \App\Models\CxcDetail::where('sale_id', $sale->sale_id)->update(['is_canceled' => 1]);
                     
                     if ($userVentas) {
-                        $userVentas->notify(new SaleAlmacenNotification($sale, 'cancelled', "Tu venta Folio " . $sale->folio . " fue cancelada por almacén.", $request->reason));
+                        $userVentas->notify(new SaleAlmacenNotification($sale, 'cancelled', "Tu venta Folio " . $sale->folio . " fue cancelada por almacén.", $cleanedReason));
                     }
                     return response()->json(['success' => true, 'message' => 'Venta cancelada.']);
                 }

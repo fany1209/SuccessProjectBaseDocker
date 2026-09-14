@@ -158,15 +158,16 @@
 
         // Alerta emergente de pagos pendientes
         @if(auth()->check() && auth()->user()->unreadNotifications->where('type', 'App\Notifications\PendingPaymentAlert')->count() > 0)
-            let pendingAlerts = {!! json_encode(auth()->user()->unreadNotifications->where('type', 'App\Notifications\PendingPaymentAlert')->pluck('data.pending_sales')->first()) !!};
+            let pendingAlerts = @json(auth()->user()->unreadNotifications->where('type', 'App\Notifications\PendingPaymentAlert')->pluck('data.pending_sales')->first());
             
             if (pendingAlerts && pendingAlerts.length > 0) {
+                let safeEscape = window.escapeHtml || function(str){ return (str ?? '').toString().replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s])); };
                 let htmlContent = '<div style="text-align: left; font-size: 14px; max-height: 250px; overflow-y: auto;">';
                 pendingAlerts.forEach(function(sale) {
                     htmlContent += '<div style="padding: 10px; border-bottom: 1px solid #eee; margin-bottom: 5px;">';
-                    htmlContent += '<strong>Cliente:</strong> ' + sale.customer + '<br>';
-                    htmlContent += '<strong>Venta Folio:</strong> ' + sale.folio + '<br>';
-                    htmlContent += '<strong style="color:red;">Días de atraso:</strong> ' + sale.days_late + ' días';
+                    htmlContent += '<strong>Cliente:</strong> ' + safeEscape(sale.customer) + '<br>';
+                    htmlContent += '<strong>Venta Folio:</strong> ' + safeEscape(sale.folio) + '<br>';
+                    htmlContent += '<strong style="color:red;">Días de atraso:</strong> ' + safeEscape(sale.days_late) + ' días';
                     htmlContent += '</div>';
                 });
                 htmlContent += '</div>';

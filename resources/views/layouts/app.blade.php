@@ -44,6 +44,17 @@
     <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
 
     <script>
+        // Global HTML Entity Sanitizer to prevent Stored / Reflected XSS
+        window.escapeHtml = function(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        };
+
         $(document).ready(function(){
             $.ajaxSetup({
                 headers: {
@@ -65,7 +76,7 @@
                         position: 'top-end',
                         icon: 'info',
                         title: '<span class="text-indigo-600 font-bold uppercase">¡Nueva Tarea!</span>',
-                        html: `Te han asignado: <b>${data.title}</b>`,
+                        html: `Te han asignado: <b>${escapeHtml(data.title)}</b>`,
                         showConfirmButton: false,
                         timer: 8000,
                         timerProgressBar: true,
@@ -120,7 +131,7 @@
                                                     <span class="text-sm font-bold">Notificación</span>
                                                     <small class="text-gray-400">Ahora mismo</small>
                                                 </div>
-                                                <p class="text-xs">${msg}</p>
+                                                <p class="text-xs">${escapeHtml(msg)}</p>
                                                 ${urlLink}
                                             </div>
                                         `;
@@ -152,9 +163,9 @@
                                 Swal.fire({
                                     icon: 'warning',
                                     title: '📦 Recordatorio de Venta Pospuesta',
-                                    html: `<p class="text-base mb-2">La venta <strong>Folio ${sale.folio}</strong> fue pospuesta y requiere tu atención.</p>
-                                           <p class="text-sm text-gray-500"><strong>Motivo:</strong> ${sale.almacen_comment || 'Sin motivo'}</p>
-                                           <p class="text-sm text-gray-500"><strong>Fecha recordatorio:</strong> ${sale.almacen_postponed_date}</p>`,
+                                    html: `<p class="text-base mb-2">La venta <strong>Folio ${escapeHtml(sale.folio)}</strong> fue pospuesta y requiere tu atención.</p>
+                                           <p class="text-sm text-gray-500"><strong>Motivo:</strong> ${escapeHtml(sale.almacen_comment || 'Sin motivo')}</p>
+                                           <p class="text-sm text-gray-500"><strong>Fecha recordatorio:</strong> ${escapeHtml(sale.almacen_postponed_date)}</p>`,
                                     showCancelButton: true,
                                     confirmButtonText: 'Ver detalles',
                                     cancelButtonText: 'Cerrar',

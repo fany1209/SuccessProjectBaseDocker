@@ -277,14 +277,14 @@ if (typeof Pusher !== 'undefined') {
     });
 
     var channel = pusher.subscribe('user-tasks.{{ auth()->id() }}');
-    
     channel.bind('task-assigned', function(data) {
+        let safeEscape = window.escapeHtml || function(str){ return (str ?? '').toString().replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s])); };
         Swal.fire({
             toast: true,
             position: 'top-end',
             icon: 'info',
             title: '<span class="text-indigo-600 font-bold uppercase">¡Nueva Tarea!</span>',
-            html: `Te han asignado: <b>${data.title}</b>`,
+            html: `Te han asignado: <b>${safeEscape(data.title)}</b>`,
             showConfirmButton: false,
             timer: 6000,
             timerProgressBar: true

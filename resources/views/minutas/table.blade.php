@@ -106,14 +106,16 @@ $(document).ready(function(){
                 let m = response.minuta;
                 let father = $('#view-minuta');
 
-                let asistentes = m.asistente_nombre ? m.asistente_nombre.split(', ').map(n => `<li>• ${n}</li>`).join('') : 'Ninguno';
-                let acuerdos = m.acuerdo ? m.acuerdo.split(' | ').map(a => `<li class="mb-1 text-xs">📌 ${a}</li>`).join('') : 'Sin acuerdos';
+                let safeEscape = window.escapeHtml || function(str){ return (str ?? '').toString().replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s])); };
+
+                let asistentes = m.asistente_nombre ? m.asistente_nombre.split(', ').map(n => `<li>• ${safeEscape(n)}</li>`).join('') : 'Ninguno';
+                let acuerdos = m.acuerdo ? m.acuerdo.split(' | ').map(a => `<li class="mb-1 text-xs">📌 ${safeEscape(a)}</li>`).join('') : 'Sin acuerdos';
 
                 let html = `
                     <div class="bg-gray-50 p-3 rounded mb-4 grid grid-cols-2 gap-2 text-sm border">
-                        <p><strong>📅 Fecha:</strong> ${m.fecha_hora}</p>
-                        <p><strong>📍 Lugar:</strong> ${m.lugar}</p>
-                        <p class="col-span-2 border-t pt-1"><strong>🎙️ Ponente:</strong> ${m.ponente || 'No asignado'}</p>
+                        <p><strong>📅 Fecha:</strong> ${safeEscape(m.fecha_hora)}</p>
+                        <p><strong>📍 Lugar:</strong> ${safeEscape(m.lugar)}</p>
+                        <p class="col-span-2 border-t pt-1"><strong>🎙️ Ponente:</strong> ${safeEscape(m.ponente || 'No asignado')}</p>
                     </div>
                     <div class="mb-4">
                         <h4 class="font-bold text-purple-700 border-b text-xs mb-2">ASISTENTES</h4>
