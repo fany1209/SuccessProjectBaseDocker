@@ -29,13 +29,13 @@ class LotRequestController extends Controller
         ]);
 
         DB::table('lot_requests')->insert([
-            'department'   => $request->department,
-            'comments'     => $request->comments,
-            'product'      => $request->product,
-            'quantity'     => $request->quantity,
-            'provider'     => $request->provider,
-            'collector'    => $request->collector,
-            'sector'       => $request->sector,
+            'department'   => strip_tags($request->department),
+            'comments'     => $request->comments ? strip_tags($request->comments) : null,
+            'product'      => $request->product ? strip_tags($request->product) : null,
+            'quantity'     => $request->quantity ? strip_tags($request->quantity) : null,
+            'provider'     => $request->provider ? strip_tags($request->provider) : null,
+            'collector'    => $request->collector ? strip_tags($request->collector) : null,
+            'sector'       => $request->sector ? strip_tags($request->sector) : null,
             'requested_at' => now(),
             'status'       => 'pendiente',
         ]);

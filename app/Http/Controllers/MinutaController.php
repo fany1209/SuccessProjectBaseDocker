@@ -59,15 +59,21 @@ class MinutaController extends Controller
         $data = $request->all();
         $user = auth()->user();
 
+        $data['lugar']        = strip_tags($request->input('lugar', ''));
+        $data['tema_general'] = strip_tags($request->input('tema_general', ''));
+        $data['ponente']      = strip_tags($request->input('ponente', ''));
+
         if ($request->has('asistente_nombre')) {
-            $data['asistente_nombre'] = implode(", ", array_filter($request->asistente_nombre));
-            $data['asistente_departamento'] = implode(", ", array_filter($request->asistente_departamento));
+            $nombres = array_map('strip_tags', array_filter($request->asistente_nombre));
+            $deptos  = array_map('strip_tags', array_filter($request->asistente_departamento));
+            $data['asistente_nombre'] = implode(", ", $nombres);
+            $data['asistente_departamento'] = implode(", ", $deptos);
         }
 
         if ($request->has('acuerdo')) {
-            $data['tema_tratado'] = implode(" | ", array_filter($request->tema_tratado));
-            $data['acuerdo']      = implode(" | ", array_filter($request->acuerdo));
-            $data['responsable']  = implode(", ", array_filter($request->responsable));
+            $data['tema_tratado'] = implode(" | ", array_map('strip_tags', array_filter($request->tema_tratado)));
+            $data['acuerdo']      = implode(" | ", array_map('strip_tags', array_filter($request->acuerdo)));
+            $data['responsable']  = implode(", ", array_map('strip_tags', array_filter($request->responsable)));
 
             if ($user->can('admin.dashboard')) {
                 
