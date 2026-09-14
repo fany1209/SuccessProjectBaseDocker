@@ -681,8 +681,8 @@ class LaboratoryController extends Controller
     }
     public function muestrasIndex()
     {
-        $products = \App\Models\Product::all(); 
-        $customers = \App\Models\Customer::all();
+        $products = \App\Models\Product::orderBy('name', 'asc')->get(['product_id', 'name', 'sku']); 
+        $customers = \App\Models\Customer::orderBy('name', 'asc')->get();
 
         $batchesByProduct = \DB::table('inventory')
             ->select('product_id', 'batch')

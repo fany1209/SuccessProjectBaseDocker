@@ -1,3 +1,4 @@
+@push('css')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
     .select2-container--default .select2-selection--single {
@@ -14,7 +15,6 @@
     .select2-container--default .select2-selection--single .select2-selection__arrow {
         height: 36px;
     }
-    /* Fix for Select2 width in hidden modals */
     .select2-container {
         width: 100% !important;
     }
@@ -22,6 +22,35 @@
         z-index: 99999 !important;
     }
 </style>
+@endpush
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container--default .select2-selection--single {
+        height: 38px;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        display: flex;
+        align-items: center;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: normal;
+        padding-left: 0.75rem;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px;
+    }
+    .select2-container {
+        width: 100% !important;
+    }
+    .select2-container--open {
+        z-index: 99999 !important;
+    }
+</style>
+
+@push('js')
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+@endpush
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <section class="col-span-12 w-full flex flex-col items-center px-1">
   <div class="flex flex-col justify-center items-center w-full">
@@ -138,7 +167,13 @@
             const modalCreate = $('#02');
             if(modalCreate.length) {
                 modalCreate.find('form')[0].reset(); 
+                if ($('#customer_id').length && typeof $('#customer_id').select2 === 'function') {
+                    $('#customer_id').val('').trigger('change.select2');
+                }
                 modalCreate.removeClass('hidden').show();
+                if (typeof window.initSampleForm02 === 'function') {
+                    window.initSampleForm02();
+                }
             }
         });
 

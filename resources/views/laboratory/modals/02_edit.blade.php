@@ -1,3 +1,8 @@
+@php
+  $sortedProducts = collect($products ?? [])->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
+  $sortedCustomers = collect($customers ?? [])->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
+@endphp
+
 <x-modal id="edit-02">
   <form id="edit-solicitud-muestras-form" method="POST" class="space-y-4">
     @csrf
@@ -35,7 +40,7 @@
           <label for="edit_customer_id" class="block text-sm font-semibold">Cliente</label>
           <select name="customer_id" id="edit_customer_id" class="w-full border rounded px-2 py-1">
             <option value="">— Selecciona un cliente —</option>
-            @foreach($customers as $c)
+            @foreach($sortedCustomers as $c)
               @php
                 $addrParts = array_filter([$c->address, $c->city, $c->state]);
                 $fullAddr = implode(', ', $addrParts);
@@ -149,7 +154,7 @@
 
     function getEditSampleHtml(idx, item = null) {
         let productsOptions = '<option value="">— Selecciona un producto —</option>';
-        @foreach($products as $p)
+        @foreach($sortedProducts as $p)
             productsOptions += `<option value="{{ $p->product_id }}" data-sku="{{ $p->sku }}" ${item && item.product_id == {{ $p->product_id }} ? 'selected' : ''}>{{ $p->name }}</option>`;
         @endforeach
 
@@ -232,14 +237,38 @@
         </div>`;
     }
 
+    function ensureSelect2(cb) {
+        if (window.jQuery && typeof window.jQuery.fn.select2 === 'function') {
+            cb(window.jQuery);
+        } else {
+            let s = document.getElementById('select2-cdn-script');
+            if (!s) {
+                s = document.createElement('script');
+                s.id = 'select2-cdn-script';
+                s.src = 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js';
+                document.head.appendChild(s);
+            }
+            const checkInterval = setInterval(function() {
+                if (window.jQuery && typeof window.jQuery.fn.select2 === 'function') {
+                    clearInterval(checkInterval);
+                    cb(window.jQuery);
+                }
+            }, 50);
+        }
+    }
+
     function initEditSelect2(idx) {
-        if(window.jQuery && $.fn.select2) {
-            $('#edit_product_select_' + idx).select2({
-                width: '100%'
-            }).on('select2:select', function(e) {
+        ensureSelect2(function($) {
+            const $sel = $('#edit_product_select_' + idx);
+            if (!$sel.length) return;
+            $sel.select2({
+                width: '100%',
+                placeholder: '— Selecciona un producto —',
+                allowClear: true
+            }).on('select2:select select2:clear change', function(e) {
                 this.dispatchEvent(new Event('change', { bubbles: true }));
             });
-        }
+        });
     }
 
     window.renderEditSamples = function(items) {
@@ -258,11 +287,18 @@
         }
         
         // Also ensure customer select2 is initialized/refreshed
-        if(window.jQuery && $.fn.select2) {
-            $('#edit_customer_id').select2({ width: '100%' }).on('select2:select', function(e) {
-                this.dispatchEvent(new Event('change', { bubbles: true }));
-            });
-        }
+        ensureSelect2(function($) {
+            const $cust = $('#edit_customer_id');
+            if ($cust.length && !$cust.hasClass('select2-hidden-accessible')) {
+                $cust.select2({
+                    width: '100%',
+                    placeholder: '— Selecciona un cliente —',
+                    allowClear: true
+                }).on('select2:select select2:clear change', function(e) {
+                    this.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+            }
+        });
     };
 
     document.getElementById('edit-add-sample-btn')?.addEventListener('click', function() {

@@ -1,3 +1,15 @@
+@php
+  $sortedProducts = collect($products ?? [])->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
+  $sortedCustomers = collect($customers ?? [])->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
+@endphp
+
+<template id="product-options-template-02">
+  <option value="">— Selecciona un producto —</option>
+  @foreach($sortedProducts as $p)
+    <option value="{{ $p->product_id }}" data-sku="{{ $p->sku }}">{{ $p->name }}</option>
+  @endforeach
+</template>
+
 <x-modal id="02">
   <form id="solicitud-muestras-form" method="POST" action="{{ route('laboratory.pdf2') }}" class="space-y-4">
     @csrf
@@ -22,9 +34,7 @@
         <span>DATOS DE LA MUESTRA</span>
         <button type="button" id="add-sample-btn" class="bg-white text-green-700 hover:bg-gray-100 px-2 py-1 rounded text-xs font-bold shadow">+ Añadir Muestra</button>
       </div>
-      <div class="p-3" id="samples-container">
-        <!-- Samples will be added here via JS -->
-      </div>
+      <div class="p-3" id="samples-container"></div>
     </div>
 
     <div class="border rounded">
@@ -35,7 +45,7 @@
           <label for="customer_id" class="block text-sm font-semibold">Cliente</label>
           <select name="customer_id" id="customer_id" class="w-full border rounded px-2 py-1">
             <option value="">— Selecciona un cliente —</option>
-            @foreach($customers as $c)
+            @foreach($sortedCustomers as $c)
               @php
                 $addrParts = array_filter([
                   $c->address ?? null,
@@ -155,10 +165,8 @@
 
         // Template for samples
         function getSampleHtml(idx) {
-            let productsOptions = '<option value="">— Selecciona un producto —</option>';
-            @foreach($products as $p)
-                productsOptions += `<option value="{{ $p->product_id }}" data-sku="{{ $p->sku }}">{{ $p->name }}</option>`;
-            @endforeach
+            const tpl = document.getElementById('product-options-template-02');
+            const productsOptions = tpl ? tpl.innerHTML : '<option value="">— Selecciona un producto —</option>';
 
             return `
             <div class="sample-row border p-3 mb-3 bg-gray-50 rounded relative">
@@ -225,20 +233,84 @@
 
         const samplesContainer = document.getElementById('samples-container');
         
-        function initSelect2(idx) {
-            if(window.jQuery && $.fn.select2) {
-                $('#product_select_' + idx).select2({
-                    width: '100%'
-                }).on('select2:select', function(e) {
-                    this.dispatchEvent(new Event('change', { bubbles: true }));
-                });
+        function ensureSelect2(cb) {
+            if (window.jQuery && typeof window.jQuery.fn.select2 === 'function') {
+                cb(window.jQuery);
+            } else {
+                let s = document.getElementById('select2-cdn-script');
+                if (!s) {
+                    s = document.createElement('script');
+                    s.id = 'select2-cdn-script';
+                    s.src = 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js';
+                    document.head.appendChild(s);
+                }
+                const checkInterval = setInterval(function() {
+                    if (window.jQuery && typeof window.jQuery.fn.select2 === 'function') {
+                        clearInterval(checkInterval);
+                        cb(window.jQuery);
+                    }
+                }, 50);
             }
         }
 
-        document.getElementById('add-sample-btn')?.addEventListener('click', function() {
+        function initSelect2(idx) {
+            ensureSelect2(function($) {
+                const $sel = $('#product_select_' + idx);
+                if (!$sel.length) return;
+                $sel.select2({
+                    width: '100%',
+                    placeholder: '— Selecciona un producto —',
+                    allowClear: true
+                }).on('select2:select select2:clear change', function(e) {
+                    this.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+            });
+        }
+
+        function initCustomerSelect2() {
+            ensureSelect2(function($) {
+                const $cust = $('#customer_id');
+                if ($cust.length && !$cust.hasClass('select2-hidden-accessible')) {
+                    $cust.select2({
+                        width: '100%',
+                        placeholder: '— Selecciona un cliente —',
+                        allowClear: true
+                    }).on('select2:select select2:clear change', function(e) {
+                        this.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                }
+            });
+        }
+
+        function addSample() {
             let currentIdx = sampleIndex++;
             samplesContainer.insertAdjacentHTML('beforeend', getSampleHtml(currentIdx));
             initSelect2(currentIdx);
+        }
+
+        window.initSampleForm02 = function() {
+            if (samplesContainer.querySelectorAll('.sample-row').length === 0) {
+                addSample();
+            } else {
+                samplesContainer.querySelectorAll('.product-select').forEach(function(el) {
+                    ensureSelect2(function($) {
+                        if (!$(el).hasClass('select2-hidden-accessible')) {
+                            $(el).select2({
+                                width: '100%',
+                                placeholder: '— Selecciona un producto —',
+                                allowClear: true
+                            }).on('select2:select select2:clear change', function(e) {
+                                this.dispatchEvent(new Event('change', { bubbles: true }));
+                            });
+                        }
+                    });
+                });
+            }
+            initCustomerSelect2();
+        };
+
+        document.getElementById('add-sample-btn')?.addEventListener('click', function() {
+            addSample();
         });
 
         samplesContainer.addEventListener('change', function(e) {
@@ -318,7 +390,10 @@
                     setTimeout(() => {
                         form.reset();
                         samplesContainer.innerHTML = '';
-                        samplesContainer.insertAdjacentHTML('beforeend', getSampleHtml(sampleIndex++));
+                        addSample();
+                        if ($('#customer_id').length && typeof $('#customer_id').select2 === 'function') {
+                            $('#customer_id').val('').trigger('change.select2');
+                        }
                         $('#02').addClass('hidden').hide();
                         $('#customer-requests-table').DataTable().ajax.reload(null, false);
                     }, 2000);
@@ -333,12 +408,8 @@
             });
         });
 
-        // Initialize with one sample
-        if(samplesContainer && samplesContainer.innerHTML.trim() === '') {
-            let currentIdx = sampleIndex++;
-            samplesContainer.insertAdjacentHTML('beforeend', getSampleHtml(currentIdx));
-            initSelect2(currentIdx);
-        }
+        // Initialize sample and customer on load
+        window.initSampleForm02();
 
         const entregaOtroChk = document.getElementById('entrega_otro_chk');
         const entregaOtroTxt = document.getElementById('entrega_otro_txt');
@@ -356,12 +427,6 @@
             document.querySelector('input[name="cliente_correo"]').value = opt.getAttribute('data-email') || '';
             document.querySelector('input[name="cliente_telefono"]').value = opt.getAttribute('data-phone') || '';
         });
-
-        if(window.jQuery && $.fn.select2) {
-            $('#customer_id').select2({ width: '100%' }).on('select2:select', function(e) {
-                this.dispatchEvent(new Event('change', { bubbles: true }));
-            });
-        }
     })();
   </script>
 </x-modal>
