@@ -79,10 +79,12 @@ Route::middleware([
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard');
 
-    Route::get('products/image/{id}/delete', [ProductsController::class, 'deleteImage'])
+    Route::delete('products/image/{id}', [ProductsController::class, 'deleteImage'])
+        ->whereNumber('id')
         ->name('products.deleteImage');
 
-    Route::get('products/file/{id}/delete', [ProductsController::class, 'deleteFile'])
+    Route::delete('products/file/{id}', [ProductsController::class, 'deleteFile'])
+        ->whereNumber('id')
         ->name('products.deleteFile');
 
     Route::get('warehouses/{warehouse}/modal', [WarehousesController::class, 'modalForm'])

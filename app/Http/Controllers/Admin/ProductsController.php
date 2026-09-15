@@ -228,17 +228,57 @@ class ProductsController extends Controller
 
     public function deleteImage($id)
     {
+        $id = filter_var($id, FILTER_VALIDATE_INT);
+        if (!$id) {
+            return back()->withErrors('Identificador de imagen no válido.');
+        }
+
         $image = Image::findOrFail($id);
-        Storage::delete($image->path);
+
+        if ($image->path) {
+            if (Storage::disk('public')->exists($image->path)) {
+                Storage::disk('public')->delete($image->path);
+            } elseif (Storage::exists($image->path)) {
+                Storage::delete($image->path);
+            }
+
+            // Soporte dual producción cPanel public_html
+            $productionPath = base_path('../public_html/products/' . basename($image->path));
+            if (file_exists($productionPath) && is_file($productionPath)) {
+                @unlink($productionPath);
+            }
+        }
+
         $image->delete();
+
         return back()->with('success', 'Image deleted successfully.');
     }
 
     public function deleteFile($id)
     {
+        $id = filter_var($id, FILTER_VALIDATE_INT);
+        if (!$id) {
+            return back()->withErrors('Identificador de archivo no válido.');
+        }
+
         $file = File::findOrFail($id);
-        Storage::delete($file->path);
+
+        if ($file->path) {
+            if (Storage::disk('public')->exists($file->path)) {
+                Storage::disk('public')->delete($file->path);
+            } elseif (Storage::exists($file->path)) {
+                Storage::delete($file->path);
+            }
+
+            // Soporte dual producción cPanel public_html
+            $productionPath = base_path('../public_html/products/files/' . basename($file->path));
+            if (file_exists($productionPath) && is_file($productionPath)) {
+                @unlink($productionPath);
+            }
+        }
+
         $file->delete();
+
         return back()->with('success', 'File deleted successfully.');
     }
 }

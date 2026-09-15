@@ -110,14 +110,19 @@ stefany
                         <div id="image-preview" class="mt-2 d-flex flex-wrap"></div>
                         @if(isset($linked_images))
                             <div class="mt-2">
-                                
                                 @foreach($linked_images as $img)
                                     <div class="d-flex align-items-center mb-1">
                                         @php
                                             $image_name = basename($img->path);
                                         @endphp
-                                        <img src="/image/{{ $image_name }}" width="50">
-                                        <a href="{{ route('admin.products.deleteImage', $img->image_id) }}" class="btn btn-sm btn-danger">Delete</a>
+                                        <img src="/image/{{ $image_name }}" width="50" class="rounded border">
+                                        <form action="{{ route('admin.products.deleteImage', $img->image_id) }}" method="POST" class="d-inline ml-2 mb-0">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Está seguro de eliminar esta imagen?');">
+                                                <i class="fas fa-trash-alt"></i> Delete
+                                            </button>
+                                        </form>
                                     </div>
                                 @endforeach
                             </div>
@@ -136,8 +141,13 @@ stefany
                                         <a href="{{ asset('storage/' . $file->path) }}" target="_blank">
                                             📄 {{ basename($file->path) }}
                                         </a>
-                                        <a href="{{ route('admin.products.deleteFile', $file->id ?? $file->file_id) }}" 
-                                        class="btn btn-sm btn-danger ms-2">Delete</a>
+                                        <form action="{{ route('admin.products.deleteFile', $file->id ?? $file->file_id) }}" method="POST" class="d-inline ml-2 mb-0">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Está seguro de eliminar este archivo?');">
+                                                <i class="fas fa-trash-alt"></i> Delete
+                                            </button>
+                                        </form>
                                     </div>
                                 @endforeach
                             </div>
