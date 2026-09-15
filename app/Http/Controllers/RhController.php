@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class RhController extends Controller
@@ -197,40 +198,115 @@ class RhController extends Controller
     public function uploadCsv(Request $request)
     {
         $request->validate(['csv_file' => 'required|file|mimes:csv,txt|max:10240']);
+
         $path = $request->file('csv_file')->getRealPath();
         $file = fopen($path, 'r');
-        
+        if (!$file) {
+            return back()->withErrors('No se pudo abrir el archivo CSV.');
+        }
+
         $primeraLinea = fgets($file);
         $delimitador = strpos($primeraLinea, ';') !== false ? ';' : ',';
         rewind($file);
-        fgetcsv($file, 1000, $delimitador); 
+        fgetcsv($file, 1000, $delimitador); // Descartar encabezado
 
-        while (($row = fgetcsv($file, 1000, $delimitador)) !== false) {
-            if (!isset($row[0]) || empty(trim($row[0]))) continue;
-            
-            $nombre = trim($row[0]);
-            $nombreLower = mb_strtolower($nombre, 'UTF-8');
-            if ($nombreLower === 'fanny') $nombre = 'Fany';
-            if ($nombreLower === 'flor de maria gutierrez sanchez' || $nombreLower === 'flor de maría gutiérrez sánchez') $nombre = 'Flor de María Gutiérrez Sánchez';
-            if ($nombreLower === 'manola ramirez perez') $nombre = 'Manola Ramirez';
+        $batchSize = 500;
+        $batch = [];
+        $totalImportados = 0;
+        $now = now();
 
-            $fechaLimpia = substr(trim($row[1]), 0, 10);
-            $estatus = isset($row[6]) && !empty(trim($row[6])) ? trim($row[6]) : 'Normal';
-            $comentarios = isset($row[7]) && !empty(trim($row[7])) ? trim($row[7]) : null;
+        DB::beginTransaction();
 
-            DB::table('asistencias')->updateOrInsert(
-                ['nombre' => $nombre, 'fecha' => $fechaLimpia],
-                [
-                    'entrada'        => !empty(trim($row[2])) ? trim($row[2]) : null,
-                    'salida_comida'  => !empty(trim($row[3])) ? trim($row[3]) : null,
-                    'regreso_comida' => !empty(trim($row[4])) ? trim($row[4]) : null,
-                    'salida_final'   => !empty(trim($row[5])) ? trim($row[5]) : null,
+        try {
+            while (($row = fgetcsv($file, 1000, $delimitador)) !== false) {
+                if (!isset($row[0]) || empty(trim($row[0]))) continue;
+
+                $nombre = $this->normalizeEmployeeName($row[0]);
+                $fechaRaw = trim($row[1] ?? '');
+                if (empty($fechaRaw)) continue;
+
+                $fechaLimpia = substr($fechaRaw, 0, 10);
+                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaLimpia)) {
+                    try {
+                        $fechaLimpia = Carbon::parse($fechaRaw)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        continue;
+                    }
+                }
+
+                $estatus = isset($row[6]) && !empty(trim($row[6])) ? trim($row[6]) : 'Normal';
+                $comentarios = isset($row[7]) && !empty(trim($row[7])) ? trim($row[7]) : null;
+
+                // Deduplicación en memoria: evita colisiones dentro del mismo lote
+                $key = $nombre . '|' . $fechaLimpia;
+                $batch[$key] = [
+                    'nombre'         => $nombre,
+                    'fecha'          => $fechaLimpia,
+                    'entrada'        => !empty(trim($row[2] ?? '')) ? trim($row[2]) : null,
+                    'salida_comida'  => !empty(trim($row[3] ?? '')) ? trim($row[3]) : null,
+                    'regreso_comida' => !empty(trim($row[4] ?? '')) ? trim($row[4]) : null,
+                    'salida_final'   => !empty(trim($row[5] ?? '')) ? trim($row[5]) : null,
                     'tipo'           => $estatus,
-                    'comentario'     => $comentarios
-                ]
-            );
+                    'comentario'     => $comentarios,
+                    'updated_at'     => $now,
+                ];
+
+                if (count($batch) >= $batchSize) {
+                    $this->flushBatch($batch);
+                    $totalImportados += count($batch);
+                    $batch = [];
+                }
+            }
+
+            if (!empty($batch)) {
+                $this->flushBatch($batch);
+                $totalImportados += count($batch);
+                $batch = [];
+            }
+
+            DB::commit();
+            fclose($file);
+
+            return back()->with('success', "¡Datos importados correctamente! Se procesaron {$totalImportados} registros de asistencia de forma eficiente.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            fclose($file);
+            Log::error('Error en importación masiva de asistencias: ' . $e->getMessage());
+
+            return back()->withErrors('Error al procesar el archivo CSV: ' . $e->getMessage());
         }
-        fclose($file);
-        return back()->with('success', '¡Datos importados correctamente!');
+    }
+
+    /**
+     * Inserta o actualiza un lote de asistencias en una sola consulta atómica optimizada.
+     */
+    protected function flushBatch(array $batch): void
+    {
+        if (empty($batch)) return;
+
+        DB::table('asistencias')->upsert(
+            array_values($batch),
+            ['nombre', 'fecha'],
+            ['entrada', 'salida_comida', 'regreso_comida', 'salida_final', 'tipo', 'comentario', 'updated_at']
+        );
+    }
+
+    /**
+     * Normaliza variaciones o alias de nombres de empleados.
+     */
+    protected function normalizeEmployeeName(string $rawName): string
+    {
+        $clean = trim($rawName);
+        $lower = mb_strtolower($clean, 'UTF-8');
+
+        $aliases = [
+            'fanny' => 'Fany',
+            'flor de maria gutierrez sanchez' => 'Flor de María Gutiérrez Sánchez',
+            'flor de maría gutiérrez sánchez' => 'Flor de María Gutiérrez Sánchez',
+            'manola ramirez perez' => 'Manola Ramirez',
+        ];
+
+        return $aliases[$lower] ?? $clean;
     }
 }
