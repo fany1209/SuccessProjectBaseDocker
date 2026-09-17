@@ -56,5 +56,15 @@
         <span>Producción de Levadura</span>
     </a>
     
+    <a href="#" class="{{ $btnBase }} {{ $btnCard }}">
+        <img src="{{ asset('images/formats/agro.png') }}" alt="Proteamin" class="{{ $imgCls }}">
+        <span>Producción de Proteamin</span>
+    </a>
+
+    <a href="#" class="{{ $btnBase }} {{ $btnCard }}">
+        <img src="{{ asset('images/deli.png') }}" alt="Vitayela" class="{{ $imgCls }}">
+        <span>Producción de Vitayela</span>
+        
+    </a>
 </div>
 </section>
