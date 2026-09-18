@@ -11,9 +11,51 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 
 class OrderController extends Controller
 {
+    /**
+     * Asegura que la tabla order_items exista en la base de datos sin romper la ejecución
+     */
+    private function ensureOrderItemsTableExists(): bool
+    {
+        if (Schema::hasTable('order_items')) {
+            return true;
+        }
+
+        try {
+            Schema::create('order_items', function (Blueprint $table) {
+                $table->id();
+                $table->integer('order_id');
+                $table->string('producto');
+                $table->string('cantidad', 100)->nullable();
+                $table->timestamps();
+
+                $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
+            });
+
+            if (Schema::hasTable('orders') && Schema::hasColumn('orders', 'producto')) {
+                $existingOrders = DB::table('orders')->whereNotNull('producto')->where('producto', '!=', '')->get();
+                foreach ($existingOrders as $order) {
+                    DB::table('order_items')->insert([
+                        'order_id'   => $order->id,
+                        'producto'   => $order->producto,
+                        'cantidad'   => $order->cantidad,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning("Could not auto-create order_items table: " . $e->getMessage());
+            return false;
+        }
+    }
+
     public function index()
     {
         $productos = Product::orderBy('name', 'asc')->get();
@@ -22,8 +64,15 @@ class OrderController extends Controller
 
     public function getData()
     {
+        $hasItemsTable = $this->ensureOrderItemsTableExists();
         $user = auth()->user();
-        $query = Order::with(['user:id,name,email', 'items']);
+
+        $relations = ['user:id,name,email'];
+        if ($hasItemsTable) {
+            $relations[] = 'items';
+        }
+
+        $query = Order::with($relations);
 
         // Los usuarios con rol Sales (que no sean Admin) solo pueden ver los pedidos que ellos mismos hayan ingresado
         if ($user->hasRole('Sales') && !$user->hasRole('Admin')) {
@@ -91,9 +140,10 @@ class OrderController extends Controller
                 $data['pdf_path'] = $fileName;
             }
 
-            $order = DB::transaction(function() use ($data, $itemsData) {
+            $hasItemsTable = $this->ensureOrderItemsTableExists();
+            $order = DB::transaction(function() use ($data, $itemsData, $hasItemsTable) {
                 $order = Order::create($data);
-                if (!empty($itemsData)) {
+                if (!empty($itemsData) && $hasItemsTable) {
                     $order->items()->createMany($itemsData);
                 }
                 return $order;
@@ -117,7 +167,13 @@ class OrderController extends Controller
 
     public function edit($id) 
     {
-        $order = Order::with(['user:id,name,email', 'items'])->findOrFail($id);
+        $hasItemsTable = $this->ensureOrderItemsTableExists();
+        $relations = ['user:id,name,email'];
+        if ($hasItemsTable) {
+            $relations[] = 'items';
+        }
+
+        $order = Order::with($relations)->findOrFail($id);
         $user = auth()->user();
 
         if ($user->hasRole('Sales') && !$user->hasRole('Admin') && $order->user_id !== $user->id) {
@@ -194,9 +250,10 @@ class OrderController extends Controller
                 $data['pdf_path'] = $fileName;
             }
 
-            DB::transaction(function() use ($order, $data, $itemsData) {
+            $hasItemsTable = $this->ensureOrderItemsTableExists();
+            DB::transaction(function() use ($order, $data, $itemsData, $hasItemsTable) {
                 $order->update($data);
-                if (!empty($itemsData)) {
+                if ($hasItemsTable && !empty($itemsData)) {
                     $order->items()->delete();
                     $order->items()->createMany($itemsData);
                 }

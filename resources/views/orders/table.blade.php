@@ -9,7 +9,27 @@
         </div>
 
         <div class="w-full flex flex-col md:flex-row justify-between items-center mt-8 mb-4 gap-4 px-2">
-            <div id="search-container" class="w-full md:flex-1 md:max-w-sm"></div>
+            <div id="search-container" class="w-full md:flex-1 md:max-w-md">
+                <div class="relative w-full">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input type="text" 
+                           id="order-search-input" 
+                           placeholder="Buscar pedidos (empresa, producto, PO, fecha...)" 
+                           class="w-full pl-10 pr-9 py-2 bg-white border border-gray-300 rounded-lg text-xs md:text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 shadow-xs transition duration-150">
+                    <button type="button" 
+                            id="order-search-clear" 
+                            class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none transition"
+                            title="Limpiar búsqueda">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
             
             <div class="w-full md:w-auto flex justify-end">
                 <x-button data-target="create-order" 
@@ -39,7 +59,9 @@
                   <th class="px-4 py-4 text-center min-w-[130px]">Calidad</th> 
                   <th class="px-4 py-4 text-center min-w-[130px]">Admin.</th>
                   
+                  @if(auth()->check() && auth()->user()->hasRole('Admin'))
                   <th class="px-4 py-4 text-center w-12">PDF</th>
+                  @endif
 
                   <th class="px-4 py-4 min-w-[180px]">Comentarios</th> 
                   <th class="px-4 py-4 text-right w-24">Acciones</th>
@@ -55,10 +77,10 @@
         
         <script>
         (function(){
-            const userRoles = @json(auth()->user()->roles->pluck('name'));
+            const userRoles = @json(auth()->check() ? auth()->user()->roles->pluck('name') : []);
             const isAdmin = userRoles.includes('Admin');
             const currentUserId = {{ auth()->id() ?? 'null' }};
-            const availableProducts = @json($productos->pluck('name'));
+            const availableProducts = @json(collect($productos)->pluck('name'));
             let editItemIndex = 0;
 
             function buildEditProductOptions(selectedValue = '') {
@@ -117,15 +139,25 @@
             });
 
             // Función para formatear fechas de YYYY-MM-DD a DD/MM/YYYY
-            function formatDate(dateString) {
-                if (!dateString) return '<span class="text-gray-300">-</span>';
+            function formatDate(dateString, type = 'display') {
+                if (!dateString) return (type === 'filter' || type === 'sort') ? '' : '<span class="text-gray-300">-</span>';
                 const parts = dateString.split('-');
                 if (parts.length !== 3) return dateString;
-                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                if (type === 'filter') {
+                    return `${formatted} ${dateString}`;
+                }
+                if (type === 'sort') {
+                    return dateString;
+                }
+                return formatted;
             }
 
-            function renderGenericStatus(data, id, field, optionsConfig) {
+            function renderGenericStatus(data, type, id, field, optionsConfig) {
                 const val = data ? data.toUpperCase() : 'PENDIENTE';
+                if (type === 'filter' || type === 'sort') {
+                    return val;
+                }
                 const config = optionsConfig[val] || { bg: 'bg-gray-100', textCol: 'text-gray-800' };
                 
                 let canEdit = false;
@@ -176,11 +208,35 @@
 
             document.addEventListener('DOMContentLoaded', function () {
                 let tableColumns = [
-                    { data: 'empresa' },
+                    { 
+                        data: 'empresa',
+                        render: function(data, type, row) {
+                            if (type === 'filter') {
+                                return `${data || ''} ${row.po ? 'PO: ' + row.po : ''} ${row.año || ''} ${row.semana ? 'Semana ' + row.semana : ''}`;
+                            }
+                            if (type === 'sort') {
+                                return data || '';
+                            }
+                            if (!data) return '<span class="text-gray-300">-</span>';
+                            return `<div>
+                                <span class="font-medium text-gray-900">${data}</span>
+                                ${row.po ? `<span class="block text-[10px] text-gray-500 font-normal">PO: ${row.po}</span>` : ''}
+                            </div>`;
+                        }
+                    },
                     { 
                         data: 'items', 
                         className: 'min-w-[180px]',
                         render: function(data, type, row) {
+                            if (type === 'filter') {
+                                if (data && data.length > 0) {
+                                    return data.map(item => `${item.producto || ''} ${item.cantidad || ''}`).join(' ');
+                                }
+                                if (row.producto) {
+                                    return `${row.producto} ${row.cantidad || ''}`;
+                                }
+                                return '';
+                            }
                             if (data && data.length > 0) {
                                 return data.map(item => `<div class="text-[11px] font-semibold text-gray-800 leading-tight py-0.5"><span class="text-green-600 font-bold">•</span> ${item.producto} <span class="text-gray-500 font-normal text-[10px]">(${item.cantidad || 'S/C'})</span></div>`).join('');
                             }
@@ -194,6 +250,12 @@
                         data: 'items', 
                         className: 'text-center whitespace-nowrap',
                         render: function(data, type, row) {
+                            if (type === 'filter') {
+                                if (data && data.length > 0) {
+                                    return data.map(item => item.cantidad || '').join(' ');
+                                }
+                                return row.cantidad || '';
+                            }
                             if (data && data.length > 1) {
                                 return `<span class="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-200">${data.length} prods.</span>`;
                             } else if (data && data.length === 1) {
@@ -204,14 +266,14 @@
                     },
                     
                     // --- COLUMNAS DE FECHAS ---
-                    { data: 'fecha_de_carga', className: 'text-center whitespace-nowrap', render: (d) => formatDate(d) },
-                    { data: 'fecha_de_envio', className: 'text-center whitespace-nowrap', render: (d) => formatDate(d) },
-                    { data: 'fecha_requerida_por_el_cliente', className: 'text-center whitespace-nowrap', render: (d) => formatDate(d) },
+                    { data: 'fecha_de_carga', className: 'text-center whitespace-nowrap', render: (d, t) => formatDate(d, t) },
+                    { data: 'fecha_de_envio', className: 'text-center whitespace-nowrap', render: (d, t) => formatDate(d, t) },
+                    { data: 'fecha_requerida_por_el_cliente', className: 'text-center whitespace-nowrap', render: (d, t) => formatDate(d, t) },
 
                     { 
                         data: 'estatus_almacen', 
                         className: 'text-center',
-                        render: (d, t, r) => renderGenericStatus(d, r.id, 'estatus_almacen', {
+                        render: (d, t, r) => renderGenericStatus(d, t, r.id, 'estatus_almacen', {
                             'PENDIENTE': { originalValue: 'Pendiente', bg: 'bg-red-100', textCol: 'text-red-700' },
                             'TERMINADO': { originalValue: 'Terminado', bg: 'bg-green-100', textCol: 'text-green-700' }
                         })
@@ -219,7 +281,7 @@
                     { 
                         data: 'estatus_calidad', 
                         className: 'text-center',
-                        render: (d, t, r) => renderGenericStatus(d, r.id, 'estatus_calidad', {
+                        render: (d, t, r) => renderGenericStatus(d, t, r.id, 'estatus_calidad', {
                             'PENDIENTE': { originalValue: 'Pendiente', bg: 'bg-red-100', textCol: 'text-red-700' },
                             'LIBERADO': { originalValue: 'Liberado', bg: 'bg-green-100', textCol: 'text-green-700' }
                         })
@@ -227,14 +289,18 @@
                     { 
                         data: 'estatus_administrativo', 
                         className: 'text-center',
-                        render: (d, t, r) => renderGenericStatus(d, r.id, 'estatus_administrativo', {
+                        render: (d, t, r) => renderGenericStatus(d, t, r.id, 'estatus_administrativo', {
                             'DOCUMENTACION PENDIENTE': { originalValue: 'Documentacion Pendiente', bg: 'bg-red-100', textCol: 'text-red-700' },
                             'DOCUMENTACION COMPLETA': { originalValue: 'Documentacion Completa', bg: 'bg-green-100', textCol: 'text-green-700' }
                         })
-                    },
-                    { 
+                    }
+                ];
+
+                if (isAdmin) {
+                    tableColumns.push({ 
                         data: 'pdf_path', 
                         className: 'text-center',
+                        searchable: false,
                         render: function(data) {
                             if (!data) return '<span class="text-gray-300 text-[10px]">-</span>';
                             return `<a href="/orders_pdf/${data}" target="_blank" class="inline-flex items-center justify-center p-1 bg-red-100 text-red-600 rounded hover:bg-red-200 transition" title="Ver PDF">
@@ -243,30 +309,61 @@
                                         </svg>
                                     </a>`;
                         }
-                    }
-                ];
+                    });
+                }
 
                 tableColumns.push({ 
                     data: 'comentarios', 
                     className: 'text-[10px] text-gray-600 px-2',
-                    render: (data) => data ? `<div class="whitespace-normal break-words line-clamp-2 hover:line-clamp-none transition-all duration-300 cursor-help">${data}</div>` : ''
+                    render: (data, type) => (type === 'filter' ? (data || '') : (data ? `<div class="whitespace-normal break-words line-clamp-2 hover:line-clamp-none transition-all duration-300 cursor-help">${data}</div>` : ''))
                 });
-                tableColumns.push({ data: null, render: renderActions, orderable: false, className: 'text-right' });
+                tableColumns.push({ data: null, render: renderActions, orderable: false, searchable: false, className: 'text-right' });
 
                 const table = $('#orders-table').DataTable({
-                    ajax: { url: $('#orders-table').attr('data-url'), dataSrc: (json) => json.data || json },
+                    ajax: { 
+                        url: $('#orders-table').attr('data-url'), 
+                        dataSrc: (json) => json.data || json,
+                        error: function (xhr, error, thrown) {
+                            console.error('DataTables Ajax error:', error, thrown, xhr);
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error de conexión',
+                                    text: 'No se pudieron obtener los datos de pedidos.',
+                                    toast: true,
+                                    position: 'top-end',
+                                    timer: 3500,
+                                    showConfirmButton: false
+                                });
+                            }
+                        }
+                    },
                     dom: 'rtip',
                     pageLength: 25,
+                    order: [], // Preserva el orden del backend (pedidos nuevos primero en la primera página)
                     columns: tableColumns,
-                    initComplete: function() {
-                        const searchInput = $('.dataTables_filter').detach();
-                        $('#search-container').append(searchInput);
-                        $('.dataTables_filter input').addClass('w-full border-gray-300 rounded-md text-sm').attr('placeholder', 'Search order...');
-                    },
                     language: { url: "https://cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json" }
                 });
 
-                // --- EVENTOS (Update Status, Delete, Edit, View) ---
+                // Barra de búsqueda personalizada en tiempo real
+                $('#order-search-input').on('keyup input', function () {
+                    const val = $(this).val();
+                    table.search(val).draw();
+                    if (val && val.trim().length > 0) {
+                        $('#order-search-clear').removeClass('hidden');
+                    } else {
+                        $('#order-search-clear').addClass('hidden');
+                    }
+                });
+
+                $('#order-search-clear').on('click', function () {
+                    $('#order-search-input').val('');
+                    table.search('').draw();
+                    $(this).addClass('hidden');
+                    $('#order-search-input').focus();
+                });
+
+                // --- EVENTOS (Update Status, Delete,E dit, View) ---
 
                 $(document).on('change', '.change-status-select', async function() {
                     const $el = $(this);
@@ -407,7 +504,8 @@
                         let docsHtml = '';
                         if(order.documentacion_requerida) {
                             order.documentacion_requerida.split(', ').forEach(doc => {
-                                docsHtml += `<span class="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded border border-blue-200 font-bold">${doc}</span>`;
+                                let titleAttr = doc === 'HS' ? ' title="Hoja de Seguridad"' : '';
+                                docsHtml += `<span${titleAttr} class="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded border border-blue-200 font-bold">${doc}</span>`;
                             });
                         } else { docsHtml = '<span class="text-gray-400">None</span>'; }
                         $('#view_docs').html(docsHtml);

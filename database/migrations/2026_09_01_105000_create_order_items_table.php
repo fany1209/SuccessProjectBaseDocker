@@ -12,27 +12,29 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('order_items', function (Blueprint $table) {
-            $table->id();
-            $table->integer('order_id');
-            $table->string('producto');
-            $table->string('cantidad', 100)->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('order_items')) {
+            Schema::create('order_items', function (Blueprint $table) {
+                $table->id();
+                $table->integer('order_id');
+                $table->string('producto');
+                $table->string('cantidad', 100)->nullable();
+                $table->timestamps();
 
-            $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
-        });
+                $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
+            });
 
-        // Migrar datos existentes de orders hacia order_items para preservar historial
-        if (Schema::hasTable('orders') && Schema::hasColumn('orders', 'producto')) {
-            $existingOrders = DB::table('orders')->whereNotNull('producto')->where('producto', '!=', '')->get();
-            foreach ($existingOrders as $order) {
-                DB::table('order_items')->insert([
-                    'order_id'   => $order->id,
-                    'producto'   => $order->producto,
-                    'cantidad'   => $order->cantidad,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+            // Migrar datos existentes de orders hacia order_items para preservar historial
+            if (Schema::hasTable('orders') && Schema::hasColumn('orders', 'producto')) {
+                $existingOrders = DB::table('orders')->whereNotNull('producto')->where('producto', '!=', '')->get();
+                foreach ($existingOrders as $order) {
+                    DB::table('order_items')->insert([
+                        'order_id'   => $order->id,
+                        'producto'   => $order->producto,
+                        'cantidad'   => $order->cantidad,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
             }
         }
     }
