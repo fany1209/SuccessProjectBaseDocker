@@ -108,10 +108,10 @@
             <x-wrapper-form-2>
                 <x-label>Documentación Requerida</x-label>
                 <div class="flex flex-wrap gap-4 p-2 bg-gray-50 rounded-md border w-full">
-                    @foreach(['PO', 'R', 'F', 'CoA', 'CT'] as $doc)
+                    @foreach(['PO', 'R', 'F', 'CoA', 'CT', 'Ticket de peso', 'HS', 'CFT'] as $doc)
                         <label class="flex items-center space-x-2 cursor-pointer">
                             <input type="checkbox" name="documentacion_requerida[]" value="{{$doc}}" class="edit-doc-check rounded text-green-600">
-                            <span class="text-sm">{{$doc}}</span>
+                            <span class="text-sm" @if($doc === 'HS') title="Hoja de Seguridad" @endif>{{$doc}}</span>
                         </label>
                     @endforeach
                 </div>

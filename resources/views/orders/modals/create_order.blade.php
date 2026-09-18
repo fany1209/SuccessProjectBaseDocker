@@ -128,6 +128,18 @@
                         <input type="checkbox" name="documentacion_requerida[]" value="CT" class="rounded text-green-600 focus:ring-green-500">
                         <span class="text-sm text-gray-700">CT</span>
                     </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" name="documentacion_requerida[]" value="Ticket de peso" class="rounded text-green-600 focus:ring-green-500">
+                        <span class="text-sm text-gray-700">Ticket de peso</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" name="documentacion_requerida[]" value="HS" class="rounded text-green-600 focus:ring-green-500">
+                        <span class="text-sm text-gray-700" title="Hoja de Seguridad">HS</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" name="documentacion_requerida[]" value="CFT" class="rounded text-green-600 focus:ring-green-500">
+                        <span class="text-sm text-gray-700">CFT</span>
+                    </label>
                 </div>
             </x-wrapper-form-2>
         </x-wrapper-form-1>
