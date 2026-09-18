@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
 
 class FacturaController extends Controller
@@ -59,7 +58,7 @@ class FacturaController extends Controller
             'tipo_documento' => 'required|in:factura,nota_venta',
             'insumo'         => 'required|in:directo,indirecto', 
             'empresa'        => 'required|string|max:150',
-            'folio_factura'  => 'required|string|max:100|unique:facturas,folio_factura',
+            'folio_factura'  => 'required|string|max:100',
             'fecha_factura'  => 'required|date',
             'moneda'         => 'required|in:MXN,USD',
             'tipo_cambio'    => 'required_if:moneda,USD|nullable|numeric|min:0.0001',
@@ -245,12 +244,7 @@ class FacturaController extends Controller
             'tipo_documento' => 'required|in:factura,nota_venta',
             'insumo'         => 'required|in:directo,indirecto', 
             'empresa'        => 'required|string|max:150',
-            'folio_factura'  => [
-                'required',
-                'string',
-                'max:100',
-                Rule::unique('facturas', 'folio_factura')->ignore($id, 'factura_id'),
-            ],
+            'folio_factura'  => 'required|string|max:100',
             'fecha_factura'  => 'required|date',
             'moneda'         => 'required|in:MXN,USD',
             'tipo_cambio'    => 'required_if:moneda,USD|nullable|numeric|min:0.0001',
