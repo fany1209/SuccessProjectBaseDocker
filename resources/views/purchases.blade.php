@@ -1,10 +1,3 @@
-{{--purchases
-stefany
-Actualizado por: Stefany
-Fecha de actualización: 18-02-2026
---}}
-@extends('layouts.app')
-
 @section('content')
 <div class="flex flex-col lg:flex-row lg:justify-between items-start gap-2 m-2">
 

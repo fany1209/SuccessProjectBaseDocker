@@ -12,7 +12,6 @@ stefany
 
 @section('content')
 <div>
-
     {{-- Formulario creación/edición --}}
     <div class="card" @if(!($open ?? false)) style="display:none;" @endif>
         <div class="card-header d-flex justify-content-between align-items-center">

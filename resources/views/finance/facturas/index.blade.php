@@ -441,11 +441,50 @@ Modificado:
                             }
                         },
                         error: function(xhr) {
-                            Swal.fire(
-                                'Error',
-                                'Ocurrió un problema al intentar eliminar el registro.',
-                                'error'
-                            );
+                            const res = xhr.responseJSON;
+                            const msg = res && res.message ? res.message : 'Ocurrió un problema al intentar eliminar el registro.';
+
+                            if (xhr.status === 422 && res && res.has_payments) {
+                                Swal.fire({
+                                    title: 'Pagos vinculados detectados',
+                                    text: msg + ' ¿Deseas forzar la eliminación de la factura y todos sus registros de pago asociados?',
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonColor: '#d33',
+                                    cancelButtonColor: '#6b7280',
+                                    confirmButtonText: 'Sí, forzar eliminación',
+                                    cancelButtonText: 'Cancelar'
+                                }).then((forceResult) => {
+                                    if (forceResult.isConfirmed) {
+                                        $.ajax({
+                                            url: url,
+                                            method: 'DELETE',
+                                            data: {
+                                                _token: $('meta[name="csrf-token"]').attr('content'),
+                                                force: 1
+                                            },
+                                            success: function(forceRes) {
+                                                if (forceRes.success) {
+                                                    Swal.fire('¡Eliminado!', forceRes.message, 'success');
+                                                    $('#facturas-table').DataTable().ajax.reload();
+                                                }
+                                            },
+                                            error: function(forceErr) {
+                                                const errText = forceErr.responseJSON && forceErr.responseJSON.message
+                                                    ? forceErr.responseJSON.message
+                                                    : 'No se pudo forzar la eliminación del documento.';
+                                                Swal.fire('Error', errText, 'error');
+                                            }
+                                        });
+                                    }
+                                });
+                            } else {
+                                Swal.fire(
+                                    'Atención',
+                                    msg,
+                                    xhr.status === 422 ? 'warning' : 'error'
+                                );
+                            }
                         }
                     });
                 }

@@ -354,40 +354,116 @@ class FacturaController extends Controller
         }
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $id = filter_var($id, FILTER_VALIDATE_INT);
         if (!$id) {
-            return response()->json(['success' => false, 'message' => 'Identificador de factura inválido'], 400);
+            return response()->json([
+                'success' => false,
+                'message' => 'Identificador de factura inválido.'
+            ], 400);
         }
 
         $factura = DB::table('facturas')->where('factura_id', $id)->first();
         if (!$factura) {
-            return response()->json(['success' => false, 'message' => 'Factura no encontrada'], 404);
-        }
-
-        // Verificación de integridad referencial antes de eliminar
-        $hasPayments = DB::table('finance_payments')->where('factura', $id)->exists();
-        $hasCxp = DB::table('cxp_details')->where('factura_id', $id)->exists();
-
-        if ($hasPayments || $hasCxp) {
             return response()->json([
                 'success' => false,
-                'message' => 'No es posible eliminar la factura porque cuenta con pagos o registros contables vinculados.'
+                'message' => 'Factura no encontrada.'
+            ], 404);
+        }
+
+        // Obtener detalle asociado en Cuentas por Pagar (cxp_details)
+        $cxpDetail = DB::table('cxp_details')->where('factura_id', $id)->first();
+
+        // 1. Verificar si existen pagos reales en Cuentas por Pagar (cxp_payments)
+        $hasCxpPayments = false;
+        if ($cxpDetail) {
+            $hasCxpPayments = DB::table('cxp_payments')
+                ->where('cxp_detail_id', $cxpDetail->id)
+                ->exists();
+        }
+
+        // 2. Verificar si existen pagos reales en Finanzas (finance_payments) no cancelados
+        $hasFinancePayments = DB::table('finance_payments')
+            ->where('factura', $id)
+            ->where('estatus', '!=', 'CANCELADO')
+            ->exists();
+
+        $force = $request->boolean('force');
+
+        // Si cuenta con pagos activos y no se especificó force, proteger integridad financiera
+        if (($hasCxpPayments || $hasFinancePayments) && !$force) {
+            return response()->json([
+                'success' => false,
+                'has_payments' => true,
+                'message' => 'No es posible eliminar la factura porque cuenta con pagos aplicados. Elimine o cancele los pagos asociados antes de eliminarla.'
             ], 422);
         }
 
         DB::beginTransaction();
         try {
+            // Eliminar archivos físicos y registros asociados a cxp_details si existen
+            if ($cxpDetail) {
+                // Si force es true y había pagos, eliminar comprobantes físicos y registros de cxp_payments
+                if ($force && $hasCxpPayments) {
+                    $comprobantes = DB::table('cxp_payments')
+                        ->where('cxp_detail_id', $cxpDetail->id)
+                        ->whereNotNull('comprobante')
+                        ->pluck('comprobante');
+
+                    foreach ($comprobantes as $comp) {
+                        $compPath = public_path($comp);
+                        if (file_exists($compPath) && is_file($compPath)) {
+                            @unlink($compPath);
+                        }
+                    }
+
+                    DB::table('cxp_payments')->where('cxp_detail_id', $cxpDetail->id)->delete();
+                }
+
+                $filesToDelete = array_filter([
+                    $cxpDetail->pdf_path,
+                    $cxpDetail->xml_path,
+                    $cxpDetail->comentario_img ?? null,
+                ]);
+
+                foreach ($filesToDelete as $filePath) {
+                    $fullPath = public_path($filePath);
+                    if (file_exists($fullPath) && is_file($fullPath)) {
+                        @unlink($fullPath);
+                    }
+                }
+
+                DB::table('cxp_details')->where('id', $cxpDetail->id)->delete();
+            }
+
+            // Eliminar o limpiar registros de finanzas vinculados
+            if ($force) {
+                DB::table('finance_payments')->where('factura', $id)->delete();
+            } else {
+                DB::table('finance_payments')->where('factura', $id)->where('estatus', 'CANCELADO')->delete();
+            }
+
             DB::table('factura_detalles')->where('factura_id', $id)->delete();
-            DB::table('facturas')->where('factura_id', $id)->delete();
             DB::table('supplier_prices')->where('factura_id', $id)->delete();
+            DB::table('facturas')->where('factura_id', $id)->delete();
+
             DB::commit();
-            return response()->json(['success' => true, 'message' => 'Documento eliminado correctamente']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Documento eliminado correctamente.'
+            ]);
         } catch (\Throwable $e) {
             DB::rollBack();
-            Log::error('Error al eliminar factura ID ' . $id . ': ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Ocurrió un error al eliminar el documento.'], 500);
+            Log::error('Error al eliminar factura ID ' . $id . ': ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Ocurrió un error al eliminar el documento.'
+            ], 500);
         }
     }
 }
