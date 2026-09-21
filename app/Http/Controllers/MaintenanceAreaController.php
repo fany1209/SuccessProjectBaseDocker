@@ -24,7 +24,7 @@ class MaintenanceAreaController extends Controller
     public function index()
     {
         try {
-            return $this->utilResponse->succesResponse(
+            return $this->utilResponse->successResponse(
                 MaintenanceAreaResource::collection($this->maintenanceAreaRepository->all()),
                 'Categorías / Áreas obtenidas correctamente'
             );
@@ -43,7 +43,7 @@ class MaintenanceAreaController extends Controller
         try {
             $area = $this->maintenanceAreaRepository->find($id);
             if ($area) {
-                return $this->utilResponse->succesResponse(new MaintenanceAreaResource($area), 'Categoría / Área encontrada');
+                return $this->utilResponse->successResponse(new MaintenanceAreaResource($area), 'Categoría / Área encontrada');
             }
             return $this->utilResponse->errorResponse('No existe la categoría o área', 404);
         } catch (Throwable $e) {
@@ -64,7 +64,7 @@ class MaintenanceAreaController extends Controller
             $area = $this->maintenanceAreaRepository->create($data);
 
             if ($area) {
-                return $this->utilResponse->succesResponse(
+                return $this->utilResponse->successResponse(
                     new MaintenanceAreaResource($area),
                     'Categoría/Área registrada exitosamente.',
                     201
@@ -93,7 +93,7 @@ class MaintenanceAreaController extends Controller
             }
 
             $area = $this->maintenanceAreaRepository->update($id, $data);
-            return $this->utilResponse->succesResponse(
+            return $this->utilResponse->successResponse(
                 new MaintenanceAreaResource($area),
                 'Categoría/Área actualizada exitosamente.'
             );
@@ -123,7 +123,7 @@ class MaintenanceAreaController extends Controller
             }
 
             if ($this->maintenanceAreaRepository->delete($id)) {
-                return $this->utilResponse->succesResponse(null, 'Categoría/Área eliminada exitosamente.');
+                return $this->utilResponse->successResponse(null, 'Categoría/Área eliminada exitosamente.');
             }
 
             return $this->utilResponse->errorResponse('No se pudo eliminar la categoría o área');

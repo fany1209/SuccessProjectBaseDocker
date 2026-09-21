@@ -35,6 +35,6 @@ Este documento define la arquitectura obligatoria de 4 capas y los estándares d
    - Transforma atributos de forma tipada, exponiendo únicamente los campos necesarios y formateando fechas con `d-m-Y H:i:s`.
 
 5. **UtilResponse (`App\Traits\UtilResponse`)**:
-   - Estandariza respuestas JSON:
-     - `succesResponse($data, $message, $code = 200)` -> `{"flag": true, "code": $code, "message": $message, "data": $data}`
-     - `errorResponse($message, $code = 404)` -> `{"flag": false, "code": $code, "message": $message, "data": []}`
+   - Estandariza respuestas JSON garantizando compatibilidad con Blade/jQuery (`success`) y APIs (`flag`):
+     - `successResponse($data, $message, $code = 200)` -> `{"success": true, "flag": true, "code": $code, "message": $message, "data": $data}`
+     - `errorResponse($message, $code = 404)` -> `{"success": false, "flag": false, "code": $code, "message": $message, "data": []}`

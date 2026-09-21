@@ -24,7 +24,7 @@ class MaintenancePlanController extends Controller
     public function index()
     {
         try {
-            return $this->utilResponse->succesResponse(
+            return $this->utilResponse->successResponse(
                 MaintenancePlanResource::collection($this->planRepository->all()),
                 'Planes de mantenimiento obtenidos correctamente'
             );
@@ -43,7 +43,7 @@ class MaintenancePlanController extends Controller
         try {
             $plan = $this->planRepository->find($id);
             if ($plan) {
-                return $this->utilResponse->succesResponse(
+                return $this->utilResponse->successResponse(
                     new MaintenancePlanResource($plan),
                     'Plan de mantenimiento encontrado'
                 );
@@ -69,7 +69,7 @@ class MaintenancePlanController extends Controller
             $plan = $this->planRepository->create($data, $checklistItems);
 
             if ($plan) {
-                return $this->utilResponse->succesResponse(
+                return $this->utilResponse->successResponse(
                     new MaintenancePlanResource($plan),
                     'Plan registrado exitosamente.',
                     201
@@ -101,7 +101,7 @@ class MaintenancePlanController extends Controller
 
             $updatedPlan = $this->planRepository->update($id, $data, $checklistItems);
 
-            return $this->utilResponse->succesResponse(
+            return $this->utilResponse->successResponse(
                 new MaintenancePlanResource($updatedPlan),
                 'Plan actualizado exitosamente.'
             );
@@ -131,7 +131,7 @@ class MaintenancePlanController extends Controller
             }
 
             if ($this->planRepository->delete($id)) {
-                return $this->utilResponse->succesResponse(null, 'Plan eliminado exitosamente.');
+                return $this->utilResponse->successResponse(null, 'Plan eliminado exitosamente.');
             }
 
             return $this->utilResponse->errorResponse('No se pudo eliminar el plan de mantenimiento.');

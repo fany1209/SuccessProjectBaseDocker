@@ -520,8 +520,11 @@ Route::prefix('laboratory/equipments')->group(function () {
         Route::get('/export-excel', [\App\Http\Controllers\CuentasPorPagarController::class, 'exportExcel'])->name('cuentas-por-pagar.export-excel');
         Route::post('/{id}/update', [\App\Http\Controllers\CuentasPorPagarController::class, 'update'])->name('cuentas-por-pagar.update');
         Route::post('/{id}/cancel', [\App\Http\Controllers\CuentasPorPagarController::class, 'cancel'])->name('cuentas-por-pagar.cancel');
+        Route::delete('/{id}/comentario-img', [\App\Http\Controllers\CuentasPorPagarController::class, 'deleteComentarioImg'])->name('cuentas-por-pagar.comentario-img.delete');
         Route::get('/{id}/payments', [\App\Http\Controllers\CuentasPorPagarController::class, 'getPayments'])->name('cuentas-por-pagar.payments.list');
         Route::post('/{id}/payments', [\App\Http\Controllers\CuentasPorPagarController::class, 'addPayment'])->name('cuentas-por-pagar.payments.add');
+        Route::match(['post', 'put'], '/payments/{payment_id}', [\App\Http\Controllers\CuentasPorPagarController::class, 'updatePayment'])->name('cuentas-por-pagar.payments.update');
+        Route::delete('/payments/{payment_id}', [\App\Http\Controllers\CuentasPorPagarController::class, 'deletePayment'])->name('cuentas-por-pagar.payments.delete');
         Route::post('/{id}/documents', [\App\Http\Controllers\CuentasPorPagarController::class, 'uploadDocuments'])->name('cuentas-por-pagar.documents.upload');
     });
 

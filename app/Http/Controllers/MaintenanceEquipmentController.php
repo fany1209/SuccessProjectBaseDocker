@@ -24,7 +24,7 @@ class MaintenanceEquipmentController extends Controller
     public function index()
     {
         try {
-            return $this->utilResponse->succesResponse(
+            return $this->utilResponse->successResponse(
                 MaintenanceEquipmentResource::collection($this->equipmentRepository->all()),
                 'Equipos de mantenimiento obtenidos correctamente'
             );
@@ -43,7 +43,7 @@ class MaintenanceEquipmentController extends Controller
         try {
             $equipment = $this->equipmentRepository->find($id);
             if ($equipment) {
-                return $this->utilResponse->succesResponse(
+                return $this->utilResponse->successResponse(
                     new MaintenanceEquipmentResource($equipment),
                     'Equipo encontrado'
                 );
@@ -67,7 +67,7 @@ class MaintenanceEquipmentController extends Controller
             $equipment = $this->equipmentRepository->create($data);
 
             if ($equipment) {
-                return $this->utilResponse->succesResponse(
+                return $this->utilResponse->successResponse(
                     new MaintenanceEquipmentResource($equipment),
                     'Equipo registrado exitosamente.',
                     201
@@ -96,7 +96,7 @@ class MaintenanceEquipmentController extends Controller
             }
 
             $equipment = $this->equipmentRepository->update($id, $data);
-            return $this->utilResponse->succesResponse(
+            return $this->utilResponse->successResponse(
                 new MaintenanceEquipmentResource($equipment),
                 'Equipo actualizado exitosamente.'
             );
@@ -126,7 +126,7 @@ class MaintenanceEquipmentController extends Controller
             }
 
             if ($this->equipmentRepository->delete($id)) {
-                return $this->utilResponse->succesResponse(null, 'Equipo eliminado exitosamente.');
+                return $this->utilResponse->successResponse(null, 'Equipo eliminado exitosamente.');
             }
 
             return $this->utilResponse->errorResponse('No se pudo eliminar el equipo.');

@@ -4,14 +4,15 @@ namespace App\Traits;
 
 class UtilResponse
 {
-    function succesResponse($data = [], $message = 'Success Operation', $code = 200)
+    function successResponse($data = [], $message = 'Success Operation', $code = 200)
     {
         return response()->json(
             [
-                "flag" => true,
-                "code" => $code,
+                "success" => true,
+                "flag"    => true,
+                "code"    => $code,
                 "message" => $message,
-                "data" => $data
+                "data"    => $data
             ],
             $code
         );
@@ -21,10 +22,11 @@ class UtilResponse
     {
         return response()->json(
             [
-                "flag" => false,
-                'code' => $code,
+                "success" => false,
+                "flag"    => false,
+                'code'    => $code,
                 "message" => $message,
-                "data" => []
+                "data"    => []
             ],
             $code
         );
