@@ -17,4 +17,9 @@ class MaintenancePlan extends Model
     {
         return $this->hasMany(ChecklistTemplateItem::class)->orderBy('order');
     }
+
+    public function maintenanceRecords()
+    {
+        return $this->hasMany(MaintenanceRecord::class);
+    }
 }
