@@ -69,6 +69,7 @@ use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\MaintenanceEquipmentController;
 use App\Http\Controllers\MaintenancePlanController;
 use App\Http\Controllers\MaintenanceAreaController;
+use App\Http\Controllers\ActivityLogController;
 
 Route::get('/', function () {
     return view('home');
@@ -149,6 +150,10 @@ Route::middleware([
 
         Route::post('/profile/delete', [ProfileController::class, 'deleteUser'])
             ->name('profile.delete');
+
+        // Activity Log
+        Route::get('/activity-log', [ActivityLogController::class, 'index'])
+            ->name('activity-log.index');
     });
 
     //Inventory

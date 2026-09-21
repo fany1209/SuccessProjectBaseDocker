@@ -2,35 +2,61 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Repositories\ActivityLog\ActivityLogRepository;
+use App\Http\Resources\ActivityLog\ActivityResource;
+use App\Traits\UtilResponse;
 use Illuminate\Http\Request;
-use Spatie\Activitylog\Models\Activity;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class ActivityLogController extends Controller
 {
-    public function index()
+    private UtilResponse $utilResponse;
+    private ActivityLogRepository $activityLogRepository;
+
+    public function __construct(UtilResponse $utilResponse, ActivityLogRepository $activityLogRepository)
     {
-        $activities = Activity::with('causer')->latest()->paginate(50);
+        $this->utilResponse = $utilResponse;
+        $this->activityLogRepository = $activityLogRepository;
+    }
 
-        // Datos para la gráfica de logins por usuario
-        $loginStats = Activity::where('log_name', 'auth')
-            ->where('description', 'El usuario ha iniciado sesión')
-            ->selectRaw('causer_type, causer_id, count(*) as total')
-            ->groupBy('causer_type', 'causer_id')
-            ->orderByDesc('total')
-            ->limit(10)
-            ->with('causer')
-            ->get();
+    public function index(Request $request)
+    {
+        try {
+            $perPage = (int) $request->input('per_page', 50);
+            $activities = $this->activityLogRepository->getPaginated($perPage);
+            $loginStats = $this->activityLogRepository->getLoginStatistics(10);
 
-        $chartLabels = [];
-        $chartData = [];
+            $chartLabels = $loginStats['labels'];
+            $chartData = $loginStats['data'];
 
-        foreach ($loginStats as $stat) {
-            if ($stat->causer) {
-                $chartLabels[] = $stat->causer->name;
-                $chartData[] = $stat->total;
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->successResponse([
+                    'activities'   => ActivityResource::collection($activities),
+                    'pagination'   => [
+                        'current_page' => $activities->currentPage(),
+                        'last_page'    => $activities->lastPage(),
+                        'per_page'     => $activities->perPage(),
+                        'total'        => $activities->total(),
+                    ],
+                    'chart_labels' => $chartLabels,
+                    'chart_data'   => $chartData,
+                ], 'Registros de actividad obtenidos correctamente');
             }
-        }
 
-        return view('activity_log.index', compact('activities', 'chartLabels', 'chartData'));
+            return view('activity_log.index', compact('activities', 'chartLabels', 'chartData'));
+        } catch (Throwable $e) {
+            Log::error('Error al consultar el registro de actividades: ' . $e->getMessage(), [
+                'action'    => 'ActivityLogController@index',
+                'user_id'   => auth()->id(),
+                'exception' => $e,
+            ]);
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->errorResponse('Ocurrió un error inesperado al consultar los registros de actividad.', 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error al cargar el registro de actividad.');
+        }
     }
 }
