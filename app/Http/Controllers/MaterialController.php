@@ -33,12 +33,13 @@ class MaterialController extends Controller
         $stock = $entries - $exits;
 
         DB::table('material_lab')->where('id', $id)->update([
-            'name'    => $request->input('name'),
-            'um'      => $request->input('um'),
-            'brand'   => $request->input('brand'),
-            'entries' => $entries,
-            'exits'   => $exits,
-            'stock'   => $stock >= 0 ? $stock : 0,
+            'name'      => $request->input('name'),
+            'um'        => $request->input('um'),
+            'brand'     => $request->input('brand'),
+            'entries'   => $entries,
+            'exits'     => $exits,
+            'stock'     => $stock >= 0 ? $stock : 0,
+            'comments'  => $request->input('comments'),
         ]);
 
         return response()->json(['message' => 'Record updated successfully.']);
@@ -56,12 +57,13 @@ class MaterialController extends Controller
         $initialQuantity = $request->input('entries', 0);
 
         \Illuminate\Support\Facades\DB::table('material_lab')->insert([
-            'name'    => $request->input('name'),
-            'um'      => $request->input('um'),
-            'brand'   => $request->input('brand'),
-            'entries' => $initialQuantity,
-            'exits'   => 0,
-            'stock'   => $initialQuantity,
+            'name'      => $request->input('name'),
+            'um'        => $request->input('um'),
+            'brand'     => $request->input('brand'),
+            'entries'   => $initialQuantity,
+            'exits'     => 0,
+            'stock'     => $initialQuantity,
+            'comments'  => $request->input('comments'),
         ]);
 
         return response()->json(['message' => 'Material created successfully.']);

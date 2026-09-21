@@ -16,6 +16,7 @@
           <th class="px-6 py-4 text-left font-bold text-blue-600">STOCK (CANTIDAD)</th>
           <th class="px-6 py-4 text-left">UM</th>
           <th class="px-6 py-4 text-left">MARCA</th>
+          <th class="px-6 py-4 text-left">COMENTARIOS</th>
           <th class="px-6 py-4 text-right">ACCIONES</th>
         </tr>
       </thead>
@@ -48,6 +49,11 @@
         <div>
           <label class="block text-sm font-semibold">Marca</label>
           <input type="text" id="edit-mat-brand" name="brand" class="w-full border rounded px-2 py-1">
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold">Comentarios</label>
+          <textarea id="edit-mat-comments" name="comments" rows="2" class="w-full border rounded px-2 py-1"></textarea>
         </div>
 
         <div>
@@ -105,6 +111,7 @@
           { data: 'stock', render: (d) => `<span class="font-bold text-blue-600">${d ?? 0}</span>` },
           { data: 'um', render: (d) => d || '—' },
           { data: 'brand', render: (d) => d || '—' },
+          { data: 'comments', render: (d) => d || '—' },
           { data: null, render: renderMaterialActions, orderable: false, searchable: false, className: 'text-right' }
         ],
         lengthChange: false,
@@ -143,6 +150,7 @@
           document.getElementById('edit-mat-name').value = data.name;
           document.getElementById('edit-mat-um').value = data.um;
           document.getElementById('edit-mat-brand').value = data.brand;
+          document.getElementById('edit-mat-comments').value = data.comments || '';
           entInp.value = data.entries;
           exiInp.value = data.exits;
           stkInp.value = data.stock;
