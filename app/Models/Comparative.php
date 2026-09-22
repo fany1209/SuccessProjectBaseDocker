@@ -8,6 +8,8 @@ class Comparative extends Model
 {
     protected $table = 'comparative';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'id',
         'user_id',
@@ -23,4 +25,9 @@ class Comparative extends Model
         'precio_total',
         'comentarios'
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

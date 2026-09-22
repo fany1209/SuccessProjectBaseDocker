@@ -2,60 +2,92 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ClimaLaboral;
+use App\Http\Repositories\ClimaLaboral\ClimaLaboralRepository;
+use App\Http\Requests\ClimaLaboral\StoreClimaLaboralRequest;
+use App\Http\Resources\ClimaLaboral\ClimaLaboralResource;
+use App\Traits\UtilResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class ClimaLaboralController extends Controller
 {
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    private UtilResponse $utilResponse;
+    private ClimaLaboralRepository $climaLaboralRepository;
+
+    public function __construct(UtilResponse $utilResponse, ClimaLaboralRepository $climaLaboralRepository)
     {
-        if (ClimaLaboral::where('user_id', Auth::id())->exists()) {
-            return redirect()->back()->with('error', 'Ya has contestado la encuesta de clima laboral anteriormente.');
-        }
-        $request->validate([
-            'q1_ambiente' => 'required|integer|min:1|max:5',
-            'q2_respeto' => 'required|integer|min:1|max:5',
-            'q3_comunicacion_oportuna' => 'required|integer|min:1|max:5',
-            'q4_comunicacion_escucha' => 'required|integer|min:1|max:5',
-            'q5_liderazgo' => 'required|integer|min:1|max:5',
-            'q6_reconocimiento' => 'required|integer|min:1|max:5',
-            'q7_desarrollo' => 'required|integer|min:1|max:5',
-            'q8_motivacion' => 'required|integer|min:1|max:5',
-            'q9_satisfaccion' => 'required|integer|min:1|max:5',
-            'q10_bienestar_carga' => 'required|integer|min:1|max:5',
-            'q11_bienestar_preocupacion' => 'required|integer|min:1|max:5',
-            'q12_sugerencias' => 'nullable|string',
-        ]);
-
-        ClimaLaboral::create([
-            'user_id' => Auth::id(), // Guardar id anonimamente sin mostrar
-            'q1_ambiente' => $request->q1_ambiente,
-            'q2_respeto' => $request->q2_respeto,
-            'q3_comunicacion_oportuna' => $request->q3_comunicacion_oportuna,
-            'q4_comunicacion_escucha' => $request->q4_comunicacion_escucha,
-            'q5_liderazgo' => $request->q5_liderazgo,
-            'q6_reconocimiento' => $request->q6_reconocimiento,
-            'q7_desarrollo' => $request->q7_desarrollo,
-            'q8_motivacion' => $request->q8_motivacion,
-            'q9_satisfaccion' => $request->q9_satisfaccion,
-            'q10_bienestar_carga' => $request->q10_bienestar_carga,
-            'q11_bienestar_preocupacion' => $request->q11_bienestar_preocupacion,
-            'q12_sugerencias' => $request->q12_sugerencias,
-        ]);
-
-        return redirect()->back()->with('success', 'Encuesta guardada exitosamente.');
+        $this->utilResponse = $utilResponse;
+        $this->climaLaboralRepository = $climaLaboralRepository;
     }
 
-    /**
-     * Display a listing of the resource for CRUD.
-     */
-    public function index()
+    public function store(StoreClimaLaboralRequest $request)
     {
-        $resultados = ClimaLaboral::orderBy('created_at', 'desc')->get();
-        return view('rh.clima_laboral_resultados', compact('resultados'));
+        try {
+            $userId = Auth::id();
+
+            if ($userId && $this->climaLaboralRepository->hasUserAnswered($userId)) {
+                if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                    return $this->utilResponse->errorResponse('Ya has contestado la encuesta de clima laboral anteriormente.', 422);
+                }
+                return redirect()->back()->with('error', 'Ya has contestado la encuesta de clima laboral anteriormente.');
+            }
+
+            $data = $request->validated();
+            $data['user_id'] = $userId;
+
+            $record = $this->climaLaboralRepository->create($data);
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->successResponse(
+                    new ClimaLaboralResource($record),
+                    'Encuesta guardada exitosamente.',
+                    201
+                );
+            }
+
+            return redirect()->back()->with('success', 'Encuesta guardada exitosamente.');
+        } catch (Throwable $e) {
+            Log::error('Error al registrar encuesta de clima laboral: ' . $e->getMessage(), [
+                'action'    => 'ClimaLaboralController@store',
+                'user_id'   => Auth::id(),
+                'exception' => $e,
+            ]);
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->errorResponse('Error al registrar la encuesta de clima laboral.', 500);
+            }
+
+            return redirect()->back()->with('error', 'Ocurrió un error inesperado al guardar la encuesta.');
+        }
+    }
+
+    public function index(Request $request)
+    {
+        try {
+            $resultados = $this->climaLaboralRepository->all();
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->successResponse(
+                    ClimaLaboralResource::collection($resultados),
+                    'Resultados de clima laboral obtenidos correctamente'
+                );
+            }
+
+            return view('rh.clima_laboral_resultados', compact('resultados'));
+        } catch (Throwable $e) {
+            Log::error('Error al consultar resultados de clima laboral: ' . $e->getMessage(), [
+                'action'    => 'ClimaLaboralController@index',
+                'user_id'   => Auth::id(),
+                'exception' => $e,
+            ]);
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->errorResponse('Error al consultar resultados de clima laboral.', 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error al cargar los resultados.');
+        }
     }
 }

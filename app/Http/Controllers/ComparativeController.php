@@ -2,204 +2,177 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use App\Http\Repositories\Comparative\ComparativeRepository;
+use App\Http\Requests\Comparative\StoreComparativeRequest;
+use App\Http\Requests\Comparative\UpdateComparativeRequest;
+use App\Http\Resources\Comparative\ComparativeResource;
+use App\Traits\UtilResponse;
 use Barryvdh\DomPDF\Facade\Pdf;
-
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class ComparativeController extends Controller
 {
-    public function index()
+    private UtilResponse $utilResponse;
+    private ComparativeRepository $comparativeRepository;
+
+    public function __construct(UtilResponse $utilResponse, ComparativeRepository $comparativeRepository)
     {
-        $insumos_raw = DB::table('comparative')->orderBy('id', 'desc')->get();
-        $grupos = $insumos_raw->groupBy('folio');
-        $your_requisitions = DB::table('purchases_requisitions')
-            ->where('applicant', auth()->user()->name)
-            ->count();
-
-        $requisitions_count = DB::table('purchases_requisitions')->count();
-        
-        $requisitions_no_check = DB::table('purchases_requisitions')
-            ->whereNull('consecutive')
-            ->count();
-
-        return view('purchases.index', compact(
-            'grupos', 
-            'your_requisitions', 
-            'requisitions_count', 
-            'requisitions_no_check'
-        ));
+        $this->utilResponse = $utilResponse;
+        $this->comparativeRepository = $comparativeRepository;
     }
 
-    public function store(Request $request)
+    public function index(Request $request)
     {
-        // LOG 1: Ver qué estamos recibiendo exactamente del frontend
-        Log::info('--- INICIANDO GUARDADO DE COMPARATIVA ---');
-        Log::info('Payload recibido:', $request->all());
-
-        $fecha = now()->format('d-m-Y'); 
-        $prefijo = "COMP-" . $fecha;
-
-        $ultimoRegistro = DB::table('comparative')
-            ->where('folio', 'like', $prefijo . '%')
-            ->distinct()
-            ->count('folio');
-
-        $consecutivo = str_pad($ultimoRegistro + 1, 3, '0', STR_PAD_LEFT);
-        $folio = $prefijo . "-" . $consecutivo;
-
-        $userId = auth()->id();
-
         try {
-            DB::beginTransaction();
+            $grupos = $this->comparativeRepository->getAllGroupedByFolio();
+            $counts = $this->comparativeRepository->getRequisitionCounts(auth()->user()?->name);
 
-            // Verificamos que 'insumo' sea un arreglo para que el foreach no falle
-            if (!is_array($request->insumo)) {
-                throw new \Exception("El campo insumos no tiene el formato correcto.");
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return $this->utilResponse->successResponse(
+                    ComparativeResource::collection($this->comparativeRepository->all()),
+                    'Comparativas obtenidas exitosamente.'
+                );
             }
 
-            foreach ($request->insumo as $key => $value) {
-                // LOG 2: Imprimir la llave actual que se está iterando (0, 1, 2, 3...)
-                Log::info("Preparando inserción para el item [{$key}]:", ['insumo_value' => $value]);
+            $your_requisitions = $counts['your_requisitions'];
+            $requisitions_count = $counts['requisitions_count'];
+            $requisitions_no_check = $counts['requisitions_no_check'];
 
-                // Armamos el arreglo antes de insertarlo para poder loguearlo y le 
-                // agregamos fallbacks (?? null) a cantidad, proveedor, precio_total e imagen
-                // para evitar el error "Undefined array key"
-                $dataInsert = [
-                    'folio'            => $folio, 
-                    'user_id'          => $userId,
-                    'insumo'           => $request->insumo[$key] ?? null,
-                    'cantidad'         => $request->cantidad[$key] ?? null,
-                    'proveedor'        => $request->proveedor[$key] ?? null,
-                    'precio_unt'       => $request->precio_unt[$key] ?? 0,
-                    'precio_total'     => $request->precio_total[$key] ?? 0,
-                    'imagen'           => $request->imagen[$key] ?? null,
-                    'descripcion'      => $request->descripcion[$key] ?? null,
-                    'comentarios'      => $request->comentarios[$key] ?? null,
-                    'entrega_estimada' => $request->entrega_estimada[$key] ?? null,
-                    'link'             => $request->link[$key] ?? null,
-                ];
+            $view = view()->exists('purchases.index') ? 'purchases.index' : 'purchases';
 
-                // LOG 3: Ver los datos exactos que se van a insertar en la BD
-                Log::info("Datos listos para BD del item [{$key}]:", $dataInsert);
+            return view($view, compact(
+                'grupos',
+                'your_requisitions',
+                'requisitions_count',
+                'requisitions_no_check'
+            ));
+        } catch (Throwable $e) {
+            Log::error('Error fetching comparatives', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
 
-                DB::table('comparative')->insert($dataInsert);
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return $this->utilResponse->errorResponse('Error al obtener comparativas.', 500);
             }
 
-            DB::commit();
-            Log::info("Comparativa {$folio} guardada EXITOSAMENTE.");
-            return redirect()->back()->with('success', "Comparativa guardada con Folio: $folio");
+            return redirect()->back()->with('error', 'Error al obtener comparativas.');
+        }
+    }
 
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            // LOG 4: Imprimir el error exacto con el archivo y la línea donde ocurrió
-            Log::error("ERROR CRÍTICO AL GUARDAR COMPARATIVA: " . $e->getMessage());
-            Log::error("Línea del error: " . $e->getLine() . " en el archivo: " . $e->getFile());
-            
+    public function store(StoreComparativeRequest $request)
+    {
+        try {
+            $userId = auth()->id() ?? 1;
+            $result = $this->comparativeRepository->storeComparative($request->validated(), $userId);
+            $folio = $result['folio'];
+
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return $this->utilResponse->successResponse(
+                    [
+                        'folio' => $folio,
+                        'items' => ComparativeResource::collection($result['items']),
+                    ],
+                    "Comparativa guardada con Folio: {$folio}",
+                    201
+                );
+            }
+
+            return redirect()->back()->with('success', "Comparativa guardada con Folio: {$folio}");
+        } catch (Throwable $e) {
+            Log::error('Error storing comparative', [
+                'user_id' => auth()->id(),
+                'payload' => $request->all(),
+                'error' => $e->getMessage(),
+            ]);
+
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return $this->utilResponse->errorResponse('Error al guardar comparativa: ' . $e->getMessage(), 500);
+            }
+
             return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
         }
     }
 
-    public function destroyByFolio($folio)
+    public function destroyByFolio(string $folio)
     {
         try {
-            $deleted = DB::table('comparative')->where('folio', $folio)->delete();
+            $deleted = $this->comparativeRepository->deleteByFolio($folio);
 
-            if ($deleted) {
-                return response()->json(['success' => true], 200);
+            if (!$deleted) {
+                return $this->utilResponse->errorResponse('El folio no existe.', 404);
             }
 
-            return response()->json([
-                'success' => false, 
-                'message' => 'El folio no existe.'
-            ], 404);
+            return $this->utilResponse->successResponse(null, 'Comparativa eliminada exitosamente.');
+        } catch (Throwable $e) {
+            Log::error('Error deleting comparative by folio', [
+                'folio' => $folio,
+                'error' => $e->getMessage(),
+            ]);
 
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return $this->utilResponse->errorResponse('Error al eliminar comparativa.', 500);
         }
     }
 
-    public function generatePDF($folio)
+    public function generatePDF(Request $request, string $folio)
     {
-        $productos = DB::table('comparative')
-            ->where('folio', $folio)
-            ->get();
-
-        if ($productos->isEmpty()) {
-            return redirect()->back()->with('error', 'No se encontraron datos.');
-        }
-
-        $pdf = Pdf::loadView('formats.purchases.03', compact('productos', 'folio'));
-        
-        $pdf->getDomPDF()->set_option("isRemoteEnabled", true);
-        $pdf->getDomPDF()->set_option("isHtml5ParserEnabled", true);
-
-        return $pdf->setPaper('letter', 'landscape')->stream("Comparativa_{$folio}.pdf");
-    }
-
-    public function updateAll(Request $request)
-    {
-        if (!$request->has('insumo') || empty($request->insumo)) {
-            return redirect()->back()->with('error', 'No se recibieron datos para actualizar.');
-        }
-
         try {
-            DB::beginTransaction();
-            $idsRecibidos = array_filter($request->id ?? []);
-            $folio = null;
-            if (count($idsRecibidos) > 0) {
-                $primerItem = DB::table('comparative')->where('id', reset($idsRecibidos))->first();
-                $folio = $primerItem ? $primerItem->folio : null;
-            }
-            if ($folio) {
-                DB::table('comparative')
-                    ->where('folio', $folio)
-                    ->whereNotIn('id', $idsRecibidos)
-                    ->delete();
-            }
+            $productos = $this->comparativeRepository->getByFolio($folio);
 
-            $userId = auth()->id();
-
-            foreach ($request->insumo as $key => $insumoValor) {
-                
-                $id = $request->id[$key] ?? null;
-                
-                $cantidad = (isset($request->cantidad[$key]) && $request->cantidad[$key] > 0) ? $request->cantidad[$key] : 1;
-                $precio_total = $request->precio_total[$key] ?? 0;
-                $precio_unitario = $precio_total / $cantidad;
-
-                $data = [
-                    'insumo'           => $request->insumo[$key] ?? null,
-                    'cantidad'         => $cantidad,
-                    'proveedor'        => $request->proveedor[$key] ?? null,
-                    'precio_total'     => $precio_total,
-                    'precio_unt'       => $precio_unitario,
-                    'imagen'           => $request->imagen[$key] ?? null,
-                    'descripcion'      => $request->descripcion[$key] ?? null,
-                    'comentarios'      => $request->comentarios[$key] ?? null,
-                    'entrega_estimada' => $request->entrega_estimada[$key] ?? null,
-                    'link'             => $request->link[$key] ?? null,
-                ];
-
-                if (!empty($id)) {
-                    DB::table('comparative')->where('id', $id)->update($data);
-                } 
-                else {
-                    if ($folio) { 
-                        $data['folio']   = $folio;
-                        $data['user_id'] = $userId;
-                        DB::table('comparative')->insert($data);
-                    }
+            if ($productos->isEmpty()) {
+                if ($request->expectsJson() || $request->is('api/*')) {
+                    return $this->utilResponse->errorResponse('No se encontraron datos.', 404);
                 }
+
+                return redirect()->back()->with('error', 'No se encontraron datos.');
             }
 
-            DB::commit();
-            return redirect()->back()->with('success', '¡La comparativa ha sido actualizada correctamente!');
+            $pdf = Pdf::loadView('formats.purchases.03', compact('productos', 'folio'));
+            $pdf->getDomPDF()->set_option("isRemoteEnabled", true);
+            $pdf->getDomPDF()->set_option("isHtml5ParserEnabled", true);
 
-        } catch (\Exception $e) {
-            DB::rollBack();
+            return $pdf->setPaper('letter', 'landscape')->stream("Comparativa_{$folio}.pdf");
+        } catch (Throwable $e) {
+            Log::error('Error generating PDF for comparative', [
+                'folio' => $folio,
+                'error' => $e->getMessage(),
+            ]);
+
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return $this->utilResponse->errorResponse('Error al generar PDF de la comparativa.', 500);
+            }
+
+            return redirect()->back()->with('error', 'Error al generar PDF.');
+        }
+    }
+
+    public function updateAll(UpdateComparativeRequest $request)
+    {
+        try {
+            $userId = auth()->id() ?? 1;
+            $folio = $this->comparativeRepository->updateAll($request->validated(), $userId);
+
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return $this->utilResponse->successResponse(
+                    ['folio' => $folio],
+                    '¡La comparativa ha sido actualizada correctamente!'
+                );
+            }
+
+            return redirect()->back()->with('success', '¡La comparativa ha sido actualizada correctamente!');
+        } catch (Throwable $e) {
+            Log::error('Error updating all comparative items', [
+                'user_id' => auth()->id(),
+                'payload' => $request->all(),
+                'error' => $e->getMessage(),
+            ]);
+
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return $this->utilResponse->errorResponse('Hubo un problema al guardar los cambios.', 500);
+            }
+
             return redirect()->back()->with('error', 'Hubo un problema al guardar los cambios: ' . $e->getMessage());
         }
     }
