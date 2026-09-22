@@ -44,6 +44,7 @@ use App\Http\Controllers\PagoController;
 use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\idController;
+use App\Http\Controllers\ProteaminController;
 use App\Http\Controllers\ComparativeController;
 use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\SupplierPriceController; 
@@ -536,6 +537,20 @@ Route::prefix('laboratory/equipments')->group(function () {
     //production y i+d
     Route::get('/production', [ProductionController::class, 'index'])->name('production.index');
     Route::get('/i+d', [idController::class, 'index'])->name('i+d.index');
+
+    Route::prefix('production/proteamin')->name('production.proteamin.')->group(function () {
+        Route::get('/', [ProteaminController::class, 'index'])->name('index');
+        
+        Route::post('/productions', [ProteaminController::class, 'storeProduction'])->name('storeProduction');
+        Route::put('/productions/{id}', [ProteaminController::class, 'updateProduction'])->name('updateProduction');
+        Route::delete('/productions/{id}', [ProteaminController::class, 'destroyProduction'])->name('destroyProduction');
+
+        Route::post('/inventories', [ProteaminController::class, 'storeInventory'])->name('storeInventory');
+        Route::put('/inventories/{id}', [ProteaminController::class, 'updateInventory'])->name('updateInventory');
+        Route::delete('/inventories/{id}', [ProteaminController::class, 'destroyInventory'])->name('destroyInventory');
+        Route::post('/inventories/{id}/output', [ProteaminController::class, 'outputInventory'])->name('outputInventory');
+        Route::get('/inventories/{id}/movements', [ProteaminController::class, 'getMovements'])->name('getMovements');
+    });
 
     //finance - supplier prices
     Route::get('/precios', [SupplierPriceController::class, 'index'])->name('precios.index');
