@@ -2,103 +2,141 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Helpers\DatabaseErrors;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Database\QueryException;
-use App\Http\Requests\StoreCliRequest;
-use App\Models\Cli;
-use Illuminate\Http\Request;
+use App\Http\Repositories\Cli\CliRepository;
+use App\Http\Requests\Cli\StoreCliRequest;
+use App\Http\Requests\Cli\UpdateCliRequest;
+use App\Http\Resources\Cli\CliResource;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class CliController extends Controller
 {
-    public function index(){
+    private UtilResponse $utilResponse;
+    private CliRepository $cliRepository;
+
+    public function __construct(UtilResponse $utilResponse, CliRepository $cliRepository)
+    {
+        $this->utilResponse = $utilResponse;
+        $this->cliRepository = $cliRepository;
     }
 
-    public function destroy($id){
-        $cli = Cli::find($id);
-        if($cli) {
-            $cli->delete();
-            return response()->json(['success' => true, 'message' => 'cli deleted']);
-        } else {
-            return response()->json(['success' => false, 'message' => 'cli not deleted'], 404);
+    public function index(): JsonResponse
+    {
+        try {
+            $clis = $this->cliRepository->all();
+
+            return $this->utilResponse->successResponse(
+                CliResource::collection($clis),
+                'Operaciones de almacén obtenidas correctamente'
+            );
+        } catch (Throwable $e) {
+            Log::error('Error al consultar operaciones de almacén: ' . $e->getMessage(), [
+                'action'    => 'CliController@index',
+                'exception' => $e,
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al consultar operaciones de almacén.', 500);
         }
     }
 
-    public function show($id){
-        $cli = Cli::select(
-            'cli.cli_id',
-            'cli.location_id',
-            'cli.concept_id',
-            'cli.inventory_id',
-            'cli.quantity',
-            'cli.weight_per_unit',
-            'cli.net_weight',
-            'cli.bag_number',
-            'cli.protein',
-            'inventory.product_id',
-            'locations.warehouse_id'
-        )
-        ->join('locations','locations.location_id','=','cli.location_id')
-        ->join('inventory','inventory.inventory_id','=','cli.inventory_id')
-        ->where('cli_id',$id)->first();
-        return response()->json(['cli'=> $cli]);
+    public function show($id): JsonResponse
+    {
+        try {
+            $cli = $this->cliRepository->findWithWarehouseAndProduct((int) $id);
+
+            if (!$cli) {
+                return $this->utilResponse->errorResponse('Operación de almacén no encontrada.', 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'flag'    => true,
+                'code'    => 200,
+                'message' => 'Operación de almacén obtenida correctamente',
+                'data'    => $cli,
+                'cli'     => $cli,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Error al consultar operación de almacén: ' . $e->getMessage(), [
+                'action'    => 'CliController@show',
+                'id'        => $id,
+                'exception' => $e,
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al consultar la operación de almacén.', 500);
+        }
     }
 
-    public function update(Request $request){
-        $data = [
-            'location_id' => $request->location_id,
-            'concept_id' => $request->concept_id,
-            'inventory_id' => $request->inventory_id,
-            'quantity' => $request->quantity,
-            'weight_per_unit' => $request->weight_per_unit,
-            'net_weight' => $request->quantity*$request->weight_per_unit,
-            'bag_number' => $request->bag_number,
-            'protein' => $request->protein,
-        ];
-        Cli::where('cli_id',$request->cli_id)->update($data);
-        return response()->json(['message' => 'Operation successfuly make it'], 201);
+    public function store(StoreCliRequest $request): JsonResponse
+    {
+        try {
+            $createdRecords = $this->cliRepository->createMany($request->validated());
+
+            return $this->utilResponse->successResponse(
+                CliResource::collection(collect($createdRecords)),
+                'Operación de almacén registrada exitosamente.',
+                201
+            );
+        } catch (Throwable $e) {
+            Log::error('Error al registrar operación de almacén: ' . $e->getMessage(), [
+                'action'    => 'CliController@store',
+                'exception' => $e,
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al registrar la operación de almacén.', 500);
+        }
     }
 
-    public function store(StoreCliRequest $request){
-        try{
-            DB::transaction(function () use ($request){
-                $concepts = $request->input('concept_id');
-                $inventories = $request->input('inventory_id');
-                $quantities = $request->input('quantity');
-                $weights = $request->input('weight_per_unit');
-                $bag_numbers = $request->input('bag_number', []);
-                $proteins = $request->input('protein', []);
+    public function update(UpdateCliRequest $request, $id = null): JsonResponse
+    {
+        try {
+            $cliId = $id ?? $request->input('cli_id');
 
-                foreach($concepts as $index => $concept){
-                    if (isset($bag_numbers[$index]) && is_array($bag_numbers[$index]) && count($bag_numbers[$index]) > 0) {
-                        foreach ($bag_numbers[$index] as $b_idx => $bag_num) {
-                            Cli::create([
-                                'location_id' => $request->location_id,
-                                'inventory_id' => $inventories[$index],
-                                'concept_id' => $concept,
-                                'quantity' => 1,
-                                'weight_per_unit' => $weights[$index],
-                                'net_weight' => 1 * $weights[$index],
-                                'bag_number' => $bag_num,
-                                'protein' => $proteins[$index][$b_idx] ?? null,
-                            ]);
-                        }
-                    } else {
-                        Cli::create([
-                            'location_id' => $request->location_id,
-                            'inventory_id' => $inventories[$index],
-                            'concept_id' => $concept,
-                            'quantity' => $quantities[$index],
-                            'weight_per_unit' => $weights[$index],
-                            'net_weight' => $quantities[$index]*$weights[$index],
-                        ]);
-                    }
-                }
-                return response()->json(['message' => 'Operation successfuly make it'], 201);
-            });
-        }catch(QueryException $e){
-            return DatabaseErrors::handle($e);
+            if (!$cliId) {
+                return $this->utilResponse->errorResponse('Identificador de operación no proporcionado.', 422);
+            }
+
+            $updated = $this->cliRepository->update((int) $cliId, $request->validated());
+
+            if (!$updated) {
+                return $this->utilResponse->errorResponse('Operación de almacén no encontrada.', 404);
+            }
+
+            return $this->utilResponse->successResponse(
+                new CliResource($updated),
+                'Operación de almacén actualizada exitosamente.'
+            );
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar operación de almacén: ' . $e->getMessage(), [
+                'action'    => 'CliController@update',
+                'id'        => $id,
+                'exception' => $e,
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al actualizar la operación de almacén.', 500);
+        }
+    }
+
+    public function destroy($id): JsonResponse
+    {
+        try {
+            $deleted = $this->cliRepository->delete((int) $id);
+
+            if (!$deleted) {
+                return $this->utilResponse->errorResponse('Operación de almacén no encontrada o ya eliminada.', 404);
+            }
+
+            return $this->utilResponse->successResponse(null, 'Operación de almacén eliminada exitosamente.');
+        } catch (Throwable $e) {
+            Log::error('Error al eliminar operación de almacén: ' . $e->getMessage(), [
+                'action'    => 'CliController@destroy',
+                'id'        => $id,
+                'exception' => $e,
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al eliminar la operación de almacén.', 500);
         }
     }
 }
