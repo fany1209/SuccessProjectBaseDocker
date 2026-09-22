@@ -39,7 +39,7 @@
         
         // Fetch movements
         $.ajax({
-            url: `/production/proteamin/inventories/${invId}/movements`,
+            url: `/production/fertil/inventories/${invId}/movements`,
             type: 'GET',
             success: function(response) {
                 let tbody = document.getElementById('hist-tbody');

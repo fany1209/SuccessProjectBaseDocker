@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ProteaminProduction extends Model
+class FertilProduction extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'proteamin_production_id';
+    protected $primaryKey = 'fertil_production_id';
 
     protected $fillable = [
         'fecha_preparacion',

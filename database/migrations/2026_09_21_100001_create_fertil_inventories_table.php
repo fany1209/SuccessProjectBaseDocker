@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('proteamin_inventories', function (Blueprint $table) {
-            $table->id('proteamin_inventory_id');
+        Schema::create('fertil_inventories', function (Blueprint $table) {
+            $table->id('fertil_inventory_id');
             $table->string('producto_descripcion')->nullable();
             $table->decimal('cantidad', 10, 2)->default(0);
             $table->string('unidad')->nullable();
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('proteamin_inventories');
+        Schema::dropIfExists('fertil_inventories');
     }
 };

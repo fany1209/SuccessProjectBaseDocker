@@ -56,9 +56,9 @@
         <span>Producción de Levadura</span>
     </a>
     
-    <a href="{{ route('production.proteamin.index') }}" class="{{ $btnBase }} {{ $btnCard }}">
-        <img src="{{ asset('images/formats/agro.png') }}" alt="Proteamin" class="{{ $imgCls }}">
-        <span>Producción de Proteamin</span>
+    <a href="{{ route('production.fertil.index') }}" class="{{ $btnBase }} {{ $btnCard }}">
+        <img src="{{ asset('images/formats/agro.png') }}" alt="Fertil" class="{{ $imgCls }}">
+        <span>Producción de Fertil</span>
     </a>
 
     <a href="{{ route('production.vitayela.index') }}" class="{{ $btnBase }} {{ $btnCard }}">

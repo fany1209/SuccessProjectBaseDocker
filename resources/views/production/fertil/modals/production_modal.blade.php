@@ -1,12 +1,12 @@
 <x-modal id="production-modal" maxWidth="lg">
-    <form class="flex flex-col items-center w-full gap-2" id="production-form" action="{{ route('production.proteamin.storeProduction') }}" method="POST">
+    <form class="flex flex-col items-center w-full gap-2" id="production-form" action="{{ route('production.fertil.storeProduction') }}" method="POST">
         @csrf
         <input type="hidden" name="_method" id="prod-method" value="POST">
 
         <x-wrapper-form-1>
             <x-wrapper-form-2>
                 <x-tittle-form id="prod-modal-title">Nuevo Registro de Producción</x-tittle-form>
-                <p class="text-sm text-gray-500">Registro de producción de Proteamin</p>
+                <p class="text-sm text-gray-500">Registro de producción de Fertil</p>
             </x-wrapper-form-2>
         </x-wrapper-form-1>
 
@@ -52,7 +52,7 @@
 
 <script>
     function openCreateProduction() {
-        document.getElementById('production-form').action = "{{ route('production.proteamin.storeProduction') }}";
+        document.getElementById('production-form').action = "{{ route('production.fertil.storeProduction') }}";
         document.getElementById('prod-method').value = "POST";
         document.getElementById('prod-modal-title').innerText = "Nuevo Registro de Producción";
         
@@ -62,7 +62,7 @@
     }
 
     function editProduction(p) {
-        document.getElementById('production-form').action = `/production/proteamin/productions/${p.proteamin_production_id}`;
+        document.getElementById('production-form').action = `/production/fertil/productions/${p.fertil_production_id}`;
         document.getElementById('prod-method').value = "PUT";
         document.getElementById('prod-modal-title').innerText = "Editar Registro de Producción";
         

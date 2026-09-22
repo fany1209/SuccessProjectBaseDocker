@@ -27,7 +27,7 @@
 
 <script>
     function openOutputInventory(inv) {
-        document.getElementById('output-form').action = `/production/proteamin/inventories/${inv.proteamin_inventory_id}/output`;
+        document.getElementById('output-form').action = `/production/fertil/inventories/${inv.fertil_inventory_id}/output`;
         document.getElementById('out-method').value = "POST";
         
         document.getElementById('out-product-desc').innerText = `Producto: ${inv.producto_descripcion}`;

@@ -44,7 +44,7 @@ use App\Http\Controllers\PagoController;
 use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\idController;
-use App\Http\Controllers\ProteaminController;
+use App\Http\Controllers\FertilController;
 use App\Http\Controllers\VitayelaController;
 use App\Http\Controllers\ComparativeController;
 use App\Http\Controllers\DirectoryController;
@@ -539,18 +539,18 @@ Route::prefix('laboratory/equipments')->group(function () {
     Route::get('/production', [ProductionController::class, 'index'])->name('production.index');
     Route::get('/i+d', [idController::class, 'index'])->name('i+d.index');
 
-    Route::prefix('production/proteamin')->name('production.proteamin.')->group(function () {
-        Route::get('/', [ProteaminController::class, 'index'])->name('index');
+    Route::prefix('production/fertil')->name('production.fertil.')->group(function () {
+        Route::get('/', [FertilController::class, 'index'])->name('index');
         
-        Route::post('/productions', [ProteaminController::class, 'storeProduction'])->name('storeProduction');
-        Route::put('/productions/{id}', [ProteaminController::class, 'updateProduction'])->name('updateProduction');
-        Route::delete('/productions/{id}', [ProteaminController::class, 'destroyProduction'])->name('destroyProduction');
+        Route::post('/productions', [FertilController::class, 'storeProduction'])->name('storeProduction');
+        Route::put('/productions/{id}', [FertilController::class, 'updateProduction'])->name('updateProduction');
+        Route::delete('/productions/{id}', [FertilController::class, 'destroyProduction'])->name('destroyProduction');
 
-        Route::post('/inventories', [ProteaminController::class, 'storeInventory'])->name('storeInventory');
-        Route::put('/inventories/{id}', [ProteaminController::class, 'updateInventory'])->name('updateInventory');
-        Route::delete('/inventories/{id}', [ProteaminController::class, 'destroyInventory'])->name('destroyInventory');
-        Route::post('/inventories/{id}/output', [ProteaminController::class, 'outputInventory'])->name('outputInventory');
-        Route::get('/inventories/{id}/movements', [ProteaminController::class, 'getMovements'])->name('getMovements');
+        Route::post('/inventories', [FertilController::class, 'storeInventory'])->name('storeInventory');
+        Route::put('/inventories/{id}', [FertilController::class, 'updateInventory'])->name('updateInventory');
+        Route::delete('/inventories/{id}', [FertilController::class, 'destroyInventory'])->name('destroyInventory');
+        Route::post('/inventories/{id}/output', [FertilController::class, 'outputInventory'])->name('outputInventory');
+        Route::get('/inventories/{id}/movements', [FertilController::class, 'getMovements'])->name('getMovements');
     });
 
     Route::prefix('production/vitayela')->name('production.vitayela.')->group(function () {

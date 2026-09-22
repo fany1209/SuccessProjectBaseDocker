@@ -1,5 +1,5 @@
 <x-modal id="inventory-modal" maxWidth="lg">
-    <form class="flex flex-col items-center w-full gap-2" id="inventory-form" action="{{ route('production.proteamin.storeInventory') }}" method="POST">
+    <form class="flex flex-col items-center w-full gap-2" id="inventory-form" action="{{ route('production.fertil.storeInventory') }}" method="POST">
         @csrf
         <input type="hidden" name="_method" id="inv-method" value="POST">
 
@@ -44,7 +44,7 @@
 
 <script>
     function openCreateInventory() {
-        document.getElementById('inventory-form').action = "{{ route('production.proteamin.storeInventory') }}";
+        document.getElementById('inventory-form').action = "{{ route('production.fertil.storeInventory') }}";
         document.getElementById('inv-method').value = "POST";
         document.getElementById('inv-modal-title').innerText = "Nuevo Producto de Inventario";
         
@@ -54,7 +54,7 @@
     }
 
     function editInventory(inv) {
-        document.getElementById('inventory-form').action = `/production/proteamin/inventories/${inv.proteamin_inventory_id}`;
+        document.getElementById('inventory-form').action = `/production/fertil/inventories/${inv.fertil_inventory_id}`;
         document.getElementById('inv-method').value = "PUT";
         document.getElementById('inv-modal-title').innerText = "Editar Producto de Inventario";
         

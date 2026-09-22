@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('proteamin_productions', function (Blueprint $table) {
-            $table->id('proteamin_production_id');
+        Schema::create('fertil_productions', function (Blueprint $table) {
+            $table->id('fertil_production_id');
             $table->date('fecha_preparacion')->nullable();
             $table->decimal('kg_preparados', 10, 2)->nullable();
             $table->date('fecha_ensacado')->nullable();
@@ -28,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('proteamin_productions');
+        Schema::dropIfExists('fertil_productions');
     }
 };
