@@ -45,6 +45,7 @@ use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\idController;
 use App\Http\Controllers\ProteaminController;
+use App\Http\Controllers\VitayelaController;
 use App\Http\Controllers\ComparativeController;
 use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\SupplierPriceController; 
@@ -550,6 +551,20 @@ Route::prefix('laboratory/equipments')->group(function () {
         Route::delete('/inventories/{id}', [ProteaminController::class, 'destroyInventory'])->name('destroyInventory');
         Route::post('/inventories/{id}/output', [ProteaminController::class, 'outputInventory'])->name('outputInventory');
         Route::get('/inventories/{id}/movements', [ProteaminController::class, 'getMovements'])->name('getMovements');
+    });
+
+    Route::prefix('production/vitayela')->name('production.vitayela.')->group(function () {
+        Route::get('/', [VitayelaController::class, 'index'])->name('index');
+        
+        Route::post('/productions', [VitayelaController::class, 'storeProduction'])->name('storeProduction');
+        Route::put('/productions/{id}', [VitayelaController::class, 'updateProduction'])->name('updateProduction');
+        Route::delete('/productions/{id}', [VitayelaController::class, 'destroyProduction'])->name('destroyProduction');
+
+        Route::post('/inventories', [VitayelaController::class, 'storeInventory'])->name('storeInventory');
+        Route::put('/inventories/{id}', [VitayelaController::class, 'updateInventory'])->name('updateInventory');
+        Route::delete('/inventories/{id}', [VitayelaController::class, 'destroyInventory'])->name('destroyInventory');
+        Route::post('/inventories/{id}/output', [VitayelaController::class, 'outputInventory'])->name('outputInventory');
+        Route::get('/inventories/{id}/movements', [VitayelaController::class, 'getMovements'])->name('getMovements');
     });
 
     //finance - supplier prices
