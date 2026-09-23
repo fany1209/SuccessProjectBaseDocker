@@ -59,10 +59,19 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-sm">
-        <div><label class="block font-bold text-gray-700">Atención</label><input type="text" name="attention" class="w-full border-gray-300 rounded p-2"></div>
-        <div><label class="block font-bold text-gray-700">Departamento</label><input type="text" name="department" class="w-full border-gray-300 rounded p-2"></div>
-        <div><label class="block font-bold text-gray-700">Teléfono</label><input type="text" name="phone" class="w-full border-gray-300 rounded p-2"></div>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 text-sm">
+        <div><label class="block font-bold text-gray-700">Atención</label><input type="text" name="attention" class="w-full border-gray-300 rounded p-2" placeholder="Persona o contacto"></div>
+        <div><label class="block font-bold text-gray-700">Departamento</label><input type="text" name="department" class="w-full border-gray-300 rounded p-2" placeholder="Compras, Almacén..."></div>
+        <div><label class="block font-bold text-gray-700">Teléfono</label><input type="text" name="phone" class="w-full border-gray-300 rounded p-2" placeholder="Teléfono de contacto"></div>
+        <div>
+            <label class="block font-bold text-gray-700">
+                Moneda (Currency) <span class="text-blue-600 font-semibold">*</span>
+            </label>
+            <select name="currency" id="currencySelect" class="w-full border-gray-300 rounded p-2 bg-white font-semibold text-gray-800 focus:ring-2 focus:ring-blue-400 focus:border-blue-400">
+                <option value="MXN" selected>Pesos Mexicanos (MXN)</option>
+                <option value="USD">Dólares Americanos (USD)</option>
+            </select>
+        </div>
     </div>
 
     <div class="bg-white p-4 rounded-lg border border-gray-200 mb-6 shadow-sm">
@@ -76,9 +85,9 @@
             <div class="w-full lg:w-1/6 text-left pl-2">Presentación</div>
             <div class="w-24">Unidad</div> 
             <div class="w-20">Cant.</div>
-            <div class="w-28">Precio Unit.</div>
+            <div class="w-28">Precio Unit. (<span class="currency-label">MXN</span>)</div>
             <div class="w-24">IVA</div>
-            <div class="w-32">Importe</div>
+            <div class="w-32">Importe (<span class="currency-label">MXN</span>)</div>
             <div class="w-10"></div>
         </div>
 
@@ -86,9 +95,9 @@
 
         <div class="mt-6 flex flex-col items-end border-t border-gray-100 pt-4">
             <div class="w-full md:w-80 space-y-1">
-                <div class="flex justify-between text-gray-600 px-2"><span>Subtotal:</span><span class="font-bold font-mono">$<span id="subtotal_display">0.00</span></span></div>
-                <div class="flex justify-between text-gray-500 px-2"><span>IVA:</span><span class="font-bold font-mono">$<span id="iva_display">0.00</span></span></div>
-                <div class="flex justify-between text-blue-800 bg-blue-50 p-2 rounded mt-2"><span class="font-bold">Total General:</span><span class="font-bold font-mono text-xl">$<span id="total_display">0.00</span></span></div>
+                <div class="flex justify-between text-gray-600 px-2"><span>Subtotal:</span><span class="font-bold font-mono">$<span id="subtotal_display">0.00</span> <span class="currency-label">MXN</span></span></div>
+                <div class="flex justify-between text-gray-500 px-2"><span>IVA:</span><span class="font-bold font-mono">$<span id="iva_display">0.00</span> <span class="currency-label">MXN</span></span></div>
+                <div class="flex justify-between text-blue-800 bg-blue-50 p-2 rounded mt-2"><span class="font-bold">Total General:</span><span class="font-bold font-mono text-xl">$<span id="total_display">0.00</span> <span class="currency-label">MXN</span></span></div>
             </div>
         </div>
     </div>
@@ -201,6 +210,14 @@
     });
 
     document.getElementById('calculateBtn').addEventListener('click', calculateTotals);
+
+    const currencySelect = document.getElementById('currencySelect');
+    if (currencySelect) {
+        currencySelect.addEventListener('change', function() {
+            const curr = this.value;
+            document.querySelectorAll('.currency-label').forEach(el => el.textContent = curr);
+        });
+    }
 
     $('#quoteForm').submit(function(e) {
         e.preventDefault();

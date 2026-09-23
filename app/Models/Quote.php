@@ -12,7 +12,7 @@ class Quote extends Model
     protected $primaryKey = 'quote_id';
 
     protected $fillable = [
-        'folio', 'company','date', 'attention', 'phone', 'email', 'department', 'place_of_delivery', 'transport_specification',
+        'folio', 'company', 'date', 'currency', 'attention', 'phone', 'email', 'department', 'place_of_delivery', 'transport_specification',
         'deadline', 'terms', 'notes', 'quotes_status_id', 'user_id'
     ];
 

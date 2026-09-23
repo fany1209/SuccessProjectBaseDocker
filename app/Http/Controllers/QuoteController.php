@@ -48,6 +48,7 @@ class QuoteController extends Controller
         $validator = \Validator::make($request->all(), [
             'company'          => 'required',
             'date'             => 'required|date',
+            'currency'         => 'nullable|string|in:MXN,USD',
             'quotes_status_id' => 'required',
             'products'         => 'required|array|min:1',
         ]);
@@ -72,6 +73,7 @@ class QuoteController extends Controller
                     'folio'                   => $finalFolio,
                     'company'                 => $request->company,
                     'date'                    => $request->date,
+                    'currency'                => $request->currency ?? 'MXN',
                     'attention'               => $request->attention,
                     'department'              => $request->department,
                     'phone'                   => $request->phone ?? '', 
@@ -137,6 +139,7 @@ class QuoteController extends Controller
     {
         $request->validate([
             'company'  => 'required',
+            'currency' => 'nullable|string|in:MXN,USD',
             'products' => 'required|array',
         ]);
 
@@ -146,7 +149,7 @@ class QuoteController extends Controller
             $quote = Quote::findOrFail($id);
             
             $quote->update($request->only([
-                'folio', 'company', 'date', 'attention', 'department', 
+                'folio', 'company', 'date', 'currency', 'attention', 'department', 
                 'phone', 'place_of_delivery', 'transport_specification', 
                 'deadline', 'terms', 'notes', 'quotes_status_id'
             ]));
@@ -224,6 +227,7 @@ class QuoteController extends Controller
             'pagina'              => '1 de 1',
             'empresa'             => $quote->company,
             'folio'               => $quote->folio,
+            'moneda'              => $quote->currency ?? 'MXN',
             'atencion'            => $quote->attention,
             'departamento'        => $quote->department ?? 'Compras',
             'fecha_texto'         => 'Apaseo el Grande, Guanajuato, México a ' . \Carbon\Carbon::parse($quote->date)->translatedFormat('d \d\e F \d\e\l Y') . '.',
@@ -234,7 +238,7 @@ class QuoteController extends Controller
             'transporte'          => $quote->transport_specification ?? 'Paquetería consolidada',
             'tiempo_entrega'      => $quote->deadline ?? '6 días hábiles una vez recibida la orden de compra y pago.',
             'terminos'            => $quote->terms ?? 'Contado 100%',
-            'notas'               => $quote->notes ?? 'Los precios antes mencionados son netos. La cotización es válida por 15 días.',
+            'notas'               => $quote->notes ?: ('Los precios antes mencionados son netos en ' . (($quote->currency ?? 'MXN') === 'USD' ? 'Dólares Americanos (USD)' : 'Moneda Nacional (MXN)') . '. La cotización es válida por 15 días.'),
             'firma_nombre'        => auth()->user()->name ?? 'Manola Ramírez'
         ];
 

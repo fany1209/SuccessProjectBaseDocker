@@ -107,7 +107,10 @@
                                     $totalConIvaReal += $subtotalFila + ($subtotalFila * ($item->iva ?? 0.16));
                                 }
                             @endphp
-                            ${{ number_format($totalConIvaReal, 2) }}
+                            <div>${{ number_format($totalConIvaReal, 2) }}</div>
+                            <span class="inline-block text-[10px] px-1.5 py-0.5 rounded font-bold uppercase {{ ($quote->currency ?? 'MXN') === 'USD' ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'bg-green-100 text-green-800 border border-green-200' }}">
+                                {{ $quote->currency ?? 'MXN' }}
+                            </span>
                         </td>
                    <td class="px-6 py-4 text-center">
                         <div class="flex justify-center items-center space-x-2">

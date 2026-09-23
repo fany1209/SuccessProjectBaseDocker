@@ -90,10 +90,13 @@
       <td class="p4"><b>Departamento:</b></td>
       <td class="p4">{{ $departamento }}</td>
     </tr>
-
-        <tr>
+    <tr>
       <td class="p4"><b>Teléfono:</b></td>
       <td class="p4">{{ $phone }}</td>
+    </tr>
+    <tr>
+      <td class="p4"><b>Moneda:</b></td>
+      <td class="p4"><span style="font-weight:bold; color: {{ ($moneda ?? 'MXN') === 'USD' ? '#0066cc' : '#000' }};">{{ ($moneda ?? 'MXN') === 'USD' ? 'Dólares Americanos (USD)' : 'Pesos Mexicanos (MXN)' }}</span></td>
     </tr>
   </table>
 
@@ -109,8 +112,8 @@
         <th class="p6" style="width:12%;">Req. (Cant.)</th>
         <th class="p6" style="width:12%;">Unidad</th> 
         <th class="p6" style="width:18%;">Presentación</th> 
-        <th class="p6" style="width:15%;">Precio Unit.</th>
-        <th class="p6" style="width:15%;">Subtotal</th>
+        <th class="p6" style="width:15%;">Precio Unit. ({{ $moneda ?? 'MXN' }})</th>
+        <th class="p6" style="width:15%;">Subtotal ({{ $moneda ?? 'MXN' }})</th>
       </tr>
     </thead>
     <tbody>
@@ -146,16 +149,16 @@
     @endphp
 
     <tr>
-        <td colspan="5" class="r p4" style="font-weight:bold;">SUBTOTAL (MXN):</td>
-        <td class="c p4" style="font-weight:bold;">$ {{ number_format($subtotalFinal, 2) }}</td>
+        <td colspan="5" class="r p4" style="font-weight:bold;">SUBTOTAL ({{ $moneda ?? 'MXN' }}):</td>
+        <td class="c p4" style="font-weight:bold;">$ {{ number_format($subtotalFinal, 2) }} {{ $moneda ?? 'MXN' }}</td>
     </tr>
     <tr>
         <td colspan="5" class="r p4" style="font-weight:bold;">IVA:</td>
-        <td class="c p4" style="font-weight:bold;">$ {{ number_format($ivaCalculado, 2) }}</td>
+        <td class="c p4" style="font-weight:bold;">$ {{ number_format($ivaCalculado, 2) }} {{ $moneda ?? 'MXN' }}</td>
     </tr>
     <tr>
-        <td colspan="5" class="r p4" style="font-weight:bold; font-size: 11pt;">TOTAL GENERAL (MXN):</td>
-        <td class="c p4" style="font-weight:bold; background:#f2f2f2; font-size: 11pt;">$ {{ number_format($totalFinal, 2) }}</td>
+        <td colspan="5" class="r p4" style="font-weight:bold; font-size: 11pt;">TOTAL GENERAL ({{ $moneda ?? 'MXN' }}):</td>
+        <td class="c p4" style="font-weight:bold; background:#f2f2f2; font-size: 11pt;">$ {{ number_format($totalFinal, 2) }} {{ $moneda ?? 'MXN' }}</td>
     </tr>
 </tfoot>
   </table>

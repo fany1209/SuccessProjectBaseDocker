@@ -114,6 +114,10 @@
                 <td class="p4"><b>Departamento:</b></td>
                 <td class="p4">{{ $quote->department ?? 'Compras' }}</td>
             </tr>
+            <tr>
+                <td class="p4"><b>Moneda:</b></td>
+                <td class="p4"><span style="font-weight:bold; color: {{ ($quote->currency ?? 'MXN') === 'USD' ? '#0066cc' : '#000' }};">{{ ($quote->currency ?? 'MXN') === 'USD' ? 'Dólares Americanos (USD)' : 'Pesos Mexicanos (MXN)' }}</span></td>
+            </tr>
         </table>
 
         <p style="font-size:10pt; margin-top:15px;">
@@ -127,8 +131,8 @@
                     <th class="p6" style="width:12%;">Req. (Cant.)</th>
                     <th class="p6" style="width:12%;">Unidad</th>
                     <th class="p6" style="width:18%;">Presentación</th>
-                    <th class="p6" style="width:15%;">Precio Unit.</th>
-                    <th class="p6" style="width:15%;">Subtotal</th>
+                    <th class="p6" style="width:15%;">Precio Unit. ({{ $quote->currency ?? 'MXN' }})</th>
+                    <th class="p6" style="width:15%;">Subtotal ({{ $quote->currency ?? 'MXN' }})</th>
                 </tr>
             </thead>
             <tbody>
@@ -164,16 +168,16 @@
                 @endphp
 
                 <tr>
-                    <td colspan="5" class="r p4" style="font-weight:bold;">SUBTOTAL (MXN):</td>
-                    <td class="c p4" style="font-weight:bold;">$ {{ number_format($subtotalCalculado, 2) }}</td>
+                    <td colspan="5" class="r p4" style="font-weight:bold;">SUBTOTAL ({{ $quote->currency ?? 'MXN' }}):</td>
+                    <td class="c p4" style="font-weight:bold;">$ {{ number_format($subtotalCalculado, 2) }} {{ $quote->currency ?? 'MXN' }}</td>
                 </tr>
                 <tr>
                     <td colspan="5" class="r p4" style="font-weight:bold;">IVA:</td>
-                    <td class="c p4" style="font-weight:bold;">$ {{ number_format($ivaCalculado, 2) }}</td>
+                    <td class="c p4" style="font-weight:bold;">$ {{ number_format($ivaCalculado, 2) }} {{ $quote->currency ?? 'MXN' }}</td>
                 </tr>
                 <tr>
-                    <td colspan="5" class="r p4" style="font-weight:bold; font-size: 11pt;">TOTAL GENERAL (MXN):</td>
-                    <td class="c p4" style="font-weight:bold; background:#f2f2f2; font-size: 11pt;">$ {{ number_format($totalFinal, 2) }}</td>
+                    <td colspan="5" class="r p4" style="font-weight:bold; font-size: 11pt;">TOTAL GENERAL ({{ $quote->currency ?? 'MXN' }}):</td>
+                    <td class="c p4" style="font-weight:bold; background:#f2f2f2; font-size: 11pt;">$ {{ number_format($totalFinal, 2) }} {{ $quote->currency ?? 'MXN' }}</td>
                 </tr>
             </tfoot>
         </table>
