@@ -145,28 +145,29 @@ Fecha de actualización: 15-06-2026
                             searchable: false,
                             className: 'text-right',
                             render: function (data, type, row) {
-                                let buttons = ``;
+                                let buttons = `<div class="flex justify-center items-center space-x-2">`;
                                 buttons += `
-                                <button data-id="${row.sale_id}" class="edit-btn text-sm text-white bg-blue-500 hover:bg-blue-600 rounded-sm p-2" title="Edit">
-                                    <img width="18" src="{{ asset('images/editar.png') }}" alt="Edit"/>
+                                <button data-id="${row.sale_id}" class="edit-btn flex items-center justify-center w-8 h-8 text-white bg-blue-500 hover:bg-blue-600 rounded-md shadow-sm transition-all transform hover:scale-105" title="Edit">
+                                    <img width="16" src="{{ asset('images/editar.png') }}" alt="Edit" class="icon-white"/>
                                 </button>
                             `;
                                 buttons += `
-                                <button data-id="${row.sale_id}" class="delete-btn text-sm text-white bg-red-500 hover:bg-red-600 rounded-sm p-2" title="Delete">
-                                    <img width="18" src="{{ asset('images/borrar.png') }}" alt="Delete"/>
+                                <button data-id="${row.sale_id}" data-target="view-more" class="open-modal view-more-btn flex items-center justify-center w-8 h-8 text-white bg-sky-500 hover:bg-sky-600 rounded-md shadow-sm transition-all transform hover:scale-105" title="View more">
+                                    <img width="16" src="{{ asset('images/ver.png') }}" alt="View more" class="icon-white"/>
                                 </button>
                             `;
                                 buttons += `
-                                <button data-id="${row.sale_id}" data-target="view-more" class="open-modal view-more-btn text-sm text-white bg-sky-500 hover:bg-sky-600 rounded-sm p-2" title="View more">
-                                    <img width="18" src="{{ asset('images/ver.png') }}" alt="View more"/>
+                                <button data-id="${row.sale_id}" class="delivery-note-btn flex items-center justify-center w-8 h-8 text-white bg-yellow-500 hover:bg-yellow-600 rounded-md shadow-sm transition-all transform hover:scale-105" title="Delivery note">
+                                    <img width="16" src="{{ asset('images/archivo.png') }}" alt="Delivery note" class="icon-white"/>
                                 </button>
                             `;
                                 buttons += `
-                                <button data-id="${row.sale_id}" class="delivery-note-btn text-sm text-white bg-yellow-500 hover:bg-yellow-600 rounded-sm p-2" title="Delivery note">
-                                    <img width="18" src="{{ asset('images/archivo.png') }}" alt="Delivery note"/>
+                                <button data-id="${row.sale_id}" class="delete-btn flex items-center justify-center w-8 h-8 text-white bg-red-500 hover:bg-red-600 rounded-md shadow-sm transition-all transform hover:scale-105" title="Delete">
+                                    <img width="16" src="{{ asset('images/borrar.png') }}" alt="Delete" class="icon-white"/>
                                 </button>
                             `;
-                                return buttons || '';
+                                buttons += `</div>`;
+                                return buttons;
                             }
                         }
                     ],

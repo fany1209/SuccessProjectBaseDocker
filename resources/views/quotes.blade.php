@@ -37,7 +37,7 @@
         </div>
     </div>
 
-    <div id="quotesTableContainer" class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+    <div id="quotesTableContainer" class="bg-white rounded-xl shadow-md border border-gray-200 overflow-x-auto">
         <table id="quotesTable" class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50 text-[11px]">
                 <tr>
@@ -112,29 +112,29 @@
                    <td class="px-6 py-4 text-center">
                         <div class="flex justify-center items-center space-x-2">
                             <a href="{{ route('quotes.edit', $quote->quote_id) }}" 
-                            class="p-2 bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition-all transform hover:scale-105" 
+                            class="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-md hover:bg-blue-700 shadow-sm transition-all transform hover:scale-105" 
                             title="Editar">
-                                <img width="18" src="{{ asset('images/editar.png') }}" class="icon-white">
+                                <img width="16" src="{{ asset('images/editar.png') }}" class="icon-white">
                             </a>
 
                             <button onclick="viewQuoteDetails({{ $quote->quote_id }})" 
-                                    class="p-2 bg-yellow-500 rounded-lg hover:bg-yellow-600 shadow-sm transition-all transform hover:scale-105" 
+                                    class="flex items-center justify-center w-8 h-8 bg-yellow-500 rounded-md hover:bg-yellow-600 shadow-sm transition-all transform hover:scale-105" 
                                     title="Ver Detalles">
-                                <img width="20" src="{{ asset('images/ver.png') }}" class="icon-white">
+                                <img width="16" src="{{ asset('images/ver.png') }}" class="icon-white">
                             </button>
 
                             <a href="{{ route('quotes.pdf', $quote->quote_id) }}" target="_blank"
-                            class="p-2 bg-cyan-600 rounded-lg hover:bg-cyan-700 shadow-sm transition-all transform hover:scale-105" 
+                            class="flex items-center justify-center w-8 h-8 bg-cyan-600 rounded-md hover:bg-cyan-700 shadow-sm transition-all transform hover:scale-105" 
                             title="Generar PDF">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                 </svg>
                             </a>
 
                             <button onclick="deleteQuote({{ $quote->quote_id }})" 
-                                    class="p-2 bg-red-600 rounded-lg hover:bg-red-700 shadow-sm transition-all transform hover:scale-105" 
+                                    class="flex items-center justify-center w-8 h-8 bg-red-600 rounded-md hover:bg-red-700 shadow-sm transition-all transform hover:scale-105" 
                                     title="Borrar">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             </button>
@@ -155,8 +155,7 @@ document.addEventListener('DOMContentLoaded', function () {
         language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-MX.json' },
         pageLength: 10,
         order: [[0, 'desc']], 
-        dom: 'rtip', 
-        responsive: true
+        dom: 'rtip'
     });
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
