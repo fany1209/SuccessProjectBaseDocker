@@ -1,10 +1,3 @@
-{{--
-Logistic
-Fecha de creación: 14-10-2025
-Creado por: Jacob
-Actualizado por: Jacob
-Fecha de actualización: 14-10-25
---}}
 @extends('layouts.app')
 @section('content')
 <div class="flex flex-col lg:flex-row items-start gap-4 p-3 lg:p-4">
