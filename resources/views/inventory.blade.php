@@ -6,10 +6,10 @@
     $currentTab = request('tab', 'inventory');
 @endphp
 
-<div id="inventory-module" class="flex flex-col lg:flex-row lg:justify-between items-start gap-2 m-2">
+<div id="inventory-module" class="flex flex-col lg:flex-row items-start gap-4 p-3 lg:p-4">
 
-    <div class="flex flex-col gap-2 bg-white shadow-md rounded-lg w-full lg:w-[15%] p-2">
-        <x-tittle-form class="border-b-2 border-green-700 pb-2">
+    <div class="flex flex-col gap-2.5 bg-white shadow-sm border border-gray-100 rounded-xl w-full lg:w-56 xl:w-64 shrink-0 p-3">
+        <x-tittle-form class="border-b-2 border-green-700 pb-2 w-full">
             Menu
         </x-tittle-form>
 
@@ -41,7 +41,7 @@
     </div>
 
     
-    <div class="flex flex-col bg-white shadow-md rounded-lg w-full lg:w-[85%] p-2 overflow-hidden">
+    <div class="flex flex-col bg-white shadow-sm border border-gray-100 rounded-xl w-full flex-1 min-w-0 p-4 overflow-hidden">
 
         <div id="inventory-layout" class="{{ $currentTab === 'inventory' ? '' : 'hidden' }} w-full">
             <x-tittle-form id="opt-tittle" class="border-s-2 border-green-700 ps-2 ms-2">

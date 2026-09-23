@@ -14,19 +14,35 @@
         $unreadContacts = \App\Models\Contact::whereNull('read_at')->orderBy('created_at', 'desc')->take(10)->get();
         $unreadContactsCount = \App\Models\Contact::whereNull('read_at')->count();
     }
+
+    $isMoreActive = request()->routeIs('prospects.*') || request()->routeIs('prospects') ||
+                    request()->routeIs('suppliers.*') || request()->routeIs('suppliers') ||
+                    request()->routeIs('quality.*') || request()->routeIs('quality') || request()->routeIs('fumigaciones.*') ||
+                    request()->routeIs('laboratory.*') || request()->routeIs('laboratory') || request()->routeIs('muestras.*') ||
+                    request()->routeIs('finance.*') || request()->routeIs('finance') ||
+                    request()->routeIs('production.*') || request()->routeIs('production') ||
+                    request()->routeIs('orders.*') || request()->routeIs('orders');
+
+    $canSeeMore = $currentUser->can('prospects.show') ||
+                  $currentUser->can('suppliers.show') ||
+                  $currentUser->can('quality.show') ||
+                  $currentUser->can('laboratory.show') ||
+                  $currentUser->can('finance.show') ||
+                  $currentUser->can('production.show') ||
+                  $currentUser->hasAnyRole(['Admin', 'Sales', 'Warehouse', 'Quality']);
 @endphp
 
-<nav x-data="{ open: false, showNotifications: false, showContactAlerts: false }" class="bg-white border-b border-gray-100 shadow-sm">
-    <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-            <div class="flex">
-                <div class="shrink-0 flex items-center">
+<nav x-data="{ open: false, showNotifications: false, showContactAlerts: false }" class="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-40">
+    <div class="max-w-[1750px] w-full mx-auto px-3 sm:px-4 lg:px-6">
+        <div class="flex justify-between h-16 items-center">
+            <div class="flex items-center min-w-0 flex-1">
+                <div class="shrink-0 flex items-center me-2 xl:me-4">
                     <a href="{{ route('main-menu') }}">
-                        <img src="/images/logo.png" width="150" alt="Success Logo">
+                        <img src="/images/logo.png" width="130" class="h-9 w-auto object-contain" alt="Success Logo">
                     </a>
                 </div>
 
-                <div class="hidden space-x-4 sm:-my-px sm:ms-6 lg:flex xl:space-x-8">
+                <div class="hidden sm:-my-px sm:ms-2 lg:flex lg:items-center space-x-1 lg:space-x-1.5 xl:space-x-3 2xl:space-x-4 min-w-0">
                     @can('products.show')
                         <x-nav-link href="{{ route('catalogs.index') }}" :active="request()->routeIs('catalogs.index')">
                             {{ __('Catalog') }}
@@ -57,18 +73,6 @@
                         </x-nav-link>
                     @endcan
 
-                    @can('prospects.show')
-                        <x-nav-link href="{{ route('prospects.index') }}" :active="request()->routeIs('prospects.index')">
-                            {{ __('Prospects') }}
-                        </x-nav-link>
-                    @endcan
-
-                    @can('suppliers.show')
-                        <x-nav-link href="{{ route('suppliers.index') }}" :active="request()->routeIs('suppliers.index')">
-                            {{ __('Suppliers') }}
-                        </x-nav-link>
-                    @endcan
-
                     @can('sales.show')
                         <x-nav-link href="{{ route('sales.index') }}" :active="request()->routeIs('sales.index')">
                             {{ __('Sales') }}
@@ -87,45 +91,87 @@
                         </x-nav-link>
                     @endcan
 
-                    @can('quality.show')
-                        <x-nav-link href="{{ route('quality.index') }}" :active="request()->routeIs('quality.index')">
-                            {{ __('Quality') }}
-                        </x-nav-link>
-                    @endcan
-
-                    @can('laboratory.show')
-                        <x-nav-link href="{{ route('laboratory.index') }}" :active="request()->routeIs('laboratory.index')">
-                            {{ __('Laboratory') }}
-                        </x-nav-link>
-                    @endcan
-
-
-
-                    @can('finance.show')
-                        <x-nav-link href="{{ route('finance.index') }}" :active="request()->routeIs('finance.index')">
-                            {{ __('Finance') }}
-                        </x-nav-link>
-                    @endcan
-
-                    @can('production.show')
-                        <x-nav-link href="{{ route('production.index') }}" :active="request()->routeIs('production.index')">
-                            {{ __('Production') }}
-                        </x-nav-link>
-                    @endcan
-
                     <x-nav-link href="{{ route('tasks.index') }}" :active="request()->routeIs('tasks.index')">
                         {{ __('Tasks') }}
                     </x-nav-link>
 
-                    @hasanyrole('Admin|Sales|Warehouse|Quality')
-                        <x-nav-link href="{{ route('orders.index') }}" :active="request()->routeIs('orders.index')">
-                            {{ __('Orders') }}
-                        </x-nav-link>
-                    @endhasanyrole
+                    @if($canSeeMore)
+                        <div class="relative inline-flex items-center" x-data="{ openDropdown: false }">
+                            <button @click="openDropdown = !openDropdown" 
+                                    @click.away="openDropdown = false"
+                                    type="button" 
+                                    class="inline-flex items-center px-1.5 pt-1 border-b-2 text-xs xl:text-sm font-medium leading-5 transition duration-150 ease-in-out whitespace-nowrap focus:outline-none cursor-pointer {{ $isMoreActive ? 'border-green-500 text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                                <span>{{ __('Más') }}</span>
+                                <svg class="ms-1 h-3.5 w-3.5 transition-transform duration-200" :class="{ 'rotate-180': openDropdown }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            <div x-show="openDropdown"
+                                 x-transition:enter="transition ease-out duration-150"
+                                 x-transition:enter-start="opacity-0 scale-95"
+                                 x-transition:enter-end="opacity-100 scale-100"
+                                 x-transition:leave="transition ease-in duration-100"
+                                 x-transition:leave-start="opacity-100 scale-100"
+                                 x-transition:leave-end="opacity-0 scale-95"
+                                 class="absolute left-0 top-full mt-2 w-52 bg-white rounded-lg shadow-xl border border-gray-100 py-1.5 z-50 focus:outline-none"
+                                 style="display: none;">
+                                
+                                @can('prospects.show')
+                                    <a href="{{ route('prospects.index') }}" class="flex items-center px-3.5 py-2 text-xs xl:text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition {{ request()->routeIs('prospects.*') || request()->routeIs('prospects') ? 'bg-green-50 text-green-700 font-semibold border-l-4 border-green-500' : '' }}">
+                                        <i class="ri-user-search-line me-2.5 text-base text-gray-400"></i>
+                                        {{ __('Prospects') }}
+                                    </a>
+                                @endcan
+
+                                @can('suppliers.show')
+                                    <a href="{{ route('suppliers.index') }}" class="flex items-center px-3.5 py-2 text-xs xl:text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition {{ request()->routeIs('suppliers.*') || request()->routeIs('suppliers') ? 'bg-green-50 text-green-700 font-semibold border-l-4 border-green-500' : '' }}">
+                                        <i class="ri-store-2-line me-2.5 text-base text-gray-400"></i>
+                                        {{ __('Suppliers') }}
+                                    </a>
+                                @endcan
+
+                                @can('quality.show')
+                                    <a href="{{ route('quality.index') }}" class="flex items-center px-3.5 py-2 text-xs xl:text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition {{ request()->routeIs('quality.*') || request()->routeIs('quality') ? 'bg-green-50 text-green-700 font-semibold border-l-4 border-green-500' : '' }}">
+                                        <i class="ri-shield-check-line me-2.5 text-base text-gray-400"></i>
+                                        {{ __('Quality') }}
+                                    </a>
+                                @endcan
+
+                                @can('laboratory.show')
+                                    <a href="{{ route('laboratory.index') }}" class="flex items-center px-3.5 py-2 text-xs xl:text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition {{ request()->routeIs('laboratory.*') || request()->routeIs('laboratory') ? 'bg-green-50 text-green-700 font-semibold border-l-4 border-green-500' : '' }}">
+                                        <i class="ri-test-tube-line me-2.5 text-base text-gray-400"></i>
+                                        {{ __('Laboratory') }}
+                                    </a>
+                                @endcan
+
+                                @can('finance.show')
+                                    <a href="{{ route('finance.index') }}" class="flex items-center px-3.5 py-2 text-xs xl:text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition {{ request()->routeIs('finance.*') || request()->routeIs('finance') ? 'bg-green-50 text-green-700 font-semibold border-l-4 border-green-500' : '' }}">
+                                        <i class="ri-money-dollar-circle-line me-2.5 text-base text-gray-400"></i>
+                                        {{ __('Finance') }}
+                                    </a>
+                                @endcan
+
+                                @can('production.show')
+                                    <a href="{{ route('production.index') }}" class="flex items-center px-3.5 py-2 text-xs xl:text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition {{ request()->routeIs('production.*') || request()->routeIs('production') ? 'bg-green-50 text-green-700 font-semibold border-l-4 border-green-500' : '' }}">
+                                        <i class="ri-settings-4-line me-2.5 text-base text-gray-400"></i>
+                                        {{ __('Production') }}
+                                    </a>
+                                @endcan
+
+                                @hasanyrole('Admin|Sales|Warehouse|Quality')
+                                    <a href="{{ route('orders.index') }}" class="flex items-center px-3.5 py-2 text-xs xl:text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition {{ request()->routeIs('orders.*') || request()->routeIs('orders') ? 'bg-green-50 text-green-700 font-semibold border-l-4 border-green-500' : '' }}">
+                                        <i class="ri-file-list-3-line me-2.5 text-base text-gray-400"></i>
+                                        {{ __('Orders') }}
+                                    </a>
+                                @endhasanyrole
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
 
-            <div class="hidden lg:flex lg:items-center lg:ms-6 space-x-3">
+            <div class="hidden lg:flex lg:items-center lg:ms-3 xl:ms-6 space-x-2 xl:space-x-3 shrink-0">
                 
                 <div class="relative">
                     <button @click="showNotifications = !showNotifications" class="relative p-2 text-gray-400 hover:text-indigo-600 focus:outline-none transition">

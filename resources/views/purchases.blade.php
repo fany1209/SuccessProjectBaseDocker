@@ -1,8 +1,8 @@
 @section('content')
-<div class="flex flex-col lg:flex-row lg:justify-between items-start gap-2 m-2">
+<div class="flex flex-col lg:flex-row items-start gap-4 p-3 lg:p-4">
 
-  <div class="flex flex-col items-start gap-2 bg-white shadow-md rounded-lg w-full lg:w-[15%] p-2">
-    <x-tittle-form class="border-b-2 border-green-700 pb-2">Menu</x-tittle-form>
+  <div class="flex flex-col items-start gap-2.5 bg-white shadow-sm border border-gray-100 rounded-xl w-full lg:w-56 xl:w-64 shrink-0 p-3">
+    <x-tittle-form class="border-b-2 border-green-700 pb-2 w-full">Menu</x-tittle-form>
     <x-nav-button data-button="requisitions" icon="ri-shopping-bag-2-fill" class="option-btn border-2 border-green-500">Requisitions</x-nav-button>
     
     @can('purchases.admin')
@@ -18,7 +18,7 @@
             <x-nav-button data-button="warehouse" class="option-btn">Warehouse</x-nav-button>
         @endcanany
 
-        <x-tittle-form class="border-b-2 border-green-700 pb-2">Formats</x-tittle-form>
+        <x-tittle-form class="border-b-2 border-green-700 pb-2 w-full">Formats</x-tittle-form>
         <p class="text-sm text-gray-600">Select the format you want to generate.</p>
 
         <x-nav-button data-target="modal-insumos" class="open-modal" icon="ri-table-line">Comparative Table</x-nav-button>
@@ -45,7 +45,7 @@
 
 </div>
 
-    <div class="flex flex-col items-start bg-white shadow-md rounded-lg w-full lg:w-[85%] p-2">
+    <div class="flex flex-col items-start bg-white shadow-sm border border-gray-100 rounded-xl w-full flex-1 min-w-0 p-4">
         <div class="flex justify-center items-center w-full gap-3 my-3">
             <span class="flex justify-between items-center px-4 shadow-md p-2 rounded-md bg-orange-500 gap-2 w-full">
                 <h3 class="text-2xl text-white tracking-[2px]"><i class="ri-archive-stack-line text-4xl"></i> Your Requisitions</h3>

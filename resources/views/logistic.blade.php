@@ -7,15 +7,15 @@ Fecha de actualización: 14-10-25
 --}}
 @extends('layouts.app')
 @section('content')
-<div class="flex flex-col lg:flex-row lg:justify-between items-start gap-2 m-2">
-    <div class="flex flex-col items-start gap-2 bg-white shadow-md rounded-lg w-full lg:w-[15%] p-2">
-        <x-tittle-form class="border-b-2 border-green-700 pb-2">Menu</x-tittle-form>
+<div class="flex flex-col lg:flex-row items-start gap-4 p-3 lg:p-4">
+    <div class="flex flex-col items-start gap-2.5 bg-white shadow-sm border border-gray-100 rounded-xl w-full lg:w-56 xl:w-64 shrink-0 p-3">
+        <x-tittle-form class="border-b-2 border-green-700 pb-2 w-full">Menu</x-tittle-form>
         <x-nav-button data-button="transport-lines" icon="ri-truck-line" class="option-btn border-2 border-green-500">Transport Lines</x-nav-button>
         <x-nav-button data-button="operators" icon="ri-id-card-line" class="option-btn">Operators</x-nav-button>
         <x-nav-button data-button="vehicles" icon="ri-car-fill" class="option-btn">Vehicles</x-nav-button>
         <x-nav-button data-button="trailers" icon="ri-bus-2-fill" class="option-btn">Trailers</x-nav-button>
     </div>
-    <div class="flex flex-col items-start bg-white shadow-md rounded-lg w-full lg:w-[85%] p-2">
+    <div class="flex flex-col items-start bg-white shadow-sm border border-gray-100 rounded-xl w-full flex-1 min-w-0 p-4">
         <x-tittle-form id="opt-tittle" class="border-s-2 border-green-700 ps-2 ms-2">Warehouse</x-tittle-form>
         <div id="transport-line-layout" class="">
             @include('logistic.transport-lines.tools')
@@ -33,8 +33,8 @@ Fecha de actualización: 14-10-25
             @include('logistic.trailers.tools')
             @include('logistic.trailers.table')
         </div>
-        <hr class="border-t-2 border-gray-600 border-dashed w-full my-2">
-        <x-tittle-form class="border-b-2 border-green-700 pb-2">Dashboard Transports</x-tittle-form>
+        <hr class="border-t border-gray-200 w-full my-6">
+        <x-tittle-form class="border-b-2 border-green-700 pb-2 mb-4">Dashboard Transports</x-tittle-form>
         <div class="flex flex-col lg:flex-row lg:justify-center items-center w-full gap-3 my-3">
             <span class="flex justify-between items-center px-4 shadow-md p-2 rounded-md bg-green-500 gap-2 w-full">
                 <h3 class="text-2xl text-white tracking-[2px]"><i class="ri-id-card-line text-4xl"></i> Operators</h3>                
