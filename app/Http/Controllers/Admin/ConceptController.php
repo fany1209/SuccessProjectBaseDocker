@@ -1,28 +1,26 @@
 <?php
-/*
-controlador
-ConceptController
-12/08/25
-stefany
-*/ 
 
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Concept;
+use App\Http\Repositories\Concept\ConceptRepository;
+use App\Http\Requests\Concept\StoreConceptRequest;
+use App\Http\Requests\Concept\UpdateConceptRequest;
 use Illuminate\Http\Request;
 
 class ConceptController extends Controller
 {
+    private ConceptRepository $conceptRepository;
+
+    public function __construct(ConceptRepository $conceptRepository)
+    {
+        $this->conceptRepository = $conceptRepository;
+    }
+
     public function index(Request $request)
     {
         $search = $request->get('search');
-
-        $concepts = Concept::when($search, function($q, $search) {
-            $q->where('name', 'like', "%{$search}%");
-        })
-        ->orderBy('name')
-        ->paginate(10);
+        $concepts = $this->conceptRepository->paginate($search);
 
         $open = false;
         $create = true;
@@ -40,12 +38,7 @@ class ConceptController extends Controller
     public function create(Request $request)
     {
         $search = $request->get('search');
-
-        $concepts = Concept::when($search, function($q, $search) {
-            $q->where('name', 'like', "%{$search}%");
-        })
-        ->orderBy('name')
-        ->paginate(10);
+        $concepts = $this->conceptRepository->paginate($search);
 
         $open = true;
         $create = true;
@@ -60,10 +53,9 @@ class ConceptController extends Controller
         ));
     }
 
-    public function store(Request $request)
+    public function store(StoreConceptRequest $request)
     {
-        $request->validate(['name' => 'required|string|max:255']);
-        Concept::create(['name' => $request->name]);
+        $this->conceptRepository->create($request->validated());
 
         return redirect()->route('admin.concepts.index')->with('success', 'Concept created successfully.');
     }
@@ -71,14 +63,13 @@ class ConceptController extends Controller
     public function edit($id, Request $request)
     {
         $search = $request->get('search');
+        $concept = $this->conceptRepository->find((int) $id);
 
-        $concept = Concept::findOrFail($id);
+        if (!$concept) {
+            return redirect()->route('admin.concepts.index')->with('error', 'Concepto no encontrado.');
+        }
 
-        $concepts = Concept::when($search, function($q, $search) {
-            $q->where('name', 'like', "%{$search}%");
-        })
-        ->orderBy('name')
-        ->paginate(10);
+        $concepts = $this->conceptRepository->paginate($search);
 
         $open = true;
         $create = false;
@@ -92,20 +83,22 @@ class ConceptController extends Controller
         ));
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateConceptRequest $request, $id)
     {
-        $request->validate(['name' => 'required|string|max:255']);
-
-        $concept = Concept::findOrFail($id);
-        $concept->update(['name' => $request->name]);
+        $this->conceptRepository->update((int) $id, $request->validated());
 
         return redirect()->route('admin.concepts.index')->with('success', 'Concept updated successfully.');
     }
 
     public function destroy($id)
     {
-        $concept = Concept::findOrFail($id);
-        $concept->delete();
+        $conceptId = (int) $id;
+
+        if ($this->conceptRepository->hasClis($conceptId)) {
+            return redirect()->route('admin.concepts.index')->with('error', 'No se puede eliminar el concepto porque tiene registros asociados.');
+        }
+
+        $this->conceptRepository->delete($conceptId);
 
         return redirect()->route('admin.concepts.index')->with('success', 'Concept deleted successfully.');
     }

@@ -11,6 +11,7 @@
     <div class="flex flex-col items-start bg-white shadow-sm border border-gray-100 rounded-xl w-full flex-1 min-w-0 p-4">
         <x-tittle-form id="opt-tittle" class="border-s-2 border-green-700 ps-2 ms-2">Warehouse</x-tittle-form>
         <div id="transport-line-layout" class="">
+            
             @include('logistic.transport-lines.tools')
             @include('logistic.transport-lines.table')
         </div>

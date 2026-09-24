@@ -25,6 +25,7 @@ use App\Http\Controllers\TweakController;
 use App\Http\Controllers\SupplierCertificateController;
 use App\Http\Controllers\CertificateApiController;
 use App\Http\Controllers\ComplaintController;
+use App\Http\Controllers\ConceptController;
 use App\Http\Controllers\LaboratoryController;
 use App\Http\Controllers\Admin\ComplaintAdminController;
 use App\Http\Controllers\InputController;
@@ -338,6 +339,9 @@ Route::middleware([
 
     //complaints
     Route::resource('complaints', ComplaintController::class)->only(['create','store']);
+
+    //concepts
+    Route::apiResource('concepts', ConceptController::class);
 
     //laboratory
     Route::middleware('can:laboratory.show')->group(function () {
