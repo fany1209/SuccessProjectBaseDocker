@@ -680,6 +680,7 @@ Route::prefix('laboratory/equipments')->group(function () {
     // Contratos
     Route::get('/rh/contratos', [ContratoController::class, 'index'])->name('rh.contratos.index');
     Route::post('/rh/contratos/update', [ContratoController::class, 'update'])->name('rh.contratos.update');
+    Route::get('/rh/contratos/{userId}', [ContratoController::class, 'show'])->name('rh.contratos.show');
 
     //portal users
     Route::get('admin/get-json-portal-users', [PortalUserController::class, 'getPortalUsers'])

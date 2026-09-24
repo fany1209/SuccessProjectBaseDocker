@@ -1,21 +1,25 @@
 <?php
-/*
-Controlador: ContactController
-13/08/25
-stefany
-*/
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Contact;
+use App\Http\Repositories\Contact\ContactRepository;
+use App\Http\Requests\Contact\StoreContactRequest;
+use App\Http\Requests\Contact\UpdateContactRequest;
 use Illuminate\Http\Request;
 
 class ContactController extends Controller
 {
+    private ContactRepository $contactRepository;
+
+    public function __construct(ContactRepository $contactRepository)
+    {
+        $this->contactRepository = $contactRepository;
+    }
+
     public function index(Request $request)
     {
-        $contacts = Contact::when($request->search, fn($q) => $q->where('name', 'like', "%{$request->search}%"))
-            ->paginate(10);
+        $contacts = $this->contactRepository->paginate($request->search);
 
         $open = false;
         $create = false;
@@ -26,7 +30,7 @@ class ContactController extends Controller
 
     public function create()
     {
-        $contacts = Contact::paginate(10);
+        $contacts = $this->contactRepository->paginate();
         $open = true;
         $create = true;
         $contact = null;
@@ -36,53 +40,44 @@ class ContactController extends Controller
 
     public function edit($id)
     {
-        $contacts = Contact::paginate(10);
-        $contact = Contact::findOrFail($id);
+        $contacts = $this->contactRepository->paginate();
+        $contact = $this->contactRepository->find((int) $id);
+
+        if (!$contact) {
+            return redirect()->route('admin.contacts.index')->with('error', 'Contacto no encontrado.');
+        }
+
         $open = true;
         $create = false;
 
         return view('admin.contacts', compact('contacts', 'contact', 'open', 'create'));
     }
 
-    public function store(Request $request)
+    public function store(StoreContactRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:200',
-            'phone' => 'required|string|max:15',
-            'message' => 'required|string|max:255',
-        ]);
-
-        Contact::create($request->all());
+        $data = $request->safe()->except(['bot_check']);
+        $this->contactRepository->create($data);
 
         return redirect()->route('admin.contacts.index')->with('success', 'Contact created successfully.');
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateContactRequest $request, $id)
     {
-        $request->validate([
-            'name' => 'required|string|max:200',
-            'phone' => 'required|string|max:15',
-            'message' => 'required|string|max:255',
-        ]);
-
-        $contact = Contact::findOrFail($id);
-        $contact->update($request->all());
+        $this->contactRepository->update((int) $id, $request->validated());
 
         return redirect()->route('admin.contacts.index')->with('success', 'Contact updated successfully.');
     }
 
     public function destroy($id)
     {
-        $contact = Contact::findOrFail($id);
-        $contact->delete();
+        $this->contactRepository->delete((int) $id);
 
         return redirect()->route('admin.contacts.index')->with('success', 'Contact deleted successfully.');
     }
 
     public function markAsRead($id)
     {
-        $contact = Contact::findOrFail($id);
-        $contact->update(['read_at' => now()]);
+        $this->contactRepository->markAsRead((int) $id);
 
         return response()->json(['success' => true]);
     }
