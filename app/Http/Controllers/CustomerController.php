@@ -1,173 +1,107 @@
 <?php
+
 namespace App\Http\Controllers;
 
-use App\Helpers\DatabaseErrors;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreCustomerRequest;
-use App\Models\Customer;
-use App\Models\Sector;
-use App\Models\User;
-use Illuminate\Database\QueryException;
+use App\Http\Repositories\Customer\CustomerRepository;
+use App\Http\Requests\Customer\CustomerRequest;
+use App\Http\Resources\Customer\CustomerResource;
+use App\Traits\UtilResponse;
+use DomainException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class CustomerController extends Controller
 {
-    public function index()
+    protected UtilResponse $utilResponse;
+    protected CustomerRepository $customerRepo;
+
+    public function __construct(UtilResponse $utilResponse, CustomerRepository $customerRepo)
     {
-        $sectors = Sector::all();
-
-        $total_customers = DB::table('customers')
-            ->join('sectors', 'sectors.sector_id', '=', 'customers.sector_id')
-            ->count();
-
-        $customers_per_sector = DB::table('sectors')
-            ->leftJoin('customers', 'customers.sector_id', '=', 'sectors.sector_id')
-            ->select('sectors.sector_id', 'sectors.code')
-            ->selectRaw("
-                COALESCE(
-                    MAX(
-                        CAST(
-                            SUBSTRING(customers.customer_code, 3 + CHAR_LENGTH(sectors.code)) AS UNSIGNED
-                        )
-                    ),
-                0) AS last_number
-            ")
-            ->groupBy('sectors.sector_id', 'sectors.code')
-            ->get();
-
-        $sellers = User::select('users.id as seller_number', 'users.name')
-            ->join('model_has_roles', 'model_has_roles.model_id', '=', 'users.id')
-            ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-            ->whereIn('roles.name', ['Sales', 'Admin'])
-            ->get();
-
-        $clientesSistemas = DB::table('customers')
-            ->select('customer_id', 'name', 'customer_code')
-            ->orderBy('name', 'asc')
-            ->get();
-
-        return view('customers', compact(
-            'sectors', 
-            'total_customers', 
-            'customers_per_sector', 
-            'sellers', 
-            'clientesSistemas'
-        ));
+        $this->utilResponse = $utilResponse;
+        $this->customerRepo = $customerRepo;
     }
 
-    public function getCustomers(Request $request)
-    {
-        $sector = $request->input('sector');
-        $search = $request->input('search');
-        $city = $request->input('city');
-        $state = $request->input('state');
-        $vendedor = $request->input('vendedor');
-        $name = $request->input('name');
-        $rfc = $request->input('rfc');
-        $contact = $request->input('contact');
-
-        $query = DB::table('customers')
-            ->join('sectors', 'sectors.sector_id', '=', 'customers.sector_id')
-            ->select(
-                'customers.customer_id',
-                'sectors.name as sector',
-                'customers.customer_code as code',
-                'customers.name',
-                'customers.phone',
-                'customers.email',
-                'customers.rfc',
-                'customers.vendedor',
-                'customers.contact',          
-                'customers.delivery_address', 
-                DB::raw("concat(customers.address,', ',customers.district,', ',customers.city,', ',customers.state,', ',customers.country,' ',customers.postal_code) as address")
-            );
-
-        if (!empty($search)) {
-            $query->where(function ($q) use ($search) {
-                $q->where('sectors.name', 'like', '%' . $search . '%')
-                    ->orWhere('customers.customer_code', 'like', '%' . $search . '%')
-                    ->orWhere('customers.name', 'like', '%' . $search . '%')
-                    ->orWhere('customers.phone', 'like', '%' . $search . '%')
-                    ->orWhere('customers.email', 'like', '%' . $search . '%')
-                    ->orWhere('customers.rfc', 'like', '%' . $search . '%')
-                    ->orWhere('customers.vendedor', 'like', '%' . $search . '%')
-                    ->orWhere('customers.contact', 'like', '%' . $search . '%')          
-                    ->orWhere('customers.delivery_address', 'like', '%' . $search . '%'); 
-            });
-        }
-
-        if (!empty($sector)) {
-            $query->where('customers.sector_id', $sector);
-        }
-        if (!empty($city)) {
-            $query->where('customers.city', 'like', '%' . $city . '%');
-        }
-        if (!empty($state)) {
-            $query->where('customers.state', 'like', '%' . $state . '%');
-        }
-        if (!empty($vendedor)) {
-            $query->where('customers.vendedor', 'like', '%' . $vendedor . '%');
-        }
-        if (!empty($name)) {
-            $query->where('customers.name', 'like', '%' . $name . '%');
-        }
-        if (!empty($rfc)) {
-            $query->where('customers.rfc', 'like', '%' . $rfc . '%');
-        }
-        if (!empty($contact)) {
-            $query->where('customers.contact', 'like', '%' . $contact . '%');
-        }
-        
-        $query->orderBy('customers.customer_id', 'desc');
-
-        $customers = $query->get();
-
-        $customersWithPermissions = $customers->map(function ($row) {
-            return [
-                'customer_id'      => $row->customer_id,
-                'sector'           => $row->sector,
-                'code'             => $row->code,
-                'name'             => $row->name,
-                'phone'            => $row->phone,
-                'email'            => $row->email,
-                'rfc'              => $row->rfc,
-                'vendedor'         => $row->vendedor,
-                'contact'          => $row->contact,          
-                'delivery_address' => $row->delivery_address, 
-                'address'          => $row->address,
-                'canUpdate'        => auth()->user()->can('customers.update'),
-                'canDelete'        => auth()->user()->can('customers.delete'),
-            ];
-        });
-
-        return response()->json(['customers' => $customersWithPermissions]);
-    }
-
-    public function destroy($id)
+    public function index(Request $request)
     {
         try {
-            return DB::transaction(function () use ($id) {
-                $customer = Customer::find($id);
+            $data = $this->customerRepo->getIndexData();
 
-                if ($customer) {
-                    $customer->delete();
-                    return response()->json(['success' => true, 'message' => 'Customer deleted']);
-                }
+            if ($request->expectsJson() || $request->ajax()) {
+                return $this->utilResponse->successResponse(
+                    $data,
+                    'Datos de clientes obtenidos correctamente'
+                );
+            }
 
-                return response()->json(['success' => false, 'message' => 'Customer not deleted'], 404);
-            });
-        } catch (QueryException $e) {
-            return DatabaseErrors::handle($e);
+            return view('customers', $data);
+        } catch (Throwable $e) {
+            Log::error('Error al cargar índice de clientes', [
+                'action' => 'CustomerController@index',
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return $this->utilResponse->errorResponse('Error al consultar clientes', 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error al cargar los clientes.');
         }
     }
 
-    public function show($id)
+    public function getCustomers(Request $request): JsonResponse
     {
-        $customer = Customer::where('customer_id', $id)->first();
+        try {
+            $customers = $this->customerRepo->getFilteredCustomers($request->all());
 
-        return response()->json([
-            'customer' => $customer->only([
+            return response()->json([
+                'success' => true,
+                'flag' => true,
+                'code' => 200,
+                'message' => 'Clientes obtenidos correctamente',
+                'data' => $customers,
+                'customers' => $customers,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Error al filtrar clientes', [
+                'action' => 'CustomerController@getCustomers',
+                'user_id' => auth()->id(),
+                'filters' => $request->all(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'flag' => false,
+                'code' => 500,
+                'message' => 'Error al cargar el listado de clientes',
+                'error' => 'Error al cargar el listado de clientes',
+                'data' => [],
+                'customers' => [],
+            ], 500);
+        }
+    }
+
+    public function show($id): JsonResponse
+    {
+        try {
+            $customer = $this->customerRepo->find((int) $id);
+
+            if (!$customer) {
+                return response()->json([
+                    'success' => false,
+                    'flag' => false,
+                    'code' => 404,
+                    'message' => 'Cliente no encontrado',
+                    'error' => 'Cliente no encontrado',
+                    'data' => null,
+                ], 404);
+            }
+
+            $rawCustomerData = $customer->only([
                 'customer_id',
                 'customer_code',
                 'sector_id',
@@ -182,100 +116,178 @@ class CustomerController extends Controller
                 'address',
                 'country',
                 'vendedor',
-                'contact',         
-                'delivery_address', 
-            ])
-        ]);
-    }
+                'contact',
+                'delivery_address',
+            ]);
 
-    public function update(StoreCustomerRequest $request)
-    {
-        try {
-            return DB::transaction(function () use ($request) {
-                $customer = Customer::findOrFail($request->customer_id);
+            return response()->json([
+                'success' => true,
+                'flag' => true,
+                'code' => 200,
+                'message' => 'Cliente obtenido correctamente',
+                'data' => new CustomerResource($customer),
+                'customer' => $rawCustomerData,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Error al consultar cliente', [
+                'action' => 'CustomerController@show',
+                'id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
 
-                $data = $request->only([
-                    'sector_id', 'name', 'phone', 'email', 'rfc',
-                    'postal_code', 'state', 'city', 'district', 'address', 'country',
-                    'vendedor', 'contact', 'delivery_address'
-                ]);
-
-                if ($customer->sector_id != $request->sector_id) {
-                    
-                    $sector = Sector::where('sector_id', $request->sector_id)
-                        ->lockForUpdate()
-                        ->firstOrFail();
-
-                    if (empty($sector->code)) {
-                        return response()->json(['error' => 'El nuevo sector no tiene un código (code) asignado.'], 422);
-                    }
-
-                    $prefix = 'SC' . $sector->code;
-                    $prefixLen = strlen($prefix);
-
-                    $last = Customer::where('sector_id', $sector->sector_id)
-                        ->where('customer_code', 'like', $prefix . '%')
-                        ->selectRaw("MAX(CAST(SUBSTRING(customer_code, " . ($prefixLen + 1) . ") AS UNSIGNED)) AS max_num")
-                        ->value('max_num');
-
-                    $next = ((int) $last) + 1;
-                    
-                    $data['customer_code'] = $prefix . $next;
-                }
-
-                $customer->update($data);
-
-                return response()->json([
-                    'message' => 'Customer updated successfully',
-                    'new_code' => $data['customer_code'] ?? $customer->customer_code
-                ], 200); 
-            });
-        } catch (QueryException $e) {
-            return DatabaseErrors::handle($e);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Error: ' . $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'flag' => false,
+                'code' => 500,
+                'message' => 'Error al consultar el cliente',
+                'error' => 'Error al consultar el cliente',
+                'data' => null,
+            ], 500);
         }
     }
 
-    public function store(StoreCustomerRequest $request)
+    public function store(CustomerRequest $request): JsonResponse
     {
         try {
-            return DB::transaction(function () use ($request) {
+            $userName = auth()->user()?->name;
+            $customer = $this->customerRepo->create($request->validated(), $userName);
 
-                $data = $request->validated();
-                $data['vendedor'] = auth()->user()->name ?? 'Sistema';
-                $sector = Sector::where('sector_id', $data['sector_id'])
-                    ->lockForUpdate()
-                    ->firstOrFail();
+            return response()->json([
+                'success' => true,
+                'flag' => true,
+                'code' => 201,
+                'message' => 'Customer created successfully',
+                'customer_code' => $customer->customer_code,
+                'data' => new CustomerResource($customer),
+            ], 201);
+        } catch (DomainException $e) {
+            return response()->json([
+                'success' => false,
+                'flag' => false,
+                'code' => 422,
+                'message' => $e->getMessage(),
+                'error' => $e->getMessage(),
+                'data' => null,
+            ], 422);
+        } catch (Throwable $e) {
+            Log::error('Error al registrar cliente', [
+                'action' => 'CustomerController@store',
+                'payload' => $request->validated(),
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
 
-                if (empty($sector->code)) {
-                    return response()->json([
-                        'error' => 'El sector seleccionado no tiene código (code).'
-                    ], 422);
-                }
+            return response()->json([
+                'success' => false,
+                'flag' => false,
+                'code' => 500,
+                'message' => 'Error inesperado: ' . $e->getMessage(),
+                'error' => 'Error inesperado: ' . $e->getMessage(),
+                'data' => null,
+            ], 500);
+        }
+    }
 
-                $prefix = 'SC' . $sector->code;
-                $prefixLen = strlen($prefix);
+    public function update(CustomerRequest $request, $id = null): JsonResponse
+    {
+        try {
+            $targetId = $id ?? $request->customer_id ?? $request->route('customer');
+            $customer = $this->customerRepo->update((int) $targetId, $request->validated());
 
-                $last = Customer::where('sector_id', $sector->sector_id)
-                    ->where('customer_code', 'like', $prefix . '%')
-                    ->selectRaw("MAX(CAST(SUBSTRING(customer_code, " . ($prefixLen + 1) . ") AS UNSIGNED)) AS max_num")
-                    ->value('max_num');
+            return response()->json([
+                'success' => true,
+                'flag' => true,
+                'code' => 200,
+                'message' => 'Customer updated successfully',
+                'new_code' => $customer->customer_code,
+                'customer_code' => $customer->customer_code,
+                'data' => new CustomerResource($customer),
+            ], 200);
+        } catch (DomainException $e) {
+            return response()->json([
+                'success' => false,
+                'flag' => false,
+                'code' => 422,
+                'message' => $e->getMessage(),
+                'error' => $e->getMessage(),
+                'data' => null,
+            ], 422);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'flag' => false,
+                'code' => 404,
+                'message' => 'Cliente no encontrado',
+                'error' => 'Cliente no encontrado',
+                'data' => null,
+            ], 404);
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar cliente', [
+                'action' => 'CustomerController@update',
+                'id' => $id,
+                'payload' => $request->validated(),
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
 
-                $next = ((int) $last) + 1;
-                $data['customer_code'] = $prefix . $next;
+            return response()->json([
+                'success' => false,
+                'flag' => false,
+                'code' => 500,
+                'message' => 'Error: ' . $e->getMessage(),
+                'error' => 'Error: ' . $e->getMessage(),
+                'data' => null,
+            ], 500);
+        }
+    }
 
-                Customer::create($data);
+    public function destroy($id): JsonResponse
+    {
+        try {
+            $this->customerRepo->delete((int) $id);
 
-                return response()->json([
-                    'message' => 'Customer created successfully',
-                    'customer_code' => $data['customer_code']
-                ], 201);
-            });
-        } catch (QueryException $e) {
-            return DatabaseErrors::handle($e);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Error inesperado: ' . $e->getMessage()], 500);
+            return response()->json([
+                'success' => true,
+                'flag' => true,
+                'code' => 200,
+                'message' => 'Customer deleted',
+                'data' => [],
+            ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'flag' => false,
+                'code' => 404,
+                'message' => 'Customer not deleted',
+                'error' => 'Cliente no encontrado',
+                'data' => [],
+            ], 404);
+        } catch (DomainException $e) {
+            return response()->json([
+                'success' => false,
+                'flag' => false,
+                'code' => 422,
+                'message' => $e->getMessage(),
+                'error' => $e->getMessage(),
+                'data' => [],
+            ], 422);
+        } catch (Throwable $e) {
+            Log::error('Error al eliminar cliente', [
+                'action' => 'CustomerController@destroy',
+                'id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'flag' => false,
+                'code' => 500,
+                'message' => 'Error al eliminar cliente',
+                'error' => 'Error inesperado al eliminar cliente',
+                'data' => [],
+            ], 500);
         }
     }
 }

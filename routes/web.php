@@ -218,6 +218,12 @@ Route::middleware([
     Route::resource('customers',CustomerController::class)->middleware('can:customers.show');
     Route::get('/getCustomers', [CustomerController::class, 'getCustomers'])->middleware('can:customers.show')->name('customers.getCustomers');
 
+    // Supplier Directory
+    Route::get('suppliers-get-directory', [DirectoryController::class, 'getDirectory'])->name('suppliers.getDirectory');
+    Route::resource('purchases/supplier-directory', DirectoryController::class)
+        ->names('supplier_directory')
+        ->parameters(['supplier-directory' => 'code']);
+
     //Purchases
     Route::resource('purchases',PurchaseController::class)->middleware('can:purchases.show');
     Route::get('/getPurchasesCharts', [PurchaseController::class, 'getPurchasesCharts'])->middleware('can:purchases.show')->name('purchases.charts');
@@ -251,11 +257,6 @@ Route::middleware([
     Route::delete('/purchases/comparative/{folio}', [ComparativeController::class, 'destroyByFolio'])->name('purchases.comparative.destroy');
     Route::get('/purchases/comparative-pdf/{folio}', [ComparativeController::class, 'generatePDF'])->middleware('throttle:pdf-reports')->name('purchases.comparative.pdf');
     Route::put('/purchases/comparative/update-all', [ComparativeController::class, 'updateAll'])->name('purchases.comparative.update.all');
-
-    Route::get('suppliers-get-directory', [DirectoryController::class, 'getDirectory'])->name('suppliers.getDirectory');
-    Route::resource('purchases/supplier-directory', DirectoryController::class)
-    ->names('supplier_directory')
-    ->parameters(['supplier-directory' => 'code']);
 
     //Propects
     Route::resource('prospects', ProspectController::class)->middleware('can:prospects.show');

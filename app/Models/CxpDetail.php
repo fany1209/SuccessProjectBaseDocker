@@ -31,6 +31,6 @@ class CxpDetail extends Model
 
     public function factura()
     {
-        return $this->belongsTo(\stdClass::class, 'factura_id', 'factura_id'); // We'll see if there is a Factura model
+        return $this->belongsTo(Factura::class, 'factura_id', 'factura_id');
     }
 }

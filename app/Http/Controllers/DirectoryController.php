@@ -2,164 +2,222 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Repositories\Directory\DirectoryRepository;
+use App\Http\Requests\Directory\DirectoryRequest;
+use App\Http\Resources\Directory\SupplierDirectoryResource;
+use App\Traits\UtilResponse;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;      
-use Illuminate\Support\Facades\Validator;
-use Carbon\Carbon; // Importante para las fechas
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class DirectoryController extends Controller
 {
-    public function getDirectory()
+    protected UtilResponse $utilResponse;
+    protected DirectoryRepository $directoryRepo;
+
+    public function __construct(UtilResponse $utilResponse, DirectoryRepository $directoryRepo)
+    {
+        $this->utilResponse = $utilResponse;
+        $this->directoryRepo = $directoryRepo;
+    }
+
+    public function index(Request $request): JsonResponse
+    {
+        return $this->getDirectory();
+    }
+
+    public function getDirectory(): JsonResponse
     {
         try {
-            $suppliers = DB::table('supplier_directory')
-                ->select(
-                    'Code_supplier',
-                    'Name',
-                    'Product',
-                    'Address',
-                    'Phone',
-                    'Email',
-                    'RFC',
-                    'Contact',
-                    'created_at', // Agregado
-                    'updated_at'  // Agregado
-                )
-                ->orderBy('Name', 'asc')
-                ->get();
+            $suppliers = $this->directoryRepo->all();
+            $resource = SupplierDirectoryResource::collection($suppliers);
 
             return response()->json([
-                'suppliers' => $suppliers
+                'success' => true,
+                'flag' => true,
+                'code' => 200,
+                'message' => 'Proveedores obtenidos correctamente',
+                'data' => $resource,
+                'suppliers' => $resource,
             ], 200);
+        } catch (Throwable $e) {
+            Log::error('Error al obtener directorio de proveedores', [
+                'action' => 'DirectoryController@getDirectory',
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
 
-        } catch (\Exception $e) {
             return response()->json([
+                'success' => false,
+                'flag' => false,
+                'code' => 500,
                 'message' => 'Error al obtener los proveedores',
-                'error' => $e->getMessage()
+                'error' => 'Error interno al consultar el directorio de proveedores.',
+                'data' => [],
+                'suppliers' => [],
             ], 500);
         }
     }
 
-    public function store(Request $request)
+    public function show($code): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'Name'          => 'required|string|max:255',
-                'Code_supplier' => 'required|integer|unique:supplier_directory,Code_supplier',
-                'Product'       => 'nullable|string|max:255',
-                'Address'       => 'nullable|string',
-                'Phone'         => 'nullable|string|max:20',
-                'Email'         => 'nullable|email|max:100',
-                'RFC'           => 'nullable|string|max:15',
-                'Contact'       => 'nullable|string|max:255',
-            ]);
+            $supplier = $this->directoryRepo->findByCode((int) $code);
 
-            if ($validator->fails()) {
+            if (!$supplier) {
                 return response()->json([
-                    'error' => 'Error de validación',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $now = Carbon::now(); // Fecha y hora actual
-
-            DB::table('supplier_directory')->insert([
-                'Name'          => $request->Name,
-                'Code_supplier' => $request->Code_supplier,
-                'Product'       => $request->Product,
-                'Address'       => $request->Address,
-                'Phone'         => $request->Phone,
-                'Email'         => $request->Email,
-                'RFC'           => $request->RFC,
-                'Contact'       => $request->Contact,
-                'created_at'    => $now, // Agregado
-                'updated_at'    => $now  // Agregado
-            ]);
-
-            return response()->json([
-                'success' => true, 
-                'message' => 'Proveedor guardado correctamente'
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Error interno: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function update(Request $request, $code)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'Name'          => 'required|string|max:255',
-                'Code_supplier' => 'required|integer', 
-                'Product'       => 'nullable|string|max:255',
-                'Address'       => 'nullable|string',
-                'Phone'         => 'nullable|string|max:20',
-                'Email'         => 'nullable|email|max:100',
-                'RFC'           => 'nullable|string|max:15',
-                'Contact'       => 'nullable|string|max:255',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'error' => 'Error de validación',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            DB::table('supplier_directory')
-                ->where('Code_supplier', $request->original_code) 
-                ->update([
-                    'Name'          => $request->Name,
-                    'Code_supplier' => $request->Code_supplier,
-                    'Product'       => $request->Product,
-                    'Address'       => $request->Address,
-                    'Phone'         => $request->Phone,
-                    'Email'         => $request->Email,
-                    'RFC'           => $request->RFC,
-                    'Contact'       => $request->Contact,
-                    'updated_at'    => Carbon::now() // Agregado: Actualiza solo la fecha de edición
-                ]);
-
-            return response()->json([
-                'success' => true, 
-                'message' => 'Proveedor actualizado correctamente'
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Error interno: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function destroy($code)
-    {
-        try {
-            $deleted = DB::table('supplier_directory')
-                ->where('Code_supplier', $code)
-                ->delete();
-
-            if ($deleted) {
-                return response()->json([
-                    'status' => 'success',
-                    'message' => 'Proveedor eliminado correctamente.'
-                ], 200);
-            } else {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'No se encontró el proveedor especificado.'
+                    'success' => false,
+                    'flag' => false,
+                    'code' => 404,
+                    'message' => 'No se encontró el proveedor especificado.',
+                    'error' => 'No se encontró el proveedor especificado.',
+                    'data' => null,
                 ], 404);
             }
 
-        } catch (\Exception $e) {
+            $resource = new SupplierDirectoryResource($supplier);
+
+            return response()->json([
+                'success' => true,
+                'flag' => true,
+                'code' => 200,
+                'message' => 'Proveedor obtenido correctamente',
+                'data' => $resource,
+                'supplier' => $resource,
+            ], 200);
+        } catch (Throwable $e) {
+            Log::error('Error al consultar proveedor en directorio', [
+                'action' => 'DirectoryController@show',
+                'code' => $code,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'flag' => false,
+                'code' => 500,
+                'message' => 'Error al obtener el proveedor',
+                'error' => 'Error interno al consultar el proveedor.',
+                'data' => null,
+            ], 500);
+        }
+    }
+
+    public function store(DirectoryRequest $request): JsonResponse
+    {
+        try {
+            $supplier = $this->directoryRepo->create($request->validated());
+
+            return response()->json([
+                'success' => true,
+                'flag' => true,
+                'code' => 201,
+                'message' => 'Proveedor guardado correctamente',
+                'data' => new SupplierDirectoryResource($supplier),
+            ], 201);
+        } catch (Throwable $e) {
+            Log::error('Error al registrar proveedor en directorio', [
+                'action' => 'DirectoryController@store',
+                'payload' => $request->validated(),
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'flag' => false,
+                'code' => 500,
+                'message' => 'Error al guardar proveedor',
+                'error' => 'Error interno al registrar el proveedor.',
+                'data' => null,
+            ], 500);
+        }
+    }
+
+    public function update(DirectoryRequest $request, $code): JsonResponse
+    {
+        try {
+            $targetCode = (int) ($request->original_code ?? $code);
+            $supplier = $this->directoryRepo->update($targetCode, $request->validated());
+
+            return response()->json([
+                'success' => true,
+                'flag' => true,
+                'code' => 200,
+                'message' => 'Proveedor actualizado correctamente',
+                'data' => new SupplierDirectoryResource($supplier),
+            ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'flag' => false,
+                'code' => 404,
+                'message' => 'No se encontró el proveedor especificado.',
+                'error' => 'No se encontró el proveedor especificado.',
+                'data' => null,
+            ], 404);
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar proveedor en directorio', [
+                'action' => 'DirectoryController@update',
+                'code' => $code,
+                'payload' => $request->validated(),
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'flag' => false,
+                'code' => 500,
+                'message' => 'Error al actualizar proveedor',
+                'error' => 'Error interno al actualizar el proveedor.',
+                'data' => null,
+            ], 500);
+        }
+    }
+
+    public function destroy($code): JsonResponse
+    {
+        try {
+            $this->directoryRepo->delete((int) $code);
+
+            return response()->json([
+                'status' => 'success',
+                'success' => true,
+                'flag' => true,
+                'code' => 200,
+                'message' => 'Proveedor eliminado correctamente.',
+                'data' => [],
+            ], 200);
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'status' => 'error',
+                'success' => false,
+                'flag' => false,
+                'code' => 404,
+                'message' => 'No se encontró el proveedor especificado.',
+                'error' => 'No se encontró el proveedor especificado.',
+                'data' => [],
+            ], 404);
+        } catch (Throwable $e) {
+            Log::error('Error al eliminar proveedor del directorio', [
+                'action' => 'DirectoryController@destroy',
+                'code' => $code,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'success' => false,
+                'flag' => false,
+                'code' => 500,
                 'message' => 'Error al eliminar el proveedor.',
-                'error' => $e->getMessage()
+                'error' => 'Error interno al eliminar el proveedor.',
+                'data' => [],
             ], 500);
         }
     }

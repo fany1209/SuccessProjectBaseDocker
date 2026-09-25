@@ -11,7 +11,8 @@ class SupplierPrice extends Model
 
     protected $table = 'supplier_prices';
 
-   protected $fillable = [
+    protected $fillable = [
+        'factura_id',
         'insumo',
         'clave_sat', 
         'proveedor',
@@ -20,4 +21,9 @@ class SupplierPrice extends Model
         'fecha_cotizacion',
         'moneda'
     ];
+
+    public function factura()
+    {
+        return $this->belongsTo(Factura::class, 'factura_id', 'factura_id');
+    }
 }
