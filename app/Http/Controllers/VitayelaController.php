@@ -13,8 +13,9 @@ class VitayelaController extends Controller
     {
         $productions = VitayelaProduction::orderBy('vitayela_production_id', 'desc')->get();
         $inventories = VitayelaInventory::orderBy('vitayela_inventory_id', 'desc')->get();
+        $db_products = \App\Models\Product::orderBy('name', 'asc')->get();
 
-        return view('production.vitayela.index', compact('productions', 'inventories'));
+        return view('production.vitayela.index', compact('productions', 'inventories', 'db_products'));
     }
 
     public function storeProduction(Request $request)
@@ -173,5 +174,47 @@ class VitayelaController extends Controller
             ->get();
             
         return response()->json($movements);
+    }
+
+    public function storeMaterialRequest(Request $request)
+    {
+        $request->validate([
+            'applicant_name' => 'required|string|max:100',
+            'comments' => 'nullable|string',
+            'products' => 'required|array|min:1',
+            'products.*.name' => 'required|string|max:255',
+            'products.*.quantity' => 'required|numeric|min:0.01',
+        ]);
+
+        try {
+            \DB::transaction(function () use ($request) {
+                $materialRequest = \App\Models\ProductionMaterialRequest::create([
+                    'area' => 'vitayela',
+                    'applicant_name' => $request->applicant_name,
+                    'status' => 'Pendiente',
+                    'comments' => $request->comments
+                ]);
+
+                foreach ($request->products as $prod) {
+                    \App\Models\ProductionMaterialRequestItem::create([
+                        'request_id' => $materialRequest->id,
+                        'product_name' => $prod['name'],
+                        'quantity' => $prod['quantity'],
+                        'dispatched_quantity' => 0
+                    ]);
+                }
+            });
+
+            if ($request->ajax()) {
+                return response()->json(['message' => 'Solicitud enviada a almacén correctamente.']);
+            }
+            return redirect()->back()->with('success', 'Solicitud enviada a almacén correctamente.');
+        } catch (\Throwable $e) {
+            \Log::error('Error storeMaterialRequest', ['error' => $e->getMessage()]);
+            if ($request->ajax()) {
+                return response()->json(['message' => 'Error al enviar la solicitud.'], 500);
+            }
+            return redirect()->back()->with('error', 'Error al enviar la solicitud.');
+        }
     }
 }

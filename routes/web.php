@@ -576,6 +576,7 @@ Route::prefix('laboratory/equipments')->group(function () {
         Route::delete('/inventories/{id}', [VitayelaController::class, 'destroyInventory'])->name('destroyInventory');
         Route::post('/inventories/{id}/output', [VitayelaController::class, 'outputInventory'])->name('outputInventory');
         Route::get('/inventories/{id}/movements', [VitayelaController::class, 'getMovements'])->name('getMovements');
+        Route::post('/request-material', [VitayelaController::class, 'storeMaterialRequest'])->name('storeMaterialRequest');
     });
 
     //finance - supplier prices
