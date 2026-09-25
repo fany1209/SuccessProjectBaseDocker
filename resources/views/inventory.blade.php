@@ -150,6 +150,46 @@ $(function () {
     if (initialTab && ['inventory', 'make-input', 'quarantine', 'sales'].includes(initialTab)) {
         switchTab(initialTab);
     }
+
+    const openTx = initialParams.get('open_tx');
+    const reqId = initialParams.get('req_id');
+    if (openTx) {
+        setTimeout(() => {
+            const txBtn = $('.open-modal[data-target="make-transaction"]');
+            if (txBtn.length) {
+                txBtn.click();
+                setTimeout(() => {
+                    const modal = $('#make-transaction');
+                    const typeSelect = modal.find('#type');
+                    if (typeSelect.length) {
+                        typeSelect.val(openTx).trigger('change.makeTxType');
+                    }
+
+                    if (reqId) {
+                        $.get(`/warehouse/production-requests/${reqId}/items`, function(res) {
+                            if (res.items && res.items.length > 0) {
+                                res.items.forEach((item, index) => {
+                                    if (index > 0) {
+                                        modal.find('#add_product').click();
+                                    }
+                                    
+                                    setTimeout(() => {
+                                        const rows = modal.find('#products .wrapper');
+                                        const currentRow = $(rows[index]);
+                                        
+                                        if (item.product_id) {
+                                            currentRow.find('.product_id').val(item.product_id).trigger('change');
+                                        }
+                                        currentRow.find('.quantity').val(item.quantity).trigger('input');
+                                    }, 200 * index); 
+                                });
+                            }
+                        });
+                    }
+                }, 300);
+            }
+        }, 500);
+    }
 });
 </script>
 @endpush

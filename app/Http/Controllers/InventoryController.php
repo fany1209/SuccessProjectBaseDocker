@@ -72,7 +72,7 @@ class InventoryController extends Controller
             ->orderBy('sale_id', 'desc')
             ->get();
 
-        $product_locations = DB::table('cli')->select('inventory_id', 'location_id', 'bag_number', 'protein', 'weight_per_unit')->get();
+        $product_locations = DB::table('cli')->select('inventory_id', 'location_id', 'bag_number', 'protein', 'weight_per_unit', 'quantity')->get();
 
         return view('inventory',compact('warehouses','locations','available_locations','concepts','trailers','vehicles','operators','batchs','outputs_products','inputs_products','outputs_dates','inputs_dates','outputs_months','outputs_years','inputs_months','inputs_years','transport_lines','suppliers','customers','products','products_all','quarantine','products_warehouse', 'almacen_sales', 'product_locations'));
     }
@@ -387,6 +387,14 @@ class InventoryController extends Controller
                     ProductInputs::insert($details);
                 } else {
                     ProductOutputs::insert($details);
+                }
+
+                if ($request->has('req_id') && $request->type === 'InternalOutput') {
+                    $matReq = \App\Models\ProductionMaterialRequest::find($request->req_id);
+                    if ($matReq) {
+                        $matReq->status = 'Surtido';
+                        $matReq->save();
+                    }
                 }
 
                 return response()->json(['message' => 'Success'], 201);

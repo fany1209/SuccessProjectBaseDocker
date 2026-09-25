@@ -706,7 +706,12 @@ $(function(){
                                     let locGroups = {};
                                     locs.forEach(pl => {
                                         if(!locGroups[pl.location_id]) locGroups[pl.location_id] = 0;
-                                        locGroups[pl.location_id]++;
+                                        if (response.product.name.includes('BGBG')) {
+                                            locGroups[pl.location_id]++;
+                                        } else {
+                                            let qty = parseFloat(pl.quantity);
+                                            locGroups[pl.location_id] += isNaN(qty) ? 1 : qty;
+                                        }
                                     });
                                     for(let loc_id in locGroups) {
                                         let count = locGroups[loc_id];
@@ -714,7 +719,7 @@ $(function(){
                                         let locName = locationObj ? locationObj.name : 'Unknown';
                                         let whObj = locationObj ? warehouses.find(w => w.warehouse_id == locationObj.warehouse_id) : null;
                                         let whName = whObj ? whObj.name : '';
-                                        wrapper.find('.warehouse_batch').append(`<option value="${b.inventory_id}" data-location-id="${loc_id}">${b.batch} - ${whName} ${locName} (${count} bags)</option>`);
+                                        wrapper.find('.warehouse_batch').append(`<option value="${b.inventory_id}" data-location-id="${loc_id}">${b.batch} - ${whName} ${locName}</option>`);
                                     }
                                 } else {
                                     wrapper.find('.warehouse_batch').append(`<option value="${b.inventory_id}">${b.batch} - (No location mapped)</option>`);
@@ -811,6 +816,12 @@ $(function(){
             }
         });
 
+        const urlParams = new URLSearchParams(window.location.search);
+        const reqId = urlParams.get('req_id');
+        if (reqId) {
+            data.append('req_id', reqId);
+        }
+
         father.find('#save-transaction').prop('disabled',true);
 
         $.ajax({
@@ -826,7 +837,9 @@ $(function(){
                     text: 'The transaction was added successfully.',
                     confirmButtonText: 'OK'
                 }).then((result) => {
-                    if (result.isConfirmed) location.reload();
+                    if (result.isConfirmed) {
+                        window.location.href = window.location.pathname + "?tab=" + (urlParams.get('tab') || 'inventory');
+                    }
                 });
                 father.find('#save-transaction').prop('disabled',false);
             },

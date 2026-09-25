@@ -15,6 +15,7 @@ Fecha de actualización: 08-10-2025
         <x-button-1 type="button" colorBtn="gray" data-target="add-tweak" class="open-modal">Tweaks</x-button-1>
         <x-button-1 type="button" colorBtn="gray" data-target="make-transaction" class="open-modal">Make Transaction</x-button-1>
         <x-button-1 type="button" colorBtn="gray" data-target="movements" class="open-modal">Movements</x-button-1>
+
         <a href="{{ route('inventory.pallets.pending') }}" class="relative px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-semibold flex items-center gap-1 shadow-sm transition-colors cursor-pointer">
             <i class="ri-inbox-archive-line"></i> Tarimas por Recibir
             @php
