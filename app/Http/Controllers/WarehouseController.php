@@ -178,4 +178,41 @@ class WarehouseController extends Controller{
         $result = $query->get();
         return response()->json(['products'=>$result]);
     }
+
+    public function productionRequests()
+    {
+        $requests = \App\Models\ProductionMaterialRequest::with('items')
+            ->orderBy('id', 'desc')
+            ->get();
+            
+        return view('warehouse.production_requests', compact('requests'));
+    }
+
+    public function attendProductionRequest(Request $request, $id)
+    {
+        $matReq = \App\Models\ProductionMaterialRequest::findOrFail($id);
+        
+        $matReq->status = 'Surtido';
+        $matReq->save();
+
+        if ($request->ajax()) {
+            return response()->json(['message' => 'Solicitud marcada como Surtida.']);
+        }
+        return redirect()->back()->with('success', 'Solicitud marcada como Surtida.');
+    }
+    public function getRequestItems($id)
+    {
+        $request = \App\Models\ProductionMaterialRequest::with('items')->findOrFail($id);
+        
+        $items = $request->items->map(function($item) {
+            $product = \DB::table('products')->where('name', $item->product_name)->first();
+            return [
+                'product_id' => $product ? $product->product_id : null,
+                'product_name' => $item->product_name,
+                'quantity' => $item->quantity
+            ];
+        });
+
+        return response()->json(['items' => $items]);
+    }
 }

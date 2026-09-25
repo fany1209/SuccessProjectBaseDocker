@@ -4,9 +4,14 @@
 <div class="max-w-8xl mx-auto py-6 sm:px-6 lg:px-8">
     <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Producción de Fertil</h2>
-        <a href="{{ url('production') }}" class="text-gray-600 hover:text-gray-900 bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded font-semibold text-sm">
-            Volver a Formatos
-        </a>
+        <div class="flex space-x-2">
+            <button type="button" onclick="openRequestModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-semibold text-sm shadow">
+                Solicitar a Almacén
+            </button>
+            <a href="{{ url('production') }}" class="text-gray-600 hover:text-gray-900 bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded font-semibold text-sm shadow">
+                Volver a Formatos
+            </a>
+        </div>
     </div>
 
     <!-- Tabs Header -->
@@ -151,6 +156,7 @@
 @include('production.fertil.modals.inventory_modal')
 @include('production.fertil.modals.output_modal')
 @include('production.fertil.modals.history_modal')
+@include('production.fertil.modals.request_modal')
 
 @endsection
 

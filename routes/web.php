@@ -182,6 +182,11 @@ Route::middleware([
     Route::get('/getWarehouse', [WarehouseController::class, 'getWarehouse'])->middleware('can:warehouse.show')->name('warehouse.getWarehouse');
     Route::get('/getInfoLocation', [WarehouseController::class, 'getInfoLocation'])->middleware('can:warehouse.show')->name('warehouse.getInfoLocation');
     Route::post('/temperature', [WarehouseController::class, 'temperature'])->middleware('can:warehouse.show')->name('warehouse.temperature');
+    
+    // Production Requests
+    Route::get('/warehouse/production-requests', [WarehouseController::class, 'productionRequests'])->middleware('can:warehouse.show')->name('warehouse.productionRequests');
+    Route::get('/warehouse/production-requests/{id}/items', [WarehouseController::class, 'getRequestItems'])->middleware('can:warehouse.show');
+    Route::post('/warehouse/production-requests/{id}/attend', [WarehouseController::class, 'attendProductionRequest'])->middleware('can:warehouse.show')->name('warehouse.attendProductionRequest');
 
     //Cli
     Route::resource('cli',CliController::class)->middleware('can:warehouse.show');
@@ -546,6 +551,8 @@ Route::prefix('laboratory/equipments')->group(function () {
     Route::prefix('production/fertil')->name('production.fertil.')->group(function () {
         Route::get('/', [FertilController::class, 'index'])->name('index');
         
+        Route::post('/request-materials', [FertilController::class, 'storeMaterialRequest'])->name('storeMaterialRequest');
+
         Route::post('/productions', [FertilController::class, 'storeProduction'])->name('storeProduction');
         Route::put('/productions/{id}', [FertilController::class, 'updateProduction'])->name('updateProduction');
         Route::delete('/productions/{id}', [FertilController::class, 'destroyProduction'])->name('destroyProduction');
