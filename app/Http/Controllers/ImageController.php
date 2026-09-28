@@ -2,113 +2,117 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use App\Http\Repositories\Image\ImageRepository;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Throwable;
 
 class ImageController extends Controller
 {
-    /**
-     * Extensiones de imagen permitidas.
-     */
-    private const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'];
+    protected UtilResponse $utilResponse;
+    protected ImageRepository $imageRepo;
 
-    /**
-     * Sirve imágenes de productos de forma segura.
-     * Previene Path Traversal (CWE-22) confinando el archivo al directorio autorizado.
-     *
-     * @param string $name
-     * @return BinaryFileResponse
-     */
-    public function mostrar(string $name): BinaryFileResponse
+    public function __construct(UtilResponse $utilResponse, ImageRepository $imageRepo)
     {
-        return $this->serveSafeImage([
-            // Producción GoDaddy (hermano de test_migration)
-            base_path('../public_html/images'),
-            base_path('../public_html/images/products'),
-            base_path('../public_html/products'),
-            base_path('../public_html/storage/products'),
-            base_path('../public_html/storage/images'),
-            // Entorno local / Docker
-            storage_path('app/public/products'),
-            storage_path('app/public/images'),
-            public_path('products'),
-            public_path('images'),
-            public_path('storage/products'),
-        ], $name);
+        $this->utilResponse = $utilResponse;
+        $this->imageRepo = $imageRepo;
     }
 
-    /**
-     * Sirve fotos de perfil de usuarios de forma segura.
-     * Previene Path Traversal (CWE-22) confinando el archivo al directorio autorizado.
-     *
-     * @param string $name
-     * @return BinaryFileResponse
-     */
-    public function profilePhoto(string $name): BinaryFileResponse
+    public function mostrar(Request $request, string $name): BinaryFileResponse|JsonResponse
     {
-        return $this->serveSafeImage([
-            // Producción GoDaddy (hermano de test_migration)
-            base_path('../public_html/profile-photos'),
-            base_path('../public_html/images/profile-photos'),
-            base_path('../public_html/images'),
-            base_path('../public_html/storage/profile-photos'),
-            // Entorno local / Docker
-            storage_path('app/public/profile-photos'),
-            storage_path('app/public/images/profile-photos'),
-            public_path('profile-photos'),
-            public_path('storage/profile-photos'),
-        ], $name);
+        try {
+            $resolvedPath = $this->imageRepo->resolveProductImagePath($name);
+
+            if (!$resolvedPath) {
+                if ($request->expectsJson()) {
+                    return $this->utilResponse->errorResponse('Imagen no encontrada o no permitida.', 404);
+                }
+
+                abort(404, 'Image not found');
+            }
+
+            if ($request->expectsJson() && $request->has('info')) {
+                $info = $this->imageRepo->getImageInfo($resolvedPath);
+
+                return $this->utilResponse->successResponse(
+                    $info,
+                    'Metadatos de imagen obtenidos correctamente',
+                    200
+                );
+            }
+
+            return response()->file($resolvedPath, [
+                'X-Content-Type-Options' => 'nosniff',
+                'Cache-Control'          => 'public, max-age=86400',
+            ]);
+        } catch (Throwable $e) {
+            if ($e instanceof HttpException) {
+                throw $e;
+            }
+
+            Log::error('Error al servir imagen en ImageController@mostrar', [
+                'action'     => 'ImageController@mostrar',
+                'image_name' => $name,
+                'user_id'    => auth()->id(),
+                'error'      => $e->getMessage(),
+            ]);
+
+            if ($request->expectsJson()) {
+                return $this->utilResponse->errorResponse('Error interno al consultar la imagen.', 500);
+            }
+
+            abort(500, 'Error processing image');
+        }
     }
 
-    /**
-     * Valida y confina la entrega de imágenes dentro de los directorios base autorizados.
-     *
-     * @param array|string $baseDirPaths
-     * @param string $rawFileName
-     * @return BinaryFileResponse
-     */
-    private function serveSafeImage(array|string $baseDirPaths, string $rawFileName): BinaryFileResponse
+    public function profilePhoto(Request $request, string $name): BinaryFileResponse|JsonResponse
     {
-        // 1. Sanitizar parámetro: remover bytes nulos y extraer exclusivamente el basename
-        $sanitized = str_replace(["\0", "\r", "\n"], '', urldecode($rawFileName));
-        $cleanFileName = basename(str_replace('\\', '/', $sanitized));
+        try {
+            $resolvedPath = $this->imageRepo->resolveProfilePhotoPath($name);
 
-        if (empty($cleanFileName) || $cleanFileName === '.' || $cleanFileName === '..') {
-            abort(404, 'Image not found');
-        }
+            if (!$resolvedPath) {
+                if ($request->expectsJson()) {
+                    return $this->utilResponse->errorResponse('Foto de perfil no encontrada o no permitida.', 404);
+                }
 
-        // 2. Validación estricta de extensión contra lista blanca de formatos de imagen
-        $extension = strtolower(pathinfo($cleanFileName, PATHINFO_EXTENSION));
-        if (!in_array($extension, self::ALLOWED_IMAGE_EXTENSIONS, true)) {
-            abort(404, 'Image not found');
-        }
-
-        // 3. Buscar y verificar confinamiento dentro de los directorios autorizados
-        $dirs = is_array($baseDirPaths) ? $baseDirPaths : [$baseDirPaths];
-        $resolvedPath = null;
-
-        foreach ($dirs as $dir) {
-            $baseDir = realpath($dir);
-            if (!$baseDir) {
-                continue;
+                abort(404, 'Profile photo not found');
             }
 
-            $candidatePath = realpath($baseDir . DIRECTORY_SEPARATOR . $cleanFileName);
+            if ($request->expectsJson() && $request->has('info')) {
+                $info = $this->imageRepo->getImageInfo($resolvedPath);
 
-            // Verificar que el archivo exista, sea un archivo regular y resida dentro del directorio base
-            if ($candidatePath && str_starts_with($candidatePath, $baseDir . DIRECTORY_SEPARATOR) && is_file($candidatePath)) {
-                $resolvedPath = $candidatePath;
-                break;
+                return $this->utilResponse->successResponse(
+                    $info,
+                    'Metadatos de foto de perfil obtenidos correctamente',
+                    200
+                );
             }
-        }
 
-        if (!$resolvedPath) {
-            abort(404, 'Image not found');
-        }
+            return response()->file($resolvedPath, [
+                'X-Content-Type-Options' => 'nosniff',
+                'Cache-Control'          => 'private, max-age=3600',
+            ]);
+        } catch (Throwable $e) {
+            if ($e instanceof HttpException) {
+                throw $e;
+            }
 
-        return response()->file($resolvedPath, [
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
+            Log::error('Error al servir foto de perfil en ImageController@profilePhoto', [
+                'action'     => 'ImageController@profilePhoto',
+                'photo_name' => $name,
+                'user_id'    => auth()->id(),
+                'error'      => $e->getMessage(),
+            ]);
+
+            if ($request->expectsJson()) {
+                return $this->utilResponse->errorResponse('Error interno al consultar la foto de perfil.', 500);
+            }
+
+            abort(500, 'Error processing profile photo');
+        }
     }
 }
-

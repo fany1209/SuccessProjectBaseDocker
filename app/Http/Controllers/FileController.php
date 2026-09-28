@@ -2,81 +2,69 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use App\Http\Repositories\File\FileRepository;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Throwable;
 
 class FileController extends Controller
 {
-    /**
-     * Extensiones de documentos permitidas para apertura.
-     */
-    private const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt'];
+    protected UtilResponse $utilResponse;
+    protected FileRepository $fileRepo;
 
-    /**
-     * Sirve un archivo de catálogo o producto de manera segura.
-     * Previene Path Traversal (CWE-22) mediante saneamiento de basename,
-     * lista blanca de extensiones y confinamiento estricto con realpath().
-     *
-     * @param string $fileName
-     * @return BinaryFileResponse
-     */
-    public function openFile(string $fileName): BinaryFileResponse
+    public function __construct(UtilResponse $utilResponse, FileRepository $fileRepo)
     {
-        // 1. Sanitizar parámetro: remover bytes nulos y extraer únicamente el basename
-        $sanitized = str_replace(["\0", "\r", "\n"], '', urldecode($fileName));
-        $cleanFileName = basename(str_replace('\\', '/', $sanitized));
+        $this->utilResponse = $utilResponse;
+        $this->fileRepo = $fileRepo;
+    }
 
-        if (empty($cleanFileName) || $cleanFileName === '.' || $cleanFileName === '..') {
-            abort(404, 'File not found');
-        }
+    public function openFile(Request $request, string $fileName): BinaryFileResponse|JsonResponse
+    {
+        try {
+            $resolvedPath = $this->fileRepo->resolveFilePath($fileName);
 
-        // 2. Validación contra lista blanca de extensiones de documentos
-        $extension = strtolower(pathinfo($cleanFileName, PATHINFO_EXTENSION));
-        if (!in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
-            abort(404, 'File not found');
-        }
+            if (!$resolvedPath) {
+                if ($request->expectsJson()) {
+                    return $this->utilResponse->errorResponse('Archivo no encontrado o no permitido.', 404);
+                }
 
-        // 3. Buscar exclusivamente dentro de los directorios autorizados
-        // Soporta tanto producción (../public_html hermano de test_migration) como entornos locales/Docker
-        $candidateDirs = [
-            // Producción GoDaddy (hermano de test_migration)
-            base_path('../public_html/files'),
-            base_path('../public_html/products/files'),
-            base_path('../public_html/orders_files'),
-            base_path('../public_html/portal_docs'),
-            base_path('../public_html/storage/files'),
-            base_path('../public_html/storage/products/files'),
-            // Entorno local / Docker
-            storage_path('app/public/files'),
-            storage_path('app/public/products/files'),
-            public_path('files'),
-            public_path('products/files'),
-            public_path('storage/files'),
-            public_path('storage/products/files'),
-        ];
-
-        $resolvedPath = null;
-        foreach ($candidateDirs as $dir) {
-            $baseDir = realpath($dir);
-            if (!$baseDir) {
-                continue;
+                abort(404, 'File not found');
             }
 
-            $candidatePath = realpath($baseDir . DIRECTORY_SEPARATOR . $cleanFileName);
+            if ($request->expectsJson() && $request->has('info')) {
+                $fileInfo = $this->fileRepo->getFileInfo($fileName);
 
-            // Verificar que el archivo exista, sea un archivo regular y resida dentro del directorio base
-            if ($candidatePath && str_starts_with($candidatePath, $baseDir . DIRECTORY_SEPARATOR) && is_file($candidatePath)) {
-                $resolvedPath = $candidatePath;
-                break;
+                return $this->utilResponse->successResponse(
+                    $fileInfo,
+                    'Metadatos de archivo obtenidos correctamente',
+                    200
+                );
             }
-        }
 
-        if (!$resolvedPath) {
-            abort(404, 'File not found');
-        }
+            return response()->file($resolvedPath, [
+                'X-Content-Type-Options' => 'nosniff',
+                'Cache-Control'          => 'private, max-age=3600',
+            ]);
+        } catch (Throwable $e) {
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+                throw $e;
+            }
 
-        return response()->file($resolvedPath, [
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
+            Log::error('Error al abrir archivo seguro en FileController@openFile', [
+                'action'    => 'FileController@openFile',
+                'file_name' => $fileName,
+                'user_id'   => auth()->id(),
+                'error'     => $e->getMessage(),
+            ]);
+
+            if ($request->expectsJson()) {
+                return $this->utilResponse->errorResponse('Error al procesar la apertura del archivo.', 500);
+            }
+
+            abort(500, 'Error processing file');
+        }
     }
 }

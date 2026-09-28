@@ -3,6 +3,7 @@
 namespace App\Http\Repositories\MaintenancePlan;
 
 use App\Models\ChecklistTemplateItem;
+use App\Models\Equipment;
 use App\Models\MaintenancePlan;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,11 @@ class MaintenancePlanRepository
     public function all(): Collection
     {
         return $this->plan->with(['equipment', 'checklistItems'])->get();
+    }
+
+    public function getActiveEquipments(): Collection
+    {
+        return Equipment::where('is_active', true)->get();
     }
 
     public function find($id): ?MaintenancePlan

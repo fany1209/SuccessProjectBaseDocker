@@ -7,6 +7,7 @@ use App\Http\Requests\MaintenanceArea\MaintenanceAreaRequest;
 use App\Http\Resources\MaintenanceArea\MaintenanceAreaResource;
 use App\Http\Repositories\MaintenanceArea\MaintenanceAreaRepository;
 use App\Traits\UtilResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -21,20 +22,31 @@ class MaintenanceAreaController extends Controller
         $this->maintenanceAreaRepository = $maintenanceAreaRepository;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         try {
-            return $this->utilResponse->successResponse(
-                MaintenanceAreaResource::collection($this->maintenanceAreaRepository->all()),
-                'Categorías / Áreas obtenidas correctamente'
-            );
+            $areas = $this->maintenanceAreaRepository->all();
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->successResponse(
+                    MaintenanceAreaResource::collection($areas),
+                    'Categorías / Áreas obtenidas correctamente'
+                );
+            }
+
+            return view('maintenance.areas.index', compact('areas'));
         } catch (Throwable $e) {
             Log::error('Error al consultar listado de áreas de mantenimiento', [
                 'action'    => 'MaintenanceAreaController@index',
                 'user_id'   => auth()->id(),
                 'exception' => $e->getMessage(),
             ]);
-            return $this->utilResponse->errorResponse('Ocurrió un error inesperado al consultar las áreas.', 500);
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->errorResponse('Ocurrió un error inesperado al consultar las áreas.', 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error inesperado al consultar las áreas.');
         }
     }
 
@@ -64,13 +76,22 @@ class MaintenanceAreaController extends Controller
             $area = $this->maintenanceAreaRepository->create($data);
 
             if ($area) {
-                return $this->utilResponse->successResponse(
-                    new MaintenanceAreaResource($area),
-                    'Categoría/Área registrada exitosamente.',
-                    201
-                );
+                if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                    return $this->utilResponse->successResponse(
+                        new MaintenanceAreaResource($area),
+                        'Categoría/Área registrada exitosamente.',
+                        201
+                    );
+                }
+
+                return back()->with('success', 'Categoría/Área registrada exitosamente.');
             }
-            return $this->utilResponse->errorResponse('Error al crear la categoría o área');
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->errorResponse('Error al crear la categoría o área');
+            }
+
+            return back()->with('error', 'Error al crear la categoría o área');
         } catch (Throwable $e) {
             Log::error('Error al registrar área de mantenimiento', [
                 'action'    => 'MaintenanceAreaController@store',
@@ -78,7 +99,12 @@ class MaintenanceAreaController extends Controller
                 'payload'   => $request->validated(),
                 'exception' => $e->getMessage(),
             ]);
-            return $this->utilResponse->errorResponse('Ocurrió un error inesperado al registrar el área.', 500);
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->errorResponse('Ocurrió un error inesperado al registrar el área.', 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error inesperado al registrar el área.');
         }
     }
 
@@ -89,14 +115,23 @@ class MaintenanceAreaController extends Controller
             $area = $this->maintenanceAreaRepository->find($id);
 
             if (!$area) {
-                return $this->utilResponse->errorResponse('No existe la categoría o área', 404);
+                if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                    return $this->utilResponse->errorResponse('No existe la categoría o área', 404);
+                }
+
+                return back()->with('error', 'No existe la categoría o área');
             }
 
             $area = $this->maintenanceAreaRepository->update($id, $data);
-            return $this->utilResponse->successResponse(
-                new MaintenanceAreaResource($area),
-                'Categoría/Área actualizada exitosamente.'
-            );
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->successResponse(
+                    new MaintenanceAreaResource($area),
+                    'Categoría/Área actualizada exitosamente.'
+                );
+            }
+
+            return back()->with('success', 'Categoría/Área actualizada exitosamente.');
         } catch (Throwable $e) {
             Log::error('Error al actualizar área de mantenimiento', [
                 'action'    => 'MaintenanceAreaController@update',
@@ -105,7 +140,12 @@ class MaintenanceAreaController extends Controller
                 'payload'   => $request->validated(),
                 'exception' => $e->getMessage(),
             ]);
-            return $this->utilResponse->errorResponse('Ocurrió un error inesperado al actualizar el área.', 500);
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->errorResponse('Ocurrió un error inesperado al actualizar el área.', 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error inesperado al actualizar el área.');
         }
     }
 
@@ -115,18 +155,34 @@ class MaintenanceAreaController extends Controller
             $area = $this->maintenanceAreaRepository->find($id);
 
             if (!$area) {
-                return $this->utilResponse->errorResponse('No se pudo eliminar la categoría o no existe', 404);
+                if (request()->expectsJson() || request()->is('api/*') || request()->ajax()) {
+                    return $this->utilResponse->errorResponse('No se pudo eliminar la categoría o no existe', 404);
+                }
+
+                return back()->with('error', 'No se pudo eliminar la categoría o no existe');
             }
 
             if ($this->maintenanceAreaRepository->hasEquipment($id)) {
-                return $this->utilResponse->errorResponse('No se puede eliminar esta categoría porque tiene equipos asignados.', 422);
+                if (request()->expectsJson() || request()->is('api/*') || request()->ajax()) {
+                    return $this->utilResponse->errorResponse('No se puede eliminar esta categoría porque tiene equipos asignados.', 422);
+                }
+
+                return back()->withErrors(['No se puede eliminar esta categoría porque tiene equipos asignados.']);
             }
 
             if ($this->maintenanceAreaRepository->delete($id)) {
-                return $this->utilResponse->successResponse(null, 'Categoría/Área eliminada exitosamente.');
+                if (request()->expectsJson() || request()->is('api/*') || request()->ajax()) {
+                    return $this->utilResponse->successResponse(null, 'Categoría/Área eliminada exitosamente.');
+                }
+
+                return back()->with('success', 'Categoría/Área eliminada exitosamente.');
             }
 
-            return $this->utilResponse->errorResponse('No se pudo eliminar la categoría o área');
+            if (request()->expectsJson() || request()->is('api/*') || request()->ajax()) {
+                return $this->utilResponse->errorResponse('No se pudo eliminar la categoría o área');
+            }
+
+            return back()->with('error', 'No se pudo eliminar la categoría o área');
         } catch (Throwable $e) {
             Log::error('Error al eliminar área de mantenimiento', [
                 'action'    => 'MaintenanceAreaController@destroy',
@@ -134,7 +190,12 @@ class MaintenanceAreaController extends Controller
                 'user_id'   => auth()->id(),
                 'exception' => $e->getMessage(),
             ]);
-            return $this->utilResponse->errorResponse('Ocurrió un error inesperado al eliminar el área.', 500);
+
+            if (request()->expectsJson() || request()->is('api/*') || request()->ajax()) {
+                return $this->utilResponse->errorResponse('Ocurrió un error inesperado al eliminar el área.', 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error inesperado al eliminar el área.');
         }
     }
 }

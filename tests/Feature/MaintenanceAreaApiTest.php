@@ -155,3 +155,22 @@ test('9. API POST /maintenance/areas sanitizes HTML tags to prevent Stored XSS',
     expect($response->json('data.description'))->not->toContain('<script>');
     expect($response->json('data.description'))->not->toContain('</script>');
 });
+
+test('10. WEB GET /maintenance/areas returns Blade view with areas list', function () {
+    $response = $this->actingAs($this->user)->get('/maintenance/areas');
+
+    $response->assertStatus(200);
+    $response->assertViewIs('maintenance.areas.index');
+    $response->assertViewHas('areas');
+});
+
+test('11. WEB POST /maintenance/areas redirects back with success session', function () {
+    $response = $this->actingAs($this->user)->post('/maintenance/areas', [
+        'name' => 'Área Web ' . uniqid(),
+        'description' => 'Creada vía formulario web',
+    ]);
+
+    $response->assertRedirect();
+    $response->assertSessionHas('success');
+});
+

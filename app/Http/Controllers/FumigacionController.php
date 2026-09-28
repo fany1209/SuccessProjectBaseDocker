@@ -2,91 +2,132 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Repositories\Fumigacion\FumigacionRepository;
+use App\Http\Requests\Fumigacion\FumigacionRequest;
+use App\Http\Resources\Fumigacion\FumigacionResource;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use App\Models\Fumigacion;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Log; 
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
+use Throwable;
 
 class FumigacionController extends Controller
 {
-    public function index()
+    protected UtilResponse $utilResponse;
+    protected FumigacionRepository $fumigacionRepo;
+
+    public function __construct(UtilResponse $utilResponse, FumigacionRepository $fumigacionRepo)
     {
-        $todasLasFumigaciones = Fumigacion::orderBy('fecha_programada', 'asc')->get();
-
-        $eventos = $todasLasFumigaciones->map(function($f) {
-            return [
-                'id'    => $f->id,
-                'title' => $f->proveedor . ' (' . $f->metodo_aplicacion . ')',
-                'start' => \Carbon\Carbon::parse($f->fecha_programada)->format('Y-m-d\TH:i:s'),
-                'backgroundColor' => $f->estado == 'Realizado' ? '#198754' : ($f->estado == 'Cancelado' ? '#dc3545' : '#ffc107'),
-                'borderColor'     => $f->estado == 'Realizado' ? '#157347' : ($f->estado == 'Cancelado' ? '#a71d2a' : '#e0a800'),
-                'textColor'       => $f->estado == 'Pendiente' ? '#000000' : '#ffffff',
-            ];
-        });
-
-        return view('quality.fumigaciones.index', [
-            'todasLasFumigaciones' => $todasLasFumigaciones,
-            'eventos' => $eventos
-        ]);
+        $this->utilResponse = $utilResponse;
+        $this->fumigacionRepo = $fumigacionRepo;
     }
 
-    public function store(Request $request)
+    public function index(Request $request): View|JsonResponse
     {
         try {
-            Log::info('Intento de guardado:', $request->all());
+            $todasLasFumigaciones = $this->fumigacionRepo->all();
+            $eventos = $this->fumigacionRepo->getCalendarEvents($todasLasFumigaciones);
 
-            $request->validate([
-                'proveedor' => 'required',
-                'fecha_programada' => 'required',
+            if ($request->expectsJson()) {
+                return $this->utilResponse->successResponse(
+                    FumigacionResource::collection($todasLasFumigaciones),
+                    'Listado de fumigaciones obtenido correctamente',
+                    200
+                );
+            }
+
+            return view('quality.fumigaciones.index', [
+                'todasLasFumigaciones' => $todasLasFumigaciones,
+                'eventos'              => $eventos,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Error al listar fumigaciones en FumigacionController@index', [
+                'action'  => 'FumigacionController@index',
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
             ]);
 
-            Fumigacion::create([
-                'proveedor' => $request->proveedor,
-                'fecha_programada' => $request->fecha_programada,
-                'metodo_aplicacion' => $request->metodo_aplicacion,
-                'estado' => $request->estado,
-                'observaciones' => $request->observaciones,
-            ]);
+            if ($request->expectsJson()) {
+                return $this->utilResponse->errorResponse('Error al consultar las fumigaciones.', 500);
+            }
 
-            return response()->json(['success' => true]);
-        } catch (\Exception $e) {
-            Log::error('Error en store: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            abort(500, 'Error al cargar el panel de control de fumigaciones');
         }
     }
 
-    public function update(Request $request, $id)
+    public function store(FumigacionRequest $request): JsonResponse
     {
         try {
-            $fumigacion = Fumigacion::findOrFail($id);
-            
-            $fumigacion->update([
-                'proveedor' => $request->proveedor,
-                'fecha_programada' => $request->fecha_programada,
-                'metodo_aplicacion' => $request->metodo_aplicacion,
-                'estado' => $request->estado,
-                'observaciones' => $request->observaciones,
+            $fumigacion = $this->fumigacionRepo->create($request->validated());
+
+            return $this->utilResponse->successResponse(
+                new FumigacionResource($fumigacion),
+                'Fumigación programada correctamente.',
+                201
+            );
+        } catch (Throwable $e) {
+            Log::error('Error al programar fumigación en FumigacionController@store', [
+                'action'  => 'FumigacionController@store',
+                'payload' => $request->all(),
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
             ]);
 
-            return response()->json(['success' => true]);
-        } catch (\Exception $e) {
-            Log::error('Error en update: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return $this->utilResponse->errorResponse('Error interno al programar la fumigación.', 500);
         }
     }
 
-    public function destroy($id)
+    public function update(FumigacionRequest $request, int $id): JsonResponse
     {
         try {
-            $fumigacion = Fumigacion::findOrFail($id);
-            $fumigacion->delete();
+            $fumigacion = $this->fumigacionRepo->update($id, $request->validated());
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Eliminado correctamente.'
+            if (!$fumigacion) {
+                return $this->utilResponse->errorResponse('Fumigación no encontrada.', 404);
+            }
+
+            return $this->utilResponse->successResponse(
+                new FumigacionResource($fumigacion),
+                'Fumigación actualizada correctamente.',
+                200
+            );
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar fumigación en FumigacionController@update', [
+                'action'        => 'FumigacionController@update',
+                'fumigacion_id' => $id,
+                'payload'       => $request->all(),
+                'user_id'       => auth()->id(),
+                'error'         => $e->getMessage(),
             ]);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+
+            return $this->utilResponse->errorResponse('Error interno al actualizar la fumigación.', 500);
+        }
+    }
+
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        try {
+            $deleted = $this->fumigacionRepo->delete($id);
+
+            if (!$deleted) {
+                return $this->utilResponse->errorResponse('Fumigación no encontrada.', 404);
+            }
+
+            return $this->utilResponse->successResponse(
+                [],
+                'Eliminado correctamente.',
+                200
+            );
+        } catch (Throwable $e) {
+            Log::error('Error al eliminar fumigación en FumigacionController@destroy', [
+                'action'        => 'FumigacionController@destroy',
+                'fumigacion_id' => $id,
+                'user_id'       => auth()->id(),
+                'error'         => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error interno al eliminar la fumigación.', 500);
         }
     }
 }

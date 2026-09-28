@@ -7,6 +7,7 @@ use App\Http\Requests\MaintenancePlan\MaintenancePlanRequest;
 use App\Http\Resources\MaintenancePlan\MaintenancePlanResource;
 use App\Http\Repositories\MaintenancePlan\MaintenancePlanRepository;
 use App\Traits\UtilResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -21,20 +22,32 @@ class MaintenancePlanController extends Controller
         $this->planRepository = $planRepository;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         try {
-            return $this->utilResponse->successResponse(
-                MaintenancePlanResource::collection($this->planRepository->all()),
-                'Planes de mantenimiento obtenidos correctamente'
-            );
+            $plans = $this->planRepository->all();
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->successResponse(
+                    MaintenancePlanResource::collection($plans),
+                    'Planes de mantenimiento obtenidos correctamente'
+                );
+            }
+
+            $equipments = $this->planRepository->getActiveEquipments();
+            return view('maintenance.plans.index', compact('plans', 'equipments'));
         } catch (Throwable $e) {
             Log::error('Error al consultar listado de planes de mantenimiento', [
                 'action'    => 'MaintenancePlanController@index',
                 'user_id'   => auth()->id(),
                 'exception' => $e->getMessage(),
             ]);
-            return $this->utilResponse->errorResponse('Ocurrió un error inesperado al consultar los planes de mantenimiento.', 500);
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->errorResponse('Ocurrió un error inesperado al consultar los planes de mantenimiento.', 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error inesperado al consultar los planes de mantenimiento.');
         }
     }
 
@@ -69,13 +82,22 @@ class MaintenancePlanController extends Controller
             $plan = $this->planRepository->create($data, $checklistItems);
 
             if ($plan) {
-                return $this->utilResponse->successResponse(
-                    new MaintenancePlanResource($plan),
-                    'Plan registrado exitosamente.',
-                    201
-                );
+                if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                    return $this->utilResponse->successResponse(
+                        new MaintenancePlanResource($plan),
+                        'Plan registrado exitosamente.',
+                        201
+                    );
+                }
+
+                return back()->with('success', 'Plan registrado exitosamente.');
             }
-            return $this->utilResponse->errorResponse('Error al registrar el plan de mantenimiento.');
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->errorResponse('Error al registrar el plan de mantenimiento.');
+            }
+
+            return back()->with('error', 'Error al registrar el plan de mantenimiento.');
         } catch (Throwable $e) {
             Log::error('Error al registrar plan de mantenimiento', [
                 'action'    => 'MaintenancePlanController@store',
@@ -83,7 +105,12 @@ class MaintenancePlanController extends Controller
                 'payload'   => $request->validated(),
                 'exception' => $e->getMessage(),
             ]);
-            return $this->utilResponse->errorResponse('Ocurrió un error inesperado al registrar el plan de mantenimiento.', 500);
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->errorResponse('Ocurrió un error inesperado al registrar el plan de mantenimiento.', 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error inesperado al registrar el plan de mantenimiento.');
         }
     }
 
@@ -93,7 +120,11 @@ class MaintenancePlanController extends Controller
             $plan = $this->planRepository->find($id);
 
             if (!$plan) {
-                return $this->utilResponse->errorResponse('No existe el plan de mantenimiento solicitado', 404);
+                if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                    return $this->utilResponse->errorResponse('No existe el plan de mantenimiento solicitado', 404);
+                }
+
+                return back()->with('error', 'No existe el plan de mantenimiento solicitado');
             }
 
             $data = $request->safe()->only(['equipment_id', 'name', 'frequency_days', 'type']);
@@ -101,10 +132,14 @@ class MaintenancePlanController extends Controller
 
             $updatedPlan = $this->planRepository->update($id, $data, $checklistItems);
 
-            return $this->utilResponse->successResponse(
-                new MaintenancePlanResource($updatedPlan),
-                'Plan actualizado exitosamente.'
-            );
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->successResponse(
+                    new MaintenancePlanResource($updatedPlan),
+                    'Plan actualizado exitosamente.'
+                );
+            }
+
+            return back()->with('success', 'Plan actualizado exitosamente.');
         } catch (Throwable $e) {
             Log::error('Error al actualizar plan de mantenimiento', [
                 'action'    => 'MaintenancePlanController@update',
@@ -113,7 +148,12 @@ class MaintenancePlanController extends Controller
                 'payload'   => $request->validated(),
                 'exception' => $e->getMessage(),
             ]);
-            return $this->utilResponse->errorResponse('Ocurrió un error inesperado al actualizar el plan de mantenimiento.', 500);
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->errorResponse('Ocurrió un error inesperado al actualizar el plan de mantenimiento.', 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error inesperado al actualizar el plan de mantenimiento.');
         }
     }
 
@@ -123,18 +163,34 @@ class MaintenancePlanController extends Controller
             $plan = $this->planRepository->find($id);
 
             if (!$plan) {
-                return $this->utilResponse->errorResponse('No existe el plan de mantenimiento a eliminar', 404);
+                if (request()->expectsJson() || request()->is('api/*') || request()->ajax()) {
+                    return $this->utilResponse->errorResponse('No existe el plan de mantenimiento a eliminar', 404);
+                }
+
+                return back()->with('error', 'No existe el plan de mantenimiento a eliminar');
             }
 
             if ($this->planRepository->hasMaintenanceRecords($id)) {
-                return $this->utilResponse->errorResponse('No se puede eliminar el plan porque tiene registros históricos de mantenimiento asociados.', 422);
+                if (request()->expectsJson() || request()->is('api/*') || request()->ajax()) {
+                    return $this->utilResponse->errorResponse('No se puede eliminar el plan porque tiene registros históricos de mantenimiento asociados.', 422);
+                }
+
+                return back()->withErrors(['No se puede eliminar el plan porque tiene registros históricos de mantenimiento asociados.']);
             }
 
             if ($this->planRepository->delete($id)) {
-                return $this->utilResponse->successResponse(null, 'Plan eliminado exitosamente.');
+                if (request()->expectsJson() || request()->is('api/*') || request()->ajax()) {
+                    return $this->utilResponse->successResponse(null, 'Plan eliminado exitosamente.');
+                }
+
+                return back()->with('success', 'Plan eliminado exitosamente.');
             }
 
-            return $this->utilResponse->errorResponse('No se pudo eliminar el plan de mantenimiento.');
+            if (request()->expectsJson() || request()->is('api/*') || request()->ajax()) {
+                return $this->utilResponse->errorResponse('No se pudo eliminar el plan de mantenimiento.');
+            }
+
+            return back()->with('error', 'No se pudo eliminar el plan de mantenimiento.');
         } catch (Throwable $e) {
             Log::error('Error al eliminar plan de mantenimiento', [
                 'action'    => 'MaintenancePlanController@destroy',
@@ -142,7 +198,12 @@ class MaintenancePlanController extends Controller
                 'user_id'   => auth()->id(),
                 'exception' => $e->getMessage(),
             ]);
-            return $this->utilResponse->errorResponse('Ocurrió un error inesperado al eliminar el plan de mantenimiento.', 500);
+
+            if (request()->expectsJson() || request()->is('api/*') || request()->ajax()) {
+                return $this->utilResponse->errorResponse('Ocurrió un error inesperado al eliminar el plan de mantenimiento.', 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error inesperado al eliminar el plan de mantenimiento.');
         }
     }
 }

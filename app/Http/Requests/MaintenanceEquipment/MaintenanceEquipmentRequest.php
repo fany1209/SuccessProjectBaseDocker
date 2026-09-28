@@ -13,11 +13,20 @@ class MaintenanceEquipmentRequest extends FormRequest
 
     protected function prepareForValidation()
     {
-        $this->merge([
-            'code'      => is_string($this->code) ? strip_tags(trim($this->code)) : $this->code,
-            'name'      => is_string($this->name) ? strip_tags(trim($this->name)) : $this->name,
-            'is_active' => $this->has('is_active') ? filter_var($this->is_active, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true : true,
-        ]);
+        $merges = [
+            'code' => is_string($this->code) ? strip_tags(trim($this->code)) : $this->code,
+            'name' => is_string($this->name) ? strip_tags(trim($this->name)) : $this->name,
+        ];
+
+        if ($this->expectsJson() || $this->is('api/*') || $this->ajax()) {
+            if ($this->has('is_active')) {
+                $merges['is_active'] = filter_var($this->is_active, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true;
+            }
+        } else {
+            $merges['is_active'] = $this->has('is_active');
+        }
+
+        $this->merge($merges);
     }
 
     public function rules()

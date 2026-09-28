@@ -190,3 +190,25 @@ test('9. API DELETE /maintenance/equipment/{id} (Bloqueo por tener planes de man
     expect($response->json('code'))->toBe(422);
     expect($response->json('message'))->toContain('planes de mantenimiento asociados');
 });
+
+test('10. WEB GET /maintenance/equipment returns Blade view with equipments and areas', function () {
+    $response = $this->actingAs($this->user)->get('/maintenance/equipment');
+
+    $response->assertStatus(200);
+    $response->assertViewIs('maintenance.equipment.index');
+    $response->assertViewHas('equipments');
+    $response->assertViewHas('areas');
+});
+
+test('11. WEB POST /maintenance/equipment redirects back with success session', function () {
+    $response = $this->actingAs($this->user)->post('/maintenance/equipment', [
+        'code'      => 'EQ-WEB-' . rand(1000, 9999),
+        'name'      => 'Equipo Web Test',
+        'area_id'   => $this->area->id,
+        'is_active' => '1',
+    ]);
+
+    $response->assertRedirect();
+    $response->assertSessionHas('success');
+});
+

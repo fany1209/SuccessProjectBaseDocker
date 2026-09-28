@@ -2,6 +2,7 @@
 
 namespace App\Http\Repositories\MaintenanceEquipment;
 
+use App\Models\Area;
 use App\Models\Equipment;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,16 @@ class MaintenanceEquipmentRepository
     public function all(): Collection
     {
         return $this->equipment->with('area')->get();
+    }
+
+    public function getAreas(): Collection
+    {
+        $areas = Area::all();
+        if ($areas->isEmpty()) {
+            $defaultArea = Area::create(['name' => 'General', 'description' => 'Área General']);
+            $areas->push($defaultArea);
+        }
+        return $areas;
     }
 
     public function find($id): ?Equipment

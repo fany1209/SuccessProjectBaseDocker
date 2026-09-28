@@ -172,3 +172,26 @@ test('9. API DELETE /maintenance/plans/{id} (Bloqueo por tener registros histór
     expect($response->json('code'))->toBe(422);
     expect($response->json('message'))->toContain('registros históricos');
 });
+
+test('10. WEB GET /maintenance/plans returns Blade view with plans and equipments', function () {
+    $response = $this->actingAs($this->user)->get('/maintenance/plans');
+
+    $response->assertStatus(200);
+    $response->assertViewIs('maintenance.plans.index');
+    $response->assertViewHas('plans');
+    $response->assertViewHas('equipments');
+});
+
+test('11. WEB POST /maintenance/plans redirects back with success session', function () {
+    $response = $this->actingAs($this->user)->post('/maintenance/plans', [
+        'equipment_id'    => $this->equipment->id,
+        'name'            => 'Plan Web Test ' . uniqid(),
+        'frequency_days'  => 15,
+        'type'            => 'frequent',
+        'checklist_items' => ['Punto web 1', 'Punto web 2'],
+    ]);
+
+    $response->assertRedirect();
+    $response->assertSessionHas('success');
+});
+

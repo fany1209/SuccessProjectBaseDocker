@@ -7,6 +7,7 @@ use App\Http\Requests\MaintenanceEquipment\MaintenanceEquipmentRequest;
 use App\Http\Resources\MaintenanceEquipment\MaintenanceEquipmentResource;
 use App\Http\Repositories\MaintenanceEquipment\MaintenanceEquipmentRepository;
 use App\Traits\UtilResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -21,20 +22,32 @@ class MaintenanceEquipmentController extends Controller
         $this->equipmentRepository = $equipmentRepository;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         try {
-            return $this->utilResponse->successResponse(
-                MaintenanceEquipmentResource::collection($this->equipmentRepository->all()),
-                'Equipos de mantenimiento obtenidos correctamente'
-            );
+            $equipments = $this->equipmentRepository->all();
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->successResponse(
+                    MaintenanceEquipmentResource::collection($equipments),
+                    'Equipos de mantenimiento obtenidos correctamente'
+                );
+            }
+
+            $areas = $this->equipmentRepository->getAreas();
+            return view('maintenance.equipment.index', compact('equipments', 'areas'));
         } catch (Throwable $e) {
             Log::error('Error al consultar listado de equipos de mantenimiento', [
                 'action'    => 'MaintenanceEquipmentController@index',
                 'user_id'   => auth()->id(),
                 'exception' => $e->getMessage(),
             ]);
-            return $this->utilResponse->errorResponse('Ocurrió un error inesperado al consultar los equipos.', 500);
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->errorResponse('Ocurrió un error inesperado al consultar los equipos.', 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error inesperado al consultar los equipos.');
         }
     }
 
@@ -67,13 +80,22 @@ class MaintenanceEquipmentController extends Controller
             $equipment = $this->equipmentRepository->create($data);
 
             if ($equipment) {
-                return $this->utilResponse->successResponse(
-                    new MaintenanceEquipmentResource($equipment),
-                    'Equipo registrado exitosamente.',
-                    201
-                );
+                if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                    return $this->utilResponse->successResponse(
+                        new MaintenanceEquipmentResource($equipment),
+                        'Equipo registrado exitosamente.',
+                        201
+                    );
+                }
+
+                return back()->with('success', 'Equipo registrado exitosamente.');
             }
-            return $this->utilResponse->errorResponse('Error al registrar el equipo.');
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->errorResponse('Error al registrar el equipo.');
+            }
+
+            return back()->with('error', 'Error al registrar el equipo.');
         } catch (Throwable $e) {
             Log::error('Error al registrar equipo de mantenimiento', [
                 'action'    => 'MaintenanceEquipmentController@store',
@@ -81,7 +103,12 @@ class MaintenanceEquipmentController extends Controller
                 'payload'   => $request->validated(),
                 'exception' => $e->getMessage(),
             ]);
-            return $this->utilResponse->errorResponse('Ocurrió un error inesperado al registrar el equipo.', 500);
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->errorResponse('Ocurrió un error inesperado al registrar el equipo.', 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error inesperado al registrar el equipo.');
         }
     }
 
@@ -92,14 +119,23 @@ class MaintenanceEquipmentController extends Controller
             $equipment = $this->equipmentRepository->find($id);
 
             if (!$equipment) {
-                return $this->utilResponse->errorResponse('No existe el equipo solicitado', 404);
+                if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                    return $this->utilResponse->errorResponse('No existe el equipo solicitado', 404);
+                }
+
+                return back()->with('error', 'No existe el equipo solicitado');
             }
 
             $equipment = $this->equipmentRepository->update($id, $data);
-            return $this->utilResponse->successResponse(
-                new MaintenanceEquipmentResource($equipment),
-                'Equipo actualizado exitosamente.'
-            );
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->successResponse(
+                    new MaintenanceEquipmentResource($equipment),
+                    'Equipo actualizado exitosamente.'
+                );
+            }
+
+            return back()->with('success', 'Equipo actualizado exitosamente.');
         } catch (Throwable $e) {
             Log::error('Error al actualizar equipo de mantenimiento', [
                 'action'       => 'MaintenanceEquipmentController@update',
@@ -108,7 +144,12 @@ class MaintenanceEquipmentController extends Controller
                 'payload'      => $request->validated(),
                 'exception'    => $e->getMessage(),
             ]);
-            return $this->utilResponse->errorResponse('Ocurrió un error inesperado al actualizar el equipo.', 500);
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->errorResponse('Ocurrió un error inesperado al actualizar el equipo.', 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error inesperado al actualizar el equipo.');
         }
     }
 
@@ -118,18 +159,34 @@ class MaintenanceEquipmentController extends Controller
             $equipment = $this->equipmentRepository->find($id);
 
             if (!$equipment) {
-                return $this->utilResponse->errorResponse('No existe el equipo a eliminar', 404);
+                if (request()->expectsJson() || request()->is('api/*') || request()->ajax()) {
+                    return $this->utilResponse->errorResponse('No existe el equipo a eliminar', 404);
+                }
+
+                return back()->with('error', 'No existe el equipo a eliminar');
             }
 
             if ($this->equipmentRepository->hasMaintenanceRecords($id) || $this->equipmentRepository->hasMaintenancePlans($id)) {
-                return $this->utilResponse->errorResponse('No se puede eliminar el equipo porque tiene registros o planes de mantenimiento asociados.', 422);
+                if (request()->expectsJson() || request()->is('api/*') || request()->ajax()) {
+                    return $this->utilResponse->errorResponse('No se puede eliminar el equipo porque tiene registros o planes de mantenimiento asociados.', 422);
+                }
+
+                return back()->withErrors(['No se puede eliminar el equipo porque tiene registros o planes de mantenimiento asociados.']);
             }
 
             if ($this->equipmentRepository->delete($id)) {
-                return $this->utilResponse->successResponse(null, 'Equipo eliminado exitosamente.');
+                if (request()->expectsJson() || request()->is('api/*') || request()->ajax()) {
+                    return $this->utilResponse->successResponse(null, 'Equipo eliminado exitosamente.');
+                }
+
+                return back()->with('success', 'Equipo eliminado exitosamente.');
             }
 
-            return $this->utilResponse->errorResponse('No se pudo eliminar el equipo.');
+            if (request()->expectsJson() || request()->is('api/*') || request()->ajax()) {
+                return $this->utilResponse->errorResponse('No se pudo eliminar el equipo.');
+            }
+
+            return back()->with('error', 'No se pudo eliminar el equipo.');
         } catch (Throwable $e) {
             Log::error('Error al eliminar equipo de mantenimiento', [
                 'action'       => 'MaintenanceEquipmentController@destroy',
@@ -137,7 +194,12 @@ class MaintenanceEquipmentController extends Controller
                 'user_id'      => auth()->id(),
                 'exception'    => $e->getMessage(),
             ]);
-            return $this->utilResponse->errorResponse('Ocurrió un error inesperado al eliminar el equipo.', 500);
+
+            if (request()->expectsJson() || request()->is('api/*') || request()->ajax()) {
+                return $this->utilResponse->errorResponse('Ocurrió un error inesperado al eliminar el equipo.', 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error inesperado al eliminar el equipo.');
         }
     }
 }
