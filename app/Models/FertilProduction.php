@@ -17,6 +17,14 @@ class FertilProduction extends Model
         'fecha_ensacado',
         'kg_ensacados',
         'num_sacos',
-        'descripcion'
+        'descripcion',
+    ];
+
+    protected $casts = [
+        'fecha_preparacion' => 'date',
+        'fecha_ensacado'    => 'date',
+        'kg_preparados'     => 'float',
+        'kg_ensacados'      => 'float',
+        'num_sacos'         => 'integer',
     ];
 }

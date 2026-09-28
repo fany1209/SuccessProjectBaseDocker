@@ -2,218 +2,471 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Repositories\Fertil\FertilRepository;
+use App\Http\Requests\Fertil\FertilInventoryRequest;
+use App\Http\Requests\Fertil\FertilMaterialRequest;
+use App\Http\Requests\Fertil\FertilOutputInventoryRequest;
+use App\Http\Requests\Fertil\FertilProductionRequest;
+use App\Http\Resources\Fertil\FertilInventoryMovementResource;
+use App\Http\Resources\Fertil\FertilInventoryResource;
+use App\Http\Resources\Fertil\FertilMaterialRequestResource;
+use App\Http\Resources\Fertil\FertilProductionResource;
+use App\Traits\UtilResponse;
+use DomainException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use App\Models\FertilProduction;
-use App\Models\FertilInventory;
-use App\Models\FertilInventoryMovement;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class FertilController extends Controller
 {
-    public function index()
-    {
-        $productions = FertilProduction::orderBy('fertil_production_id', 'desc')->get();
-        $inventories = FertilInventory::orderBy('fertil_inventory_id', 'desc')->get();
-        $db_products = \App\Models\Product::orderBy('name', 'asc')->get();
+    protected UtilResponse $utilResponse;
+    protected FertilRepository $fertilRepo;
 
-        return view('production.fertil.index', compact('productions', 'inventories', 'db_products'));
+    public function __construct(UtilResponse $utilResponse, FertilRepository $fertilRepo)
+    {
+        $this->utilResponse = $utilResponse;
+        $this->fertilRepo = $fertilRepo;
     }
 
-    public function storeProduction(Request $request)
+    public function index(Request $request)
     {
-        $request->validate([
-            'fecha_preparacion' => 'nullable|date',
-            'kg_preparados' => 'nullable|numeric|min:0',
-            'fecha_ensacado' => 'nullable|date',
-            'kg_ensacados' => 'nullable|numeric|min:0',
-            'num_sacos' => 'nullable|integer|min:0',
-            'descripcion' => 'nullable|string'
-        ]);
+        try {
+            $productions = $this->fertilRepo->getAllProductions();
+            $inventories = $this->fertilRepo->getAllInventories();
+            $db_products = $this->fertilRepo->getDbProducts();
 
-        FertilProduction::create($request->all());
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'flag'    => true,
+                    'code'    => 200,
+                    'message' => 'Datos de Fertil obtenidos correctamente',
+                    'data'    => [
+                        'productions' => FertilProductionResource::collection($productions),
+                        'inventories' => FertilInventoryResource::collection($inventories),
+                        'db_products' => $db_products,
+                    ],
+                ], 200);
+            }
 
-        if ($request->ajax()) {
-            return response()->json(['message' => 'Registro agregado correctamente.']);
+            return view('production.fertil.index', compact('productions', 'inventories', 'db_products'));
+        } catch (Throwable $e) {
+            Log::error('Error al cargar la vista de fertil', [
+                'action'  => 'FertilController@index',
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 500,
+                    'message' => 'Error al obtener los datos de Fertil',
+                    'error'   => 'Error interno al consultar datos de Fertil.',
+                    'data'    => null,
+                ], 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error al cargar la vista de fertil.');
         }
-        return redirect()->route('production.fertil.index')->with('success', 'Registro de producción agregado correctamente.');
     }
 
-    public function updateProduction(Request $request, $id)
+    public function storeProduction(FertilProductionRequest $request)
     {
-        $request->validate([
-            'fecha_preparacion' => 'nullable|date',
-            'kg_preparados' => 'nullable|numeric|min:0',
-            'fecha_ensacado' => 'nullable|date',
-            'kg_ensacados' => 'nullable|numeric|min:0',
-            'num_sacos' => 'nullable|integer|min:0',
-            'descripcion' => 'nullable|string'
-        ]);
+        try {
+            $production = $this->fertilRepo->createProduction($request->validated());
 
-        $production = FertilProduction::findOrFail($id);
-        $production->update($request->all());
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'flag'    => true,
+                    'code'    => 201,
+                    'message' => 'Registro agregado correctamente.',
+                    'data'    => new FertilProductionResource($production),
+                ], 201);
+            }
 
-        if ($request->ajax()) {
-            return response()->json(['message' => 'Registro actualizado correctamente.']);
+            return redirect()->route('production.fertil.index')->with('success', 'Registro de producción agregado correctamente.');
+        } catch (Throwable $e) {
+            Log::error('Error al registrar producción de fertil', [
+                'action'  => 'FertilController@storeProduction',
+                'payload' => $request->validated(),
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 500,
+                    'message' => 'Error al guardar el registro de producción.',
+                    'error'   => 'Error interno al guardar la producción.',
+                    'data'    => null,
+                ], 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error al guardar el registro de producción.');
         }
-        return redirect()->route('production.fertil.index')->with('success', 'Registro de producción actualizado correctamente.');
+    }
+
+    public function updateProduction(FertilProductionRequest $request, $id)
+    {
+        try {
+            $production = $this->fertilRepo->updateProduction((int) $id, $request->validated());
+
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'flag'    => true,
+                    'code'    => 200,
+                    'message' => 'Registro actualizado correctamente.',
+                    'data'    => new FertilProductionResource($production),
+                ], 200);
+            }
+
+            return redirect()->route('production.fertil.index')->with('success', 'Registro de producción actualizado correctamente.');
+        } catch (ModelNotFoundException $e) {
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 404,
+                    'message' => 'Registro de producción no encontrado',
+                    'error'   => 'Registro de producción no encontrado',
+                    'data'    => null,
+                ], 404);
+            }
+
+            return back()->with('error', 'Registro de producción no encontrado.');
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar producción de fertil', [
+                'action'  => 'FertilController@updateProduction',
+                'id'      => $id,
+                'payload' => $request->validated(),
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 500,
+                    'message' => 'Error al actualizar el registro de producción.',
+                    'error'   => 'Error interno al actualizar la producción.',
+                    'data'    => null,
+                ], 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error al actualizar el registro de producción.');
+        }
     }
 
     public function destroyProduction($id)
     {
-        $production = FertilProduction::findOrFail($id);
-        $production->delete();
+        try {
+            $this->fertilRepo->deleteProduction((int) $id);
 
-        if (request()->ajax()) {
-            return response()->json(['message' => 'Registro eliminado correctamente.']);
+            if (request()->ajax() || request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'flag'    => true,
+                    'code'    => 200,
+                    'message' => 'Registro eliminado correctamente.',
+                    'data'    => [],
+                ], 200);
+            }
+
+            return redirect()->route('production.fertil.index')->with('success', 'Registro de producción eliminado.');
+        } catch (ModelNotFoundException $e) {
+            if (request()->ajax() || request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 404,
+                    'message' => 'Registro de producción no encontrado',
+                    'error'   => 'Registro de producción no encontrado',
+                    'data'    => [],
+                ], 404);
+            }
+
+            return back()->with('error', 'Registro de producción no encontrado.');
+        } catch (Throwable $e) {
+            Log::error('Error al eliminar producción de fertil', [
+                'action'  => 'FertilController@destroyProduction',
+                'id'      => $id,
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            if (request()->ajax() || request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 500,
+                    'message' => 'Error al eliminar el registro de producción.',
+                    'error'   => 'Error interno al eliminar la producción.',
+                    'data'    => [],
+                ], 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error al eliminar el registro de producción.');
         }
-        return redirect()->route('production.fertil.index')->with('success', 'Registro de producción eliminado.');
     }
 
-    public function storeInventory(Request $request)
+    public function storeInventory(FertilInventoryRequest $request)
     {
-        $request->validate([
-            'producto_descripcion' => 'required|string',
-            'cantidad' => 'nullable|numeric|min:0',
-            'unidad' => 'nullable|string',
-            'stock_min' => 'nullable|numeric|min:0'
-        ]);
+        try {
+            $inv = $this->fertilRepo->createInventory($request->validated());
 
-        $inv = FertilInventory::create($request->all());
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'flag'    => true,
+                    'code'    => 201,
+                    'message' => 'Producto agregado correctamente.',
+                    'data'    => new FertilInventoryResource($inv),
+                ], 201);
+            }
 
-        if ($inv->cantidad > 0) {
-            FertilInventoryMovement::create([
-                'fertil_inventory_id' => $inv->fertil_inventory_id,
-                'tipo' => 'Entrada',
-                'cantidad' => $inv->cantidad
+            return redirect()->route('production.fertil.index')->with('success', 'Registro de inventario agregado correctamente.');
+        } catch (Throwable $e) {
+            Log::error('Error al registrar producto en inventario de fertil', [
+                'action'  => 'FertilController@storeInventory',
+                'payload' => $request->validated(),
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
             ]);
-        }
 
-        if ($request->ajax()) {
-            return response()->json(['message' => 'Producto agregado correctamente.']);
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 500,
+                    'message' => 'Error al agregar el producto al inventario.',
+                    'error'   => 'Error interno al agregar producto.',
+                    'data'    => null,
+                ], 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error al registrar el producto de inventario.');
         }
-        return redirect()->route('production.fertil.index')->with('success', 'Registro de inventario agregado correctamente.');
     }
 
-    public function updateInventory(Request $request, $id)
+    public function updateInventory(FertilInventoryRequest $request, $id)
     {
-        $request->validate([
-            'producto_descripcion' => 'required|string',
-            'cantidad' => 'nullable|numeric|min:0',
-            'unidad' => 'nullable|string',
-            'stock_min' => 'nullable|numeric|min:0'
-        ]);
+        try {
+            $inventory = $this->fertilRepo->updateInventory((int) $id, $request->validated());
 
-        $inventory = FertilInventory::findOrFail($id);
-        $oldCantidad = $inventory->cantidad;
-        $inventory->update($request->all());
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'flag'    => true,
+                    'code'    => 200,
+                    'message' => 'Producto actualizado correctamente.',
+                    'data'    => new FertilInventoryResource($inventory),
+                ], 200);
+            }
 
-        if ($inventory->cantidad != $oldCantidad) {
-            $diff = $inventory->cantidad - $oldCantidad;
-            FertilInventoryMovement::create([
-                'fertil_inventory_id' => $inventory->fertil_inventory_id,
-                'tipo' => $diff > 0 ? 'Entrada' : 'Ajuste',
-                'cantidad' => abs($diff)
+            return redirect()->route('production.fertil.index')->with('success', 'Registro de inventario actualizado correctamente.');
+        } catch (ModelNotFoundException $e) {
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 404,
+                    'message' => 'Producto de inventario no encontrado',
+                    'error'   => 'Producto de inventario no encontrado',
+                    'data'    => null,
+                ], 404);
+            }
+
+            return back()->with('error', 'Producto de inventario no encontrado.');
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar inventario de fertil', [
+                'action'  => 'FertilController@updateInventory',
+                'id'      => $id,
+                'payload' => $request->validated(),
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
             ]);
-        }
 
-        if ($request->ajax()) {
-            return response()->json(['message' => 'Producto actualizado correctamente.']);
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 500,
+                    'message' => 'Error al actualizar el producto de inventario.',
+                    'error'   => 'Error interno al actualizar el producto.',
+                    'data'    => null,
+                ], 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error al actualizar el producto de inventario.');
         }
-        return redirect()->route('production.fertil.index')->with('success', 'Registro de inventario actualizado correctamente.');
     }
 
     public function destroyInventory($id)
     {
-        $inventory = FertilInventory::findOrFail($id);
-        $inventory->delete();
-
-        if (request()->ajax()) {
-            return response()->json(['message' => 'Producto eliminado correctamente.']);
-        }
-        return redirect()->route('production.fertil.index')->with('success', 'Registro de inventario eliminado.');
-    }
-
-    public function outputInventory(Request $request, $id)
-    {
-        $request->validate([
-            'cantidad_salida' => 'required|numeric|min:0.01'
-        ]);
-
-        $inventory = FertilInventory::findOrFail($id);
-        
-        if ($request->cantidad_salida > $inventory->cantidad) {
-            return response()->json(['message' => 'La cantidad de salida no puede ser mayor a la cantidad en stock.'], 400);
-        }
-
-        $inventory->cantidad -= $request->cantidad_salida;
-        $inventory->save();
-
-        FertilInventoryMovement::create([
-            'fertil_inventory_id' => $inventory->fertil_inventory_id,
-            'tipo' => 'Salida',
-            'cantidad' => $request->cantidad_salida
-        ]);
-
-        $alert = false;
-        $message = 'Salida registrada correctamente.';
-
-        if ($inventory->cantidad <= $inventory->stock_min) {
-            $alert = true;
-            $message = 'Salida registrada. ALERTA: El producto ha alcanzado su stock mínimo, es necesario solicitar más.';
-        }
-
-        return response()->json([
-            'message' => $message,
-            'alert' => $alert
-        ]);
-    }
-
-    public function getMovements($id)
-    {
-        $movements = FertilInventoryMovement::where('fertil_inventory_id', $id)
-            ->orderBy('movement_id', 'desc')
-            ->get();
-            
-        return response()->json($movements);
-    }
-
-    public function storeMaterialRequest(Request $request)
-    {
-        $request->validate([
-            'applicant_name' => 'required|string|max:100',
-            'comments' => 'nullable|string',
-            'products' => 'required|array|min:1',
-            'products.*.name' => 'required|string|max:255',
-            'products.*.quantity' => 'required|numeric|min:0.01',
-        ]);
-
         try {
-            \DB::transaction(function () use ($request) {
-                $materialRequest = \App\Models\ProductionMaterialRequest::create([
-                    'area' => 'fertil',
-                    'applicant_name' => $request->applicant_name,
-                    'status' => 'Pendiente',
-                    'comments' => $request->comments
-                ]);
+            $this->fertilRepo->deleteInventory((int) $id);
 
-                foreach ($request->products as $prod) {
-                    \App\Models\ProductionMaterialRequestItem::create([
-                        'request_id' => $materialRequest->id,
-                        'product_name' => $prod['name'],
-                        'quantity' => $prod['quantity'],
-                        'dispatched_quantity' => 0
-                    ]);
-                }
-            });
-
-            if ($request->ajax()) {
-                return response()->json(['message' => 'Solicitud enviada a almacén correctamente.']);
+            if (request()->ajax() || request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'flag'    => true,
+                    'code'    => 200,
+                    'message' => 'Producto eliminado correctamente.',
+                    'data'    => [],
+                ], 200);
             }
+
+            return redirect()->route('production.fertil.index')->with('success', 'Registro de inventario eliminado.');
+        } catch (ModelNotFoundException $e) {
+            if (request()->ajax() || request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 404,
+                    'message' => 'Producto de inventario no encontrado',
+                    'error'   => 'Producto de inventario no encontrado',
+                    'data'    => [],
+                ], 404);
+            }
+
+            return back()->with('error', 'Producto de inventario no encontrado.');
+        } catch (Throwable $e) {
+            Log::error('Error al eliminar producto de inventario de fertil', [
+                'action'  => 'FertilController@destroyInventory',
+                'id'      => $id,
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            if (request()->ajax() || request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 500,
+                    'message' => 'Error al eliminar el producto de inventario.',
+                    'error'   => 'Error interno al eliminar el producto.',
+                    'data'    => [],
+                ], 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error al eliminar el producto de inventario.');
+        }
+    }
+
+    public function outputInventory(FertilOutputInventoryRequest $request, $id): JsonResponse
+    {
+        try {
+            $result = $this->fertilRepo->outputInventory((int) $id, (float) $request->validated()['cantidad_salida']);
+
+            return response()->json([
+                'success' => true,
+                'flag'    => true,
+                'code'    => 200,
+                'message' => $result['message'],
+                'alert'   => $result['alert'],
+                'data'    => new FertilInventoryResource($result['inventory']),
+            ], 200);
+        } catch (DomainException $e) {
+            return response()->json([
+                'success' => false,
+                'flag'    => false,
+                'code'    => 400,
+                'message' => $e->getMessage(),
+                'error'   => $e->getMessage(),
+                'data'    => null,
+            ], 400);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'flag'    => false,
+                'code'    => 404,
+                'message' => 'Producto de inventario no encontrado',
+                'error'   => 'Producto de inventario no encontrado',
+                'data'    => null,
+            ], 404);
+        } catch (Throwable $e) {
+            Log::error('Error al registrar salida de inventario en fertil', [
+                'action'  => 'FertilController@outputInventory',
+                'id'      => $id,
+                'payload' => $request->validated(),
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'flag'    => false,
+                'code'    => 500,
+                'message' => 'Error al procesar la salida de inventario.',
+                'error'   => 'Error interno al procesar salida.',
+                'data'    => null,
+            ], 500);
+        }
+    }
+
+    public function getMovements($id): JsonResponse
+    {
+        try {
+            $movements = $this->fertilRepo->getMovements((int) $id);
+            $resolved = FertilInventoryMovementResource::collection($movements)->resolve();
+
+            return response()->json($resolved, 200);
+        } catch (Throwable $e) {
+            Log::error('Error al consultar movimientos de inventario en fertil', [
+                'action'  => 'FertilController@getMovements',
+                'id'      => $id,
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            return response()->json([], 500);
+        }
+    }
+
+    public function storeMaterialRequest(FertilMaterialRequest $request)
+    {
+        try {
+            $materialRequest = $this->fertilRepo->createMaterialRequest($request->validated());
+
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'flag'    => true,
+                    'code'    => 201,
+                    'message' => 'Solicitud enviada a almacén correctamente.',
+                    'data'    => new FertilMaterialRequestResource($materialRequest),
+                ], 201);
+            }
+
             return redirect()->back()->with('success', 'Solicitud enviada a almacén correctamente.');
-        } catch (\Throwable $e) {
-            \Log::error('Error storeMaterialRequest', ['error' => $e->getMessage()]);
-            if ($request->ajax()) {
-                return response()->json(['message' => 'Error al enviar la solicitud.'], 500);
+        } catch (Throwable $e) {
+            Log::error('Error al registrar solicitud de materiales en fertil', [
+                'action'  => 'FertilController@storeMaterialRequest',
+                'payload' => $request->validated(),
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 500,
+                    'message' => 'Error al enviar la solicitud.',
+                    'error'   => 'Error interno al registrar solicitud.',
+                    'data'    => null,
+                ], 500);
             }
+
             return redirect()->back()->with('error', 'Error al enviar la solicitud.');
         }
     }
