@@ -19,13 +19,14 @@
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
       });
       const json = await res.json();
+      const payload = json.data || json;
 
       const data = google.visualization.arrayToDataTable([
         ['Tabla', 'Registros'],
-        ['SSS-FOR-LID-01', Number(json.reception_of_samples)],
-        ['SSS-FOR-LID-03',           Number(json.pdf_clicks_d)],
-        ['SSS-FOR-LID-05',   Number(json.laboratory_samples)],
-        ['SSS-FOR-LID-11',       Number(json.weekly_results)],
+        ['SSS-FOR-LID-01', Number(payload.reception_of_samples || 0)],
+        ['SSS-FOR-LID-03',           Number(payload.pdf_clicks_d || 0)],
+        ['SSS-FOR-LID-05',   Number(payload.laboratory_samples || 0)],
+        ['SSS-FOR-LID-11',       Number(payload.weekly_results || 0)],
       ]);
 
       const options = {

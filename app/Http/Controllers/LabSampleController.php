@@ -2,166 +2,190 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Repositories\LabSample\LabSampleRepository;
+use App\Http\Requests\LabSample\LabSampleRequest;
+use App\Http\Resources\LabSample\LabSampleResource;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
+use Throwable;
 
 class LabSampleController extends Controller
 {
-    protected string $table = 'laboratory_samples'; 
+    /**
+     * @var UtilResponse
+     */
+    protected UtilResponse $utilResponse;
 
-    public function index()
+    /**
+     * @var LabSampleRepository
+     */
+    protected LabSampleRepository $labSampleRepo;
+
+    /**
+     * Inyección exclusiva de UtilResponse y Repositorio.
+     *
+     * @param UtilResponse $utilResponse
+     * @param LabSampleRepository $labSampleRepo
+     */
+    public function __construct(UtilResponse $utilResponse, LabSampleRepository $labSampleRepo)
     {
-        return view('laboratory.samples.index');
+        $this->utilResponse = $utilResponse;
+        $this->labSampleRepo = $labSampleRepo;
     }
 
-    public function datatable(Request $request)
+    /**
+     * Muestra la vista principal o listado JSON de muestras de laboratorio.
+     *
+     * @param Request $request
+     * @return View|JsonResponse
+     */
+    public function index(Request $request)
     {
-        $rows = DB::table($this->table . ' as ls')
-            ->leftJoin(
-                'reception_of_samples as ros',
-                'ros.folio_muestra',
-                '=',
-                'ls.folio'
-            )
-            ->leftJoin(
-                'suppliers as s',
-                's.supplier_id',  
-                '=',
-                'ros.supplier_id'
-            )
-            ->select([
-                'ls.id',
-                'ls.folio',
-                'ls.tipo_muestra',
-                'ls.producto',
-                'ls.sku',
-                'ls.ubicacion_stock',
-                'ls.stock_inicial',
-                'ls.cantidad_salida',
-                'ls.stock_final',
-                'ls.fecha_entrada',
-                'ls.fecha_salida',
-                'ros.batch as lote',
-                'ls.proveedor',
-                'ls.status',
-            ])
-            ->orderByDesc('ls.fecha_entrada')
-            ->orderByDesc('ls.id')
-            ->get()
-            ->map(function ($r) {
+        try {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                $samples = $this->labSampleRepo->all($request->only(['search', 'status']));
+                return $this->utilResponse->successResponse(
+                    LabSampleResource::collection($samples),
+                    'Muestras de laboratorio obtenidas correctamente.'
+                );
+            }
 
-                $dash = fn($v) => (is_null($v) || $v === '') ? '—' : $v;
-                $d    = fn($v) => $v
-                    ? (is_string($v) ? $v : $v->format('Y-m-d'))
-                    : '—';
-                $num  = fn($v, $dec = 2) => is_null($v)
-                    ? '—'
-                    : number_format((float)$v, $dec, '.', '');
+            if (view()->exists('laboratory.samples.index')) {
+                return view('laboratory.samples.index');
+            }
 
-                return [
-                    'id'             => $r->id,
-                    'folio'          => $dash($r->folio),
-                    'tipo_muestra'   => $dash($r->tipo_muestra),
-                    'producto'       => $dash($r->producto),
-                    'sku'            => $dash($r->sku),
-                    'proveedor'      => $dash($r->proveedor),
-                    'lote'           => $dash($r->lote),
-                    'ubicacion'      => $dash($r->ubicacion_stock),
-                    'stock_inicial'  => $num($r->stock_inicial),
-                    'salida'         => $num($r->cantidad_salida),
-                    'stock_final'    => $num($r->stock_final),
-                    'fecha_entrada'  => $d($r->fecha_entrada),
-                    'fecha_salida'   => $d($r->fecha_salida),
-                    'status'         => $r->status ?? 'Fuera de laboratorio',
-                    'acciones'       => '
-                        <div class="flex gap-2">
-                            <button class="px-2 py-1 rounded bg-emerald-600 text-white text-xs"
-                                data-id="'.$r->id.'" data-action="ver">Ver</button>
+            return view('formats.laboratory.inv_samples');
+        } catch (Throwable $e) {
+            Log::error('Error al listar muestras en LabSampleController@index', [
+                'action'    => 'LabSampleController@index',
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
 
-                            <button class="px-2 py-1 rounded bg-amber-600 text-white text-xs"
-                                data-id="'.$r->id.'" data-action="editar">Editar</button>
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return $this->utilResponse->errorResponse('Error al consultar muestras de laboratorio.', 500);
+            }
 
-                            <button class="px-2 py-1 rounded bg-rose-600 text-white text-xs"
-                                data-id="'.$r->id.'" data-action="eliminar">Eliminar</button>
-                        </div>',
-                ];
-            });
-
-        return response()->json(['data' => $rows]);
-    }
-
-    public function destroy($id)
-    {
-        $deleted = \DB::table('laboratory_samples')->where('id', $id)->delete();
-
-        if (!$deleted) {
-            return response()->json(['message' => 'Not found'], 404);
+            abort(500, 'Error al consultar muestras de laboratorio.');
         }
-        return response()->json(['message' => 'Deleted'], 200);
     }
 
-    public function showLabSample($id)
+    /**
+     * Retorna los datos procesados para el componente DataTables.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function datatable(Request $request): JsonResponse
     {
-        $row = DB::table('laboratory_samples')->where('id', (int)$id)->first();
+        try {
+            $rows = $this->labSampleRepo->getDatatableRows();
+            return response()->json(['data' => $rows]);
+        } catch (Throwable $e) {
+            Log::error('Error al generar DataTables en LabSampleController@datatable', [
+                'action'    => 'LabSampleController@datatable',
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
 
-        if (!$row) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Registro no encontrado.'
-            ], 404);
+            return $this->utilResponse->errorResponse('Error al obtener datos de tabla de laboratorio.', 500);
         }
-
-        $toYmd = function ($v) {
-            if (!$v) return null;
-            try { return \Carbon\Carbon::parse($v)->toDateString(); }
-            catch (\Throwable $e) { return null; }
-        };
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id'               => $row->id,
-                'folio'            => $row->folio,
-                'tipo_muestra'     => $row->tipo_muestra,
-                'producto'         => $row->producto,
-                'sku'              => $row->sku,
-                'ubicacion_stock'  => $row->ubicacion_stock,
-                'stock_inicial'    => $row->stock_inicial,
-                'cantidad_salida'  => $row->cantidad_salida,
-                'stock_final'      => $row->stock_final,
-                'fecha_entrada'    => $row->fecha_entrada,
-                'fecha_salida'     => $row->fecha_salida,
-                'status'           => $row->status ?? 'Fuera de laboratorio',
-                'fecha_entrada_raw'=> $toYmd($row->fecha_entrada),
-                'fecha_salida_raw' => $toYmd($row->fecha_salida),
-            ]
-        ]);
     }
 
-    public function updateLabSample(Request $request, $id)
+    /**
+     * Retorna el detalle de una muestra de laboratorio específica.
+     *
+     * @param Request $request
+     * @param int|string $id
+     * @return JsonResponse
+     */
+    public function showLabSample(Request $request, $id): JsonResponse
     {
-        $validated = $request->validate([
-            'tipo_muestra'     => ['nullable','string','max:150'],
-            'producto'         => ['nullable','string','max:255'],
-            'sku'              => ['nullable','string','max:100'],
-            'ubicacion_stock'  => ['nullable','string','max:255'],
-            'fecha_entrada'    => ['nullable','date'],
-            'fecha_salida'     => ['nullable','date'],
-            'stock_inicial'    => ['nullable','numeric','min:0'],
-            'cantidad_salida'  => ['nullable','numeric','min:0'],
-            'status'           => ['nullable','string','max:50'],
-        ]);
+        try {
+            $sample = $this->labSampleRepo->find($id);
 
-        unset($validated['stock_final']);
-        unset($validated['folio']);
+            if (!$sample) {
+                return $this->utilResponse->errorResponse('Registro no encontrado.', 404);
+            }
 
-        $row = \App\Models\LaboratorySample::findOrFail($id);
-        $row->update($validated);
+            return $this->utilResponse->successResponse(
+                new LabSampleResource($sample),
+                'Registro obtenido exitosamente.'
+            );
+        } catch (Throwable $e) {
+            Log::error('Error al consultar muestra en LabSampleController@showLabSample', [
+                'action'    => 'LabSampleController@showLabSample',
+                'id'        => $id,
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Registro actualizado.',
-            'data' => $row->fresh(), 
-        ]);
+            return $this->utilResponse->errorResponse('Error al consultar el registro.', 500);
+        }
+    }
+
+    /**
+     * Actualiza una muestra de laboratorio existente con bloqueo pesimista.
+     *
+     * @param LabSampleRequest $request
+     * @param int|string $id
+     * @return JsonResponse
+     */
+    public function updateLabSample(LabSampleRequest $request, $id): JsonResponse
+    {
+        try {
+            $sample = $this->labSampleRepo->update($id, $request->validated());
+
+            if (!$sample) {
+                return $this->utilResponse->errorResponse('Registro no encontrado.', 404);
+            }
+
+            return $this->utilResponse->successResponse(
+                new LabSampleResource($sample),
+                'Registro actualizado.'
+            );
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar muestra en LabSampleController@updateLabSample', [
+                'action'    => 'LabSampleController@updateLabSample',
+                'id'        => $id,
+                'user_id'   => auth()->id(),
+                'payload'   => $request->all(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al actualizar el registro.', 500);
+        }
+    }
+
+    /**
+     * Elimina una muestra de laboratorio existente con bloqueo pesimista.
+     *
+     * @param Request $request
+     * @param int|string $id
+     * @return JsonResponse
+     */
+    public function destroy(Request $request, $id): JsonResponse
+    {
+        try {
+            $deleted = $this->labSampleRepo->delete($id);
+
+            if (!$deleted) {
+                return $this->utilResponse->errorResponse('Not found', 404);
+            }
+
+            return $this->utilResponse->successResponse([], 'Deleted', 200);
+        } catch (Throwable $e) {
+            Log::error('Error al eliminar muestra en LabSampleController@destroy', [
+                'action'    => 'LabSampleController@destroy',
+                'id'        => $id,
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al eliminar el registro.', 500);
+        }
     }
 }
