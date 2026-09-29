@@ -11,6 +11,12 @@
 </style>
 
 <section class="col-span-12 w-full flex flex-col px-4 py-2">
+    <div class="flex justify-end mb-4">
+        <a href="{{ route('performance_notes.index') }}" class="inline-flex items-center px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-bold rounded-md shadow-sm border border-indigo-200 transition-colors">
+            ⭐ Evaluación y Desempeño
+        </a>
+    </div>
+
     @if($isAdmin)
     <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
         <div class="md:col-span-4 border-r border-gray-100 pr-4">
@@ -47,9 +53,6 @@
             <h2 class="text-2xl font-bold text-gray-800">Tablero Kanban</h2>
         </div>
         <div class="flex gap-2">
-            <a href="{{ route('performance_notes.index') }}" class="inline-flex items-center px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-bold rounded-md shadow-sm border border-indigo-200 transition-colors">
-                ⭐ Evaluación y Desempeño
-            </a>
             @if(auth()->user()->isAdmin())
                 <x-button-1 data-target="add-task" class="open-modal" colorBtn="green">+ Nueva Tarea</x-button-1>
             @endif

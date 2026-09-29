@@ -639,6 +639,8 @@ Route::prefix('laboratory/equipments')->group(function () {
         Route::get('/performance-notes', [App\Http\Controllers\PerformanceNoteController::class, 'index'])->name('performance_notes.index');
         Route::post('/performance-notes', [App\Http\Controllers\PerformanceNoteController::class, 'store'])->name('performance_notes.store');
         Route::delete('/performance-notes/{id}', [App\Http\Controllers\PerformanceNoteController::class, 'destroy'])->name('performance_notes.destroy');
+        Route::get('/performance-notes-notifications/unread', [App\Http\Controllers\PerformanceNoteController::class, 'unreadNotifications'])->name('performance_notes.notifications.unread');
+        Route::post('/performance-notes-notifications/mark-read/{id}', [App\Http\Controllers\PerformanceNoteController::class, 'markNotificationAsRead'])->name('performance_notes.notifications.mark_read');
     });
 
     // Ruta para marcar todas las notificaciones como leídas

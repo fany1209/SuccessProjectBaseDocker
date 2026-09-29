@@ -92,6 +92,69 @@
                     }
                 });
 
+                // Polling for Performance Notifications
+                let shownPerformanceNotifications = [];
+                function fetchPerformanceNotifications() {
+                    $.get('{{ route("performance_notes.notifications.unread") }}', function(res) {
+                        if(res.notifications) {
+                            let newNotifs = Object.values(res.notifications).filter(n => !shownPerformanceNotifications.includes(n.id));
+                            if(newNotifs.length > 0) {
+                                newNotifs.forEach(n => {
+                                    shownPerformanceNotifications.push(n.id);
+                                    let type = n.data.type || 'neutral';
+                                    let msg = n.data.message || 'Tienes un nuevo comentario de desempeño.';
+                                    let url = n.data.url || '{{ route("performance_notes.index") }}';
+                                    
+                                    let iconType = 'info';
+                                    let titleText = 'Evaluación de Desempeño';
+                                    let titleColor = '#4f46e5';
+                                    
+                                    if(type === 'positive') {
+                                        iconType = 'success';
+                                        titleText = '¡Buen Trabajo!';
+                                        titleColor = '#16a34a';
+                                    } else if (type === 'improvement') {
+                                        iconType = 'warning';
+                                        titleText = 'Área de Mejora';
+                                        titleColor = '#d97706';
+                                    }
+
+                                    Swal.fire({
+                                        toast: true,
+                                        position: 'top-end',
+                                        icon: iconType,
+                                        title: `<span style="color: ${titleColor}; font-weight: bold; text-transform: uppercase;">${titleText}</span>`,
+                                        text: msg,
+                                        showConfirmButton: true,
+                                        confirmButtonText: 'Ver detalles',
+                                        showCancelButton: true,
+                                        cancelButtonText: 'Cerrar',
+                                        timer: 10000,
+                                        timerProgressBar: true
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            $.post('{{ url("/performance-notes-notifications/mark-read") }}/' + n.id, function() {
+                                                window.location.href = url;
+                                            });
+                                        } else {
+                                            $.post('{{ url("/performance-notes-notifications/mark-read") }}/' + n.id);
+                                        }
+                                    });
+
+                                    let badge = $('#notification-count');
+                                    if(badge.length > 0) {
+                                        let current = parseInt(badge.text()) || 0;
+                                        badge.text(current + 1).removeClass('hidden').show();
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+                
+                fetchPerformanceNotifications();
+                setInterval(fetchPerformanceNotifications, 30000);
+
                 // Polling for Almacen Notifications
                 let shownNotifications = [];
                 function fetchUnreadNotifications() {
