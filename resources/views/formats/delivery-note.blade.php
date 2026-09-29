@@ -406,15 +406,15 @@
 
                             <td style="background-color: transparent;">
                                 {{ $item->sku ?? '' }}
+                            </td><td style="background-color: transparent;">
+                                {{ $item->pivot->public_batch ?? '' }}
                             </td>
 
                             <td style="background-color: transparent;">
                                 {{ $item->pivot->public_product_name ?? '' }}
                             </td>
 
-                            <td style="background-color: transparent;">
-                                {{ $item->pivot->public_batch ?? '' }}
-                            </td>
+                            
 
                             <td style="background-color: transparent;">
                                 @if (isset($item->pivot->invoice_val) && $item->pivot->invoice_val)
