@@ -615,12 +615,16 @@ Route::prefix('laboratory/equipments')->group(function () {
     Route::prefix('sistemas-ti')->group(function () {
         Route::get('/inventario', [ItEquipmentController::class, 'index'])->name('sistemas-ti.inventario');
         Route::post('/inventario', [ItEquipmentController::class, 'store'])->name('sistemas-ti.inventario.store');
+        Route::get('/inventario/{id}', [ItEquipmentController::class, 'show'])->name('sistemas-ti.inventario.show');
         Route::put('/inventario/{id}', [ItEquipmentController::class, 'update'])->name('sistemas-ti.inventario.update');
         Route::delete('/inventario/{id}', [ItEquipmentController::class, 'destroy'])->name('sistemas-ti.inventario.destroy');
 
         Route::get('/inspecciones', [ItInspectionController::class, 'index'])->name('sistemas-ti.inspecciones.index');
         Route::get('/inspecciones/create', [ItInspectionController::class, 'create'])->name('sistemas-ti.inspecciones.create');
         Route::post('/inspecciones', [ItInspectionController::class, 'store'])->name('sistemas-ti.inspecciones.store');
+        Route::get('/inspecciones/{id}', [ItInspectionController::class, 'show'])->name('sistemas-ti.inspecciones.show');
+        Route::put('/inspecciones/{id}', [ItInspectionController::class, 'update'])->name('sistemas-ti.inspecciones.update');
+        Route::delete('/inspecciones/{id}', [ItInspectionController::class, 'destroy'])->name('sistemas-ti.inspecciones.destroy');
         Route::get('/inspecciones/{id}/print', [ItInspectionController::class, 'print'])->name('sistemas-ti.inspecciones.print');
     });
 
