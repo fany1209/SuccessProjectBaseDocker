@@ -635,6 +635,12 @@ Route::prefix('laboratory/equipments')->group(function () {
         Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
     });
 
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/performance-notes', [App\Http\Controllers\PerformanceNoteController::class, 'index'])->name('performance_notes.index');
+        Route::post('/performance-notes', [App\Http\Controllers\PerformanceNoteController::class, 'store'])->name('performance_notes.store');
+        Route::delete('/performance-notes/{id}', [App\Http\Controllers\PerformanceNoteController::class, 'destroy'])->name('performance_notes.destroy');
+    });
+
     // Ruta para marcar todas las notificaciones como leídas
     Route::middleware(['auth'])->group(function () {
         Route::post('/notifications/mark-all-read', function () {

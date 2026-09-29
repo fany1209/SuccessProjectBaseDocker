@@ -46,9 +46,14 @@
         <div>
             <h2 class="text-2xl font-bold text-gray-800">Tablero Kanban</h2>
         </div>
-        @if(auth()->user()->isAdmin())
-            <x-button-1 data-target="add-task" class="open-modal" colorBtn="green">+ Nueva Tarea</x-button-1>
-        @endif
+        <div class="flex gap-2">
+            <a href="{{ route('performance_notes.index') }}" class="inline-flex items-center px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-bold rounded-md shadow-sm border border-indigo-200 transition-colors">
+                ⭐ Evaluación y Desempeño
+            </a>
+            @if(auth()->user()->isAdmin())
+                <x-button-1 data-target="add-task" class="open-modal" colorBtn="green">+ Nueva Tarea</x-button-1>
+            @endif
+        </div>
     </div>
 
     <div class="flex gap-2 w-full mb-6">
