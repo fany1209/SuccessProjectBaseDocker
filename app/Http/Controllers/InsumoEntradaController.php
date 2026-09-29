@@ -2,149 +2,291 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\InsumoEntrada\InsumoEntradaRequest;
+use App\Http\Repositories\InsumoEntrada\InsumoEntradaRepository;
+use App\Http\Resources\InsumoEntrada\InsumoEntradaResource;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class InsumoEntradaController extends Controller
 {
-    private function resolveSupplierName(array $validated): string
+    private UtilResponse $utilResponse;
+    private InsumoEntradaRepository $insumoEntradaRepo;
+
+    public function __construct(UtilResponse $utilResponse, InsumoEntradaRepository $insumoEntradaRepo)
     {
-        if (($validated['supplier_id'] ?? null) === '__other__') {
+        $this->utilResponse = $utilResponse;
+        $this->insumoEntradaRepo = $insumoEntradaRepo;
+    }
 
-            $name = trim((string)($validated['supplier_name'] ?? ''));
+    /**
+     * Muestra el listado de entradas de insumos.
+     *
+     * @param Request $request
+     * @return JsonResponse|RedirectResponse
+     */
+    public function index(Request $request)
+    {
+        try {
+            $entries = $this->insumoEntradaRepo->all();
 
-            if ($name === '') {
-                throw new \Exception('Nombre del proveedor inválido.');
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return $this->utilResponse->successResponse(
+                    InsumoEntradaResource::collection($entries),
+                    'Entradas de insumos obtenidas correctamente.'
+                );
             }
 
-            $existing = DB::table('suppliers')
-                ->whereRaw('LOWER(TRIM(name)) = LOWER(TRIM(?))', [$name])
-                ->first();
+            return redirect()->route('purchases.index');
+        } catch (Throwable $e) {
+            Log::error('Error al consultar listado de entradas de insumos', [
+                'action'    => 'InsumoEntradaController@index',
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
 
-            if ($existing) {
-                return $existing->name;
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 500,
+                    'message' => 'Ocurrió un error inesperado al consultar las entradas.',
+                    'error'   => 'Ocurrió un error inesperado al consultar las entradas.',
+                    'data'    => [],
+                ], 500);
             }
 
-            $count = DB::table('suppliers')->count();
-            $supplier_code = 'SP' . ($count + 1);
+            return back()->with('error', 'Ocurrió un error inesperado al consultar las entradas.');
+        }
+    }
 
-            DB::table('suppliers')->insert([
-                'name'          => $name,
-                'sector_id'     => $validated['sector_id'],
-                'supplier_code' => $supplier_code,
-                'created_at'    => now(),
-                'updated_at'    => now(),
+    /**
+     * Muestra los detalles de una entrada de insumo específica.
+     *
+     * @param Request $request
+     * @param int|string $id
+     * @return JsonResponse
+     */
+    public function show(Request $request, $id): JsonResponse
+    {
+        try {
+            $entry = $this->insumoEntradaRepo->find($id);
+
+            if (!$entry) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 404,
+                    'message' => 'Entrada no encontrada.',
+                    'error'   => 'Entrada no encontrada.',
+                    'data'    => [],
+                ], 404);
+            }
+
+            $resource = new InsumoEntradaResource($entry);
+
+            return response()->json(array_merge($resource->resolve(), [
+                'success' => true,
+                'flag'    => true,
+                'code'    => 200,
+                'message' => 'Entrada obtenida correctamente.',
+                'entry'   => $resource,
+                'data'    => $resource,
+            ]), 200);
+        } catch (Throwable $e) {
+            Log::error('Error al consultar entrada de insumo', [
+                'action'    => 'InsumoEntradaController@show',
+                'id'        => $id,
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
             ]);
 
-            return $name;
+            return response()->json([
+                'success' => false,
+                'flag'    => false,
+                'code'    => 500,
+                'message' => 'Ocurrió un error inesperado al consultar la entrada.',
+                'error'   => 'Ocurrió un error inesperado al consultar la entrada.',
+                'data'    => [],
+            ], 500);
         }
-
-        $supplier = DB::table('suppliers')
-            ->where('supplier_id', $validated['supplier_id'])
-            ->first();
-
-        if (!$supplier) {
-            throw new \Exception('Proveedor no encontrado.');
-        }
-
-        return $supplier->name;
     }
 
-    public function store(Request $request)
+    /**
+     * Almacena una nueva entrada de insumos en la base de datos.
+     *
+     * @param InsumoEntradaRequest $request
+     * @return JsonResponse|RedirectResponse
+     */
+    public function store(InsumoEntradaRequest $request)
     {
-        $validated = $request->validate([
-            'fecha_llegada' => ['required','date'],
-            'categoria'     => ['required','in:warehouse,purchases,laboratory'],
-            'supplier_id'   => ['required'],
-            'supplier_name' => ['required_if:supplier_id,__other__','nullable','string','max:255'],
-            'sector_id'     => ['required_if:supplier_id,__other__','nullable','integer','exists:sectors,sector_id'],
-            'descripcion'   => ['nullable','string','max:2000'],
-            'cantidad'      => ['required','numeric','min:0'],
-            'unidad'        => ['required','string','max:20'],
-            'insumo'        => ['required','string','max:255'],
-            'lote'          => ['nullable','string','max:255'],
-        ]);
+        try {
+            $entry = $this->insumoEntradaRepo->create($request->validated());
 
-        DB::transaction(function () use ($validated) {
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'flag'    => true,
+                    'code'    => 201,
+                    'message' => 'Entrada guardada correctamente.',
+                    'entry'   => new InsumoEntradaResource($entry),
+                    'data'    => new InsumoEntradaResource($entry),
+                ], 201);
+            }
 
-            $supplierName = $this->resolveSupplierName($validated);
-
-            DB::table('insumos_entradas')->insert([
-                'fecha_llegada' => $validated['fecha_llegada'],
-                'categoria'     => $validated['categoria'],
-                'proveedor'     => $supplierName,
-                'descripcion'   => $validated['descripcion'] ?? null,
-                'cantidad'      => $validated['cantidad'],
-                'unidad'        => $validated['unidad'],
-                'insumo'        => $validated['insumo'],
-                'lote'          => $validated['lote'] ?? null,
-                'created_at'    => now(),
-                'updated_at'    => now(),
+            return back()->with('success', 'Entrada guardada correctamente.');
+        } catch (Throwable $e) {
+            Log::error('Error al registrar entrada de insumo', [
+                'action'    => 'InsumoEntradaController@store',
+                'user_id'   => auth()->id(),
+                'payload'   => $request->validated(),
+                'exception' => $e->getMessage(),
             ]);
-        });
 
-        return back()->with('success', 'Entrada guardada correctamente.');
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 500,
+                    'message' => 'Ocurrió un error inesperado al registrar la entrada.',
+                    'error'   => 'Ocurrió un error inesperado al registrar la entrada.',
+                    'data'    => [],
+                ], 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error inesperado al registrar la entrada.');
+        }
     }
 
-    public function show($id)
+    /**
+     * Actualiza los datos de una entrada de insumos existente.
+     *
+     * @param InsumoEntradaRequest $request
+     * @param int|string $id
+     * @return JsonResponse|RedirectResponse
+     */
+    public function update(InsumoEntradaRequest $request, $id)
     {
-        $entry = DB::table('insumos_entradas')->where('id', $id)->first();
+        try {
+            $entry = $this->insumoEntradaRepo->find($id);
 
-        if (!$entry) {
-            return response()->json(['error' => 'Entrada no encontrada.'], 404);
+            if (!$entry) {
+                if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'flag'    => false,
+                        'code'    => 404,
+                        'message' => 'Entrada no encontrada.',
+                        'error'   => 'Entrada no encontrada.',
+                        'data'    => [],
+                    ], 404);
+                }
+
+                return back()->with('error', 'Entrada no encontrada.');
+            }
+
+            $updated = $this->insumoEntradaRepo->update($id, $request->validated());
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'flag'    => true,
+                    'code'    => 200,
+                    'message' => 'Entrada actualizada correctamente.',
+                    'entry'   => new InsumoEntradaResource($updated),
+                    'data'    => new InsumoEntradaResource($updated),
+                ], 200);
+            }
+
+            return back()->with('success', 'Entrada actualizada correctamente.');
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar entrada de insumo', [
+                'action'    => 'InsumoEntradaController@update',
+                'id'        => $id,
+                'user_id'   => auth()->id(),
+                'payload'   => $request->validated(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 500,
+                    'message' => 'Ocurrió un error inesperado al actualizar la entrada.',
+                    'error'   => 'Ocurrió un error inesperado al actualizar la entrada.',
+                    'data'    => [],
+                ], 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error inesperado al actualizar la entrada.');
         }
-
-        return response()->json(['entry' => $entry]);
     }
 
-    public function update(Request $request, $id)
+    /**
+     * Elimina una entrada de insumos de la base de datos.
+     *
+     * @param Request $request
+     * @param int|string $id
+     * @return JsonResponse|RedirectResponse
+     */
+    public function destroy(Request $request, $id)
     {
-        $entry = DB::table('insumos_entradas')->where('id', $id)->first();
+        try {
+            $entry = $this->insumoEntradaRepo->find($id);
 
-        if (!$entry) {
-            return response()->json(['error' => 'Entrada no encontrada.'], 404);
+            if (!$entry) {
+                if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'flag'    => false,
+                        'code'    => 404,
+                        'message' => 'Entrada no encontrada.',
+                        'error'   => 'Entrada no encontrada.',
+                        'data'    => [],
+                    ], 404);
+                }
+
+                return back()->with('error', 'Entrada no encontrada.');
+            }
+
+            $this->insumoEntradaRepo->delete($id);
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'flag'    => true,
+                    'code'    => 200,
+                    'message' => 'Entrada eliminada correctamente.',
+                    'data'    => [],
+                ], 200);
+            }
+
+            return back()->with('success', 'Entrada eliminada correctamente.');
+        } catch (Throwable $e) {
+            Log::error('Error al eliminar entrada de insumo', [
+                'action'    => 'InsumoEntradaController@destroy',
+                'id'        => $id,
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 500,
+                    'message' => 'Ocurrió un error inesperado al eliminar la entrada.',
+                    'error'   => 'Ocurrió un error inesperado al eliminar la entrada.',
+                    'data'    => [],
+                ], 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error inesperado al eliminar la entrada.');
         }
-
-        $validated = $request->validate([
-            'fecha_llegada' => ['required','date'],
-            'fecha_salida'  => ['nullable','date'],
-            'categoria'     => ['required','in:warehouse,purchases,laboratory,quality,Human resources,finance'],
-            'proveedor'     => ['required','string','max:255'],
-            'descripcion'   => ['nullable','string','max:2000'],
-            'cantidad'      => ['required','numeric','min:0'],
-            'unidad'        => ['required','string','max:20'],
-            'insumo'        => ['required','string','max:255'],
-            'lote'          => ['nullable','string','max:255'],
-            'lote_salida'   => ['nullable','string','max:255'],
-        ]);
-
-        DB::table('insumos_entradas')->where('id', $id)->update([
-            'fecha_llegada' => $validated['fecha_llegada'],
-            'fecha_salida'  => $validated['fecha_salida'] ?? null,
-            'categoria'     => $validated['categoria'],
-            'proveedor'     => $validated['proveedor'],
-            'descripcion'   => $validated['descripcion'] ?? null,
-            'cantidad'      => $validated['cantidad'],
-            'unidad'        => $validated['unidad'],
-            'insumo'        => $validated['insumo'],
-            'lote'          => $validated['lote'] ?? null,
-            'lote_salida'   => $validated['lote_salida'] ?? null,
-            'updated_at'    => now(),
-        ]);
-
-        return response()->json(['success' => true, 'message' => 'Entrada actualizada correctamente.']);
-    }
-
-    public function destroy($id)
-    {
-        $entry = DB::table('insumos_entradas')->where('id', $id)->first();
-
-        if (!$entry) {
-            return response()->json(['error' => 'Entrada no encontrada.'], 404);
-        }
-
-        DB::table('insumos_entradas')->where('id', $id)->delete();
-
-        return response()->json(['success' => true, 'message' => 'Entrada eliminada correctamente.']);
     }
 }
