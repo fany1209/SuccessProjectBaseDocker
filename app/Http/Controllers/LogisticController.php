@@ -2,49 +2,108 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\Concept;
-use App\Models\Operator;
-use App\Models\Quarantine;
-use App\Models\Trailer;
-use App\Models\TransportLine;
-use App\Models\Vehicle;
-use App\Models\Warehouse;
+use App\Http\Repositories\Logistic\LogisticRepository;
+use App\Http\Requests\Logistic\LogisticRequest;
+use App\Http\Resources\Logistic\LogisticResource;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
+use Throwable;
 
 class LogisticController extends Controller
 {
-    public function index(){
-        $tLines = TransportLine::all();
-        $count_operators = Operator::count();
-        $count_tLines = TransportLine::count();
-        $count_vehicles = Vehicle::count();
-        $count_trailers = Trailer::count();
-        $warehouses = Warehouse::all();
-        $concepts = Concept::all();
-        $quarantine = Quarantine::all();
-        $transport_lines = TransportLine::all();
-        $products_all = DB::table('products')->select('product_id','name')->get();
-        $products = DB::table('inventory')->leftJoin('products','products.product_id','=','inventory.product_id')->select('products.product_id','products.name')->orderBy('products.product_id')->distinct()->get();
-        $suppliers = DB::table('suppliers')->select('supplier_id','name')->get();
-        $customers = DB::table('customers')->select('customer_id','name')->get();
-        return view('logistic',compact('tLines','count_operators','count_tLines','count_vehicles','count_trailers','warehouses','concepts','products','suppliers','customers','products_all','transport_lines','quarantine'));
+    /**
+     * @var UtilResponse
+     */
+    protected UtilResponse $utilResponse;
+
+    /**
+     * @var LogisticRepository
+     */
+    protected LogisticRepository $logisticRepo;
+
+    /**
+     * Constructor con inyección exclusiva de UtilResponse y Repositorio.
+     *
+     * @param UtilResponse $utilResponse
+     * @param LogisticRepository $logisticRepo
+     */
+    public function __construct(UtilResponse $utilResponse, LogisticRepository $logisticRepo)
+    {
+        $this->utilResponse = $utilResponse;
+        $this->logisticRepo = $logisticRepo;
     }
 
-    public function charts(){
-        $vehicles_per_tl = DB::table('transport_lines')->join('vehicles','vehicles.transport_line_id','=','transport_lines.transport_line_id')
-            ->select(
-                'transport_lines.name',
-                DB::raw('count(*) as vehicles')
-                )
-            ->groupBy('transport_lines.name')->get();
-        $trailers_per_tl = DB::table('transport_lines')->join('trailers','trailers.transport_line_id','=','transport_lines.transport_line_id')
-            ->select(
-                'transport_lines.name',
-                DB::raw('count(*) as trailers')
-                )
-            ->groupBy('transport_lines.name')->get();
-        return response()->json(['vehicles_per_tl'=>$vehicles_per_tl,'trailers_per_tl'=>$trailers_per_tl]);
+    /**
+     * Muestra la vista principal del módulo de logística o retorna resumen en JSON.
+     *
+     * @param Request $request
+     * @return View|JsonResponse
+     */
+    public function index(Request $request)
+    {
+        try {
+            $data = $this->logisticRepo->getIndexData();
+
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return $this->utilResponse->successResponse(
+                    new LogisticResource([
+                        'count_operators' => $data['count_operators'],
+                        'count_tLines'    => $data['count_tLines'],
+                        'count_vehicles'  => $data['count_vehicles'],
+                        'count_trailers'  => $data['count_trailers'],
+                    ]),
+                    'Datos de logística obtenidos correctamente.'
+                );
+            }
+
+            return view('logistic', $data);
+        } catch (Throwable $e) {
+            Log::error('Error al consultar datos de logística en LogisticController@index', [
+                'action'    => 'LogisticController@index',
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return $this->utilResponse->errorResponse('Error al consultar el módulo de logística.', 500);
+            }
+
+            abort(500, 'Error al consultar el módulo de logística.');
+        }
+    }
+
+    /**
+     * Retorna los datos agrupados para los gráficos de líneas de transporte.
+     *
+     * @param LogisticRequest $request
+     * @return JsonResponse
+     */
+    public function charts(LogisticRequest $request): JsonResponse
+    {
+        try {
+            $charts = $this->logisticRepo->getChartsData();
+
+            // Retornamos estructura compatible tanto con UtilResponse {"success":true,"data":{...}}
+            // como con las llamadas frontend que consumen directamente response.vehicles_per_tl
+            return response()->json(array_merge([
+                'success' => true,
+                'flag'    => true,
+                'code'    => 200,
+                'message' => 'Gráficas de logística obtenidas correctamente.',
+                'data'    => $charts,
+            ], $charts), 200);
+        } catch (Throwable $e) {
+            Log::error('Error al generar gráficas de transporte en LogisticController@charts', [
+                'action'    => 'LogisticController@charts',
+                'user_id'   => auth()->id(),
+                'payload'   => $request->all(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al obtener gráficas de transporte.', 500);
+        }
     }
 }

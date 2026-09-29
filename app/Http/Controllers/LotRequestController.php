@@ -2,155 +2,252 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Repositories\LotRequest\LotRequestRepository;
+use App\Http\Requests\LotRequest\LotRequestRequest;
+use App\Http\Resources\LotRequest\LotRequestResource;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
+use Throwable;
 
 class LotRequestController extends Controller
 {
-    public function index()
-    {
-        $pendingLotRequests = LotRequest::where('status', 'pendiente')->count();
+    /**
+     * @var UtilResponse
+     */
+    protected UtilResponse $utilResponse;
 
-        return view('formats.laboratory.lot_requests.index', compact('pendingLotRequests'));
+    /**
+     * @var LotRequestRepository
+     */
+    protected LotRequestRepository $lotRequestRepo;
+
+    /**
+     * Constructor con inyección exclusiva de UtilResponse y Repositorio.
+     *
+     * @param UtilResponse $utilResponse
+     * @param LotRequestRepository $lotRequestRepo
+     */
+    public function __construct(UtilResponse $utilResponse, LotRequestRepository $lotRequestRepo)
+    {
+        $this->utilResponse = $utilResponse;
+        $this->lotRequestRepo = $lotRequestRepo;
     }
 
-    public function store(Request $request)
+    /**
+     * Muestra la vista principal de peticiones de lote o retorna listado JSON.
+     *
+     * @param Request $request
+     * @return View|JsonResponse
+     */
+    public function index(Request $request)
     {
-        $request->validate([
-            'department' => 'required|string|max:100',
-            'comments'   => 'nullable|string|max:1000',
-            'product'    => 'nullable|string|max:255',
-            'quantity'   => 'nullable|string|max:255',
-            'provider'   => 'nullable|string|max:255',
-            'collector'  => 'nullable|string|max:255',
-            'sector'     => 'nullable|string|max:255',
-        ]);
+        try {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                $lots = $this->lotRequestRepo->all($request->only(['status', 'department']));
+                return $this->utilResponse->successResponse(
+                    LotRequestResource::collection($lots),
+                    'Peticiones de lote obtenidas correctamente.'
+                );
+            }
 
-        DB::table('lot_requests')->insert([
-            'department'   => strip_tags($request->department),
-            'comments'     => $request->comments ? strip_tags($request->comments) : null,
-            'product'      => $request->product ? strip_tags($request->product) : null,
-            'quantity'     => $request->quantity ? strip_tags($request->quantity) : null,
-            'provider'     => $request->provider ? strip_tags($request->provider) : null,
-            'collector'    => $request->collector ? strip_tags($request->collector) : null,
-            'sector'       => $request->sector ? strip_tags($request->sector) : null,
-            'requested_at' => now(),
-            'status'       => 'pendiente',
-        ]);
+            $pendingLotRequests = $this->lotRequestRepo->countPending();
+            return view('formats.laboratory.lot_requests.index', compact('pendingLotRequests'));
+        } catch (Throwable $e) {
+            Log::error('Error al consultar peticiones de lote en LotRequestController@index', [
+                'action'    => 'LotRequestController@index',
+                'user_id'   => Auth::id(),
+                'exception' => $e->getMessage(),
+            ]);
 
-        return response()->json(['success' => true, 'message' => 'Registered request.']);
-    }
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return $this->utilResponse->errorResponse('Error al consultar peticiones de lote.', 500);
+            }
 
-    public function datatable(Request $request)
-    {
-        $rows = DB::table('lot_requests')
-            ->select([
-                'id',
-                'department',
-                DB::raw("DATE_FORMAT(requested_at, '%Y-%m-%d %H:%i') as requested_at"),
-                'status',
-                'comments',
-                'product',
-                'quantity',
-                'provider',
-                'collector',
-                'sector',
-                'sku',
-                'batch'
-            ])
-            ->orderByDesc('requested_at')
-            ->orderByDesc('id')
-            ->limit(500)
-            ->get();
-
-        $productSkus = DB::table('lot_requests')
-            ->whereNotNull('sku')
-            ->where('sku', '!=', '')
-            ->whereNotNull('product')
-            ->where('product', '!=', '')
-            ->select('product', 'sku')
-            ->distinct()
-            ->get()
-            ->groupBy('product')
-            ->map(function ($items) {
-                return $items->pluck('sku')->toArray();
-            });
-
-        $productBatches = DB::table('lot_requests')
-            ->whereNotNull('batch')
-            ->where('batch', '!=', '')
-            ->whereNotNull('product')
-            ->where('product', '!=', '')
-            ->select('product', 'batch')
-            ->distinct()
-            ->get()
-            ->groupBy('product')
-            ->map(function ($items) {
-                return $items->pluck('batch')->toArray();
-            });
-
-        return response()->json([
-            'lots' => $rows, 
-            'productSkus' => $productSkus,
-            'productBatches' => $productBatches,
-        ]);
-    }
-
-    public function updateStatus($id, Request $request)
-    {
-        $nuevoEstado = $request->status === 'terminado'
-            ? 'terminado'
-            : 'pendiente';
-
-        $dataToUpdate = ['status' => $nuevoEstado];
-        if ($request->has('sku')) {
-            $dataToUpdate['sku'] = $request->sku;
+            abort(500, 'Error al consultar peticiones de lote.');
         }
-        if ($request->has('batch')) {
-            $dataToUpdate['batch'] = $request->batch;
-        }
-
-        DB::table('lot_requests')
-            ->where('id', $id)
-            ->update($dataToUpdate);
-
-        $pending = DB::table('lot_requests')
-            ->where('status', 'pendiente')
-            ->count();
-
-        return response()->json([
-            'success' => true,
-            'pending' => $pending
-        ]);
     }
 
-    public function checkPending()
+    /**
+     * Registra una nueva petición de lote.
+     *
+     * @param LotRequestRequest $request
+     * @return JsonResponse
+     */
+    public function store(LotRequestRequest $request): JsonResponse
     {
-        $user = Auth::user();
+        try {
+            $lot = $this->lotRequestRepo->create($request->validated());
 
-        if (!$user || !$user->roles()->whereIn('name', ['Quality', 'quality'])->exists()) {
-            return response()->json(['pending' => [], 'count' => 0]);
+            return response()->json([
+                'success' => true,
+                'flag'    => true,
+                'code'    => 201,
+                'message' => 'Registered request.',
+                'data'    => new LotRequestResource($lot),
+            ], 201);
+        } catch (Throwable $e) {
+            Log::error('Error al registrar petición de lote en LotRequestController@store', [
+                'action'    => 'LotRequestController@store',
+                'user_id'   => Auth::id(),
+                'payload'   => $request->all(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al registrar la petición de lote.', 500);
         }
-
-        $pending = DB::table('lot_requests')
-            ->where('status', 'pendiente')
-            ->orderByDesc('requested_at')
-            ->get();
-
-        return response()->json([
-            'pending' => $pending,
-            'count'   => $pending->count(),
-        ]);
     }
 
-    public function countCompleted()
+    /**
+     * Retorna datos formateados para DataTables junto con agrupaciones de skus y lotes.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function datatable(Request $request): JsonResponse
     {
-        $count = DB::table('lot_requests')
-            ->where('status', 'terminado')
-            ->count();
+        try {
+            $data = $this->lotRequestRepo->getDatatableData();
 
-        return response()->json(['count' => $count]);
+            return response()->json(array_merge([
+                'success' => true,
+                'flag'    => true,
+                'code'    => 200,
+                'message' => 'Datos de peticiones de lote obtenidos correctamente.',
+                'data'    => $data,
+            ], $data), 200);
+        } catch (Throwable $e) {
+            Log::error('Error al generar DataTables en LotRequestController@datatable', [
+                'action'    => 'LotRequestController@datatable',
+                'user_id'   => Auth::id(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al obtener datos de peticiones de lote.', 500);
+        }
+    }
+
+    /**
+     * Actualiza el estatus y asignación de SKU/Lote aplicando bloqueo pesimista.
+     *
+     * @param int|string $id
+     * @param LotRequestRequest $request
+     * @return JsonResponse
+     */
+    public function updateStatus($id, LotRequestRequest $request): JsonResponse
+    {
+        try {
+            $result = $this->lotRequestRepo->updateStatus($id, $request->validated());
+
+            if (!$result) {
+                return $this->utilResponse->errorResponse('Petición de lote no encontrada.', 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'flag'    => true,
+                'code'    => 200,
+                'message' => 'Estatus de petición de lote actualizado correctamente.',
+                'pending' => $result['pending'],
+                'data'    => new LotRequestResource($result['lot']),
+            ], 200);
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar estatus en LotRequestController@updateStatus', [
+                'action'    => 'LotRequestController@updateStatus',
+                'id'        => $id,
+                'user_id'   => Auth::id(),
+                'payload'   => $request->all(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al actualizar estatus de la petición.', 500);
+        }
+    }
+
+    /**
+     * Consulta las peticiones pendientes para usuarios con rol Quality.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function checkPending(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            if (!$user || !$user->roles()->whereIn('name', ['Quality', 'quality'])->exists()) {
+                return response()->json([
+                    'success' => true,
+                    'flag'    => true,
+                    'code'    => 200,
+                    'message' => 'Sin autorizacion o rol de calidad.',
+                    'pending' => [],
+                    'count'   => 0,
+                    'data'    => [
+                        'pending' => [],
+                        'count'   => 0,
+                    ],
+                ]);
+            }
+
+            $pending = $this->lotRequestRepo->getPending();
+            $count = $pending->count();
+
+            return response()->json([
+                'success' => true,
+                'flag'    => true,
+                'code'    => 200,
+                'message' => 'Peticiones pendientes obtenidas correctamente.',
+                'pending' => $pending,
+                'count'   => $count,
+                'data'    => [
+                    'pending' => LotRequestResource::collection($pending),
+                    'count'   => $count,
+                ],
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Error al consultar peticiones pendientes en LotRequestController@checkPending', [
+                'action'    => 'LotRequestController@checkPending',
+                'user_id'   => Auth::id(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al consultar peticiones pendientes.', 500);
+        }
+    }
+
+    /**
+     * Retorna el conteo de peticiones terminadas.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function countCompleted(Request $request): JsonResponse
+    {
+        try {
+            $count = $this->lotRequestRepo->countCompleted();
+
+            return response()->json([
+                'success' => true,
+                'flag'    => true,
+                'code'    => 200,
+                'message' => 'Conteo de peticiones terminadas obtenido correctamente.',
+                'count'   => $count,
+                'data'    => [
+                    'count' => $count,
+                ],
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Error al contar peticiones terminadas en LotRequestController@countCompleted', [
+                'action'    => 'LotRequestController@countCompleted',
+                'user_id'   => Auth::id(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al contar peticiones terminadas.', 500);
+        }
     }
 }

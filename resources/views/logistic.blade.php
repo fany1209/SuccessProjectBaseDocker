@@ -63,10 +63,11 @@
             url: "{{ route('logistic.charts') }}",
             dataType: 'json',
             success: function(response) {
+                var payload = response.data || response;
                 var dataArray = [];
                 dataArray.push(['Tailers', 'Quantity']);
 
-                response.trailers_per_tl.forEach(function(item) {
+                (payload.trailers_per_tl || []).forEach(function(item) {
                     dataArray.push([item.name, parseInt(item.trailers)]);
                 });
 
@@ -93,10 +94,11 @@
             url: "{{ route('logistic.charts') }}",
             dataType: 'json',
             success: function(response) {
+                var payload = response.data || response;
                 var dataArray = [];
                 dataArray.push(['Vehicle', 'Quantity']);
 
-                response.vehicles_per_tl.forEach(function(item) {
+                (payload.vehicles_per_tl || []).forEach(function(item) {
                     dataArray.push([item.name, parseInt(item.vehicles)]);
                 });
 
