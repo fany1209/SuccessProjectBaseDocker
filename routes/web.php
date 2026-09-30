@@ -527,10 +527,15 @@ Route::prefix('laboratory/equipments')->group(function () {
         
         Route::get('/{id}/payments', [CuentasPorCobrarController::class, 'getPayments'])->name('cuentas-por-cobrar.payments.list');
         Route::post('/{id}/payments', [CuentasPorCobrarController::class, 'addPayment'])->name('cuentas-por-cobrar.payments.add');
+        
         Route::match(['post', 'put'], '/payments/{payment_id}', [CuentasPorCobrarController::class, 'updatePayment'])->name('cuentas-por-cobrar.payments.update');
         Route::delete('/payments/{payment_id}', [CuentasPorCobrarController::class, 'deletePayment'])->name('cuentas-por-cobrar.payments.delete');
+        Route::get('/comprobantes/{filename}', [CuentasPorCobrarController::class, 'viewComprobante'])->name('cuentas-por-cobrar.comprobantes.show');
     });
 
+     Route::get('/documentos_finanzas/cxc/comprobantes/{filename}', [CuentasPorCobrarController::class, 'viewComprobante'])
+        ->name('cuentas-por-cobrar.comprobante.view');
+    
     Route::prefix('cuentas-por-pagar')->middleware('can:finance.show')->group(function () {
         Route::get('/', [\App\Http\Controllers\CuentasPorPagarController::class, 'index'])->name('cuentas-por-pagar.index');
         Route::get('/dashboard', [\App\Http\Controllers\CuentasPorPagarController::class, 'dashboard'])->name('cuentas-por-pagar.dashboard');

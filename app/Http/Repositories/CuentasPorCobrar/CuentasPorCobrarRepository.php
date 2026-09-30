@@ -282,6 +282,64 @@ class CuentasPorCobrarRepository
         return $cxc->payments()->orderByDesc('date')->get();
     }
 
+    public function getComprobantesPath(string $filename = ''): string
+    {
+        $base = base_path('../public_html/documentos_finanzas/cxc/comprobantes');
+        if ($filename) {
+            $cleanName = basename(str_replace('\\', '/', urldecode($filename)));
+            return $base . DIRECTORY_SEPARATOR . $cleanName;
+        }
+        return $base;
+    }
+
+    public function getComprobanteFilePath(string $filename): ?string
+    {
+        $clean = basename(str_replace('\\', '/', urldecode($filename)));
+        if (empty($clean) || $clean === '.' || $clean === '..') {
+            return null;
+        }
+
+        $candidates = [
+            $this->getComprobantesPath($clean),
+            public_path('documentos_finanzas/cxc/comprobantes/' . $clean),
+            storage_path('app/public/comprobantes/' . $clean),
+            storage_path('app/public/' . $clean),
+        ];
+
+        foreach ($candidates as $path) {
+            if (file_exists($path) && is_file($path)) {
+                return $path;
+            }
+        }
+
+        return $this->getComprobantesPath($clean);
+    }
+
+    protected function deleteComprobanteFile(?string $filename): void
+    {
+        if (empty($filename)) {
+            return;
+        }
+
+        $clean = basename(str_replace('\\', '/', urldecode($filename)));
+        if (empty($clean) || $clean === '.' || $clean === '..') {
+            return;
+        }
+
+        $candidates = [
+            $this->getComprobantesPath($clean),
+            public_path('documentos_finanzas/cxc/comprobantes/' . $clean),
+            storage_path('app/public/comprobantes/' . $clean),
+            storage_path('app/public/' . $clean),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (file_exists($candidate) && is_file($candidate)) {
+                @unlink($candidate);
+            }
+        }
+    }
+
     public function addPayment(int $id, array $data, $file = null): CxcPayment
     {
         return DB::transaction(function () use ($id, $data, $file) {
@@ -299,7 +357,7 @@ class CuentasPorCobrarRepository
             if ($file) {
                 $ext = $file->guessExtension() ?: 'pdf';
                 $comprobanteName = time() . '_' . Str::uuid() . '.' . $ext;
-                $dest = storage_path('app/public/comprobantes');
+                $dest = $this->getComprobantesPath();
 
                 if (!file_exists($dest)) {
                     @mkdir($dest, 0755, true);
@@ -339,16 +397,13 @@ class CuentasPorCobrarRepository
             ];
 
             if ($file) {
-                $dest = storage_path('app/public/comprobantes');
+                $dest = $this->getComprobantesPath();
                 if (!file_exists($dest)) {
                     @mkdir($dest, 0755, true);
                 }
 
                 if ($payment->comprobante) {
-                    $oldFilePath = $dest . DIRECTORY_SEPARATOR . $payment->comprobante;
-                    if (file_exists($oldFilePath)) {
-                        @unlink($oldFilePath);
-                    }
+                    $this->deleteComprobanteFile($payment->comprobante);
                 }
 
                 $ext = $file->guessExtension() ?: 'pdf';
@@ -378,10 +433,7 @@ class CuentasPorCobrarRepository
             }
 
             if ($payment->comprobante) {
-                $filePath = storage_path('app/public/comprobantes/' . $payment->comprobante);
-                if (file_exists($filePath)) {
-                    @unlink($filePath);
-                }
+                $this->deleteComprobanteFile($payment->comprobante);
             }
 
             $payment->delete();

@@ -339,7 +339,7 @@ $(function(){
                 <td class="px-4 py-2 text-gray-500">#${p.id}</td>
                 <td class="px-4 py-2">${formatDate(p.date)}</td>
                 <td class="px-4 py-2">
-                  ${p.comprobante ? `<a href="/storage/comprobantes/${p.comprobante}" target="_blank" class="text-blue-600 hover:underline"><i class="ri-file-text-line"></i> Ver</a>` : '<span class="text-gray-400">N/A</span>'}
+                  ${p.comprobante ? `<a href="${p.comprobante_url || ('/documentos_finanzas/cxc/comprobantes/' + (p.comprobante.includes('/') ? p.comprobante.split('/').pop() : p.comprobante))}" target="_blank" class="text-blue-600 hover:underline inline-flex items-center gap-1 font-medium"><i class="ri-file-text-line"></i> Ver</a>` : '<span class="text-gray-400">N/A</span>'}
                 </td>
                 <td class="px-4 py-2 text-right font-semibold text-green-700">${formatCurrency(p.amount)}</td>
                 <td class="px-4 py-2 text-center">
@@ -415,6 +415,14 @@ $(function(){
     $('#edit-pay-amount').val(p.amount);
     $('#edit-pay-date').val(toInputDate(p.date));
     $('#edit-pay-comprobante').val('');
+
+    if (p.comprobante) {
+      const compUrl = p.comprobante_url || ('/documentos_finanzas/cxc/comprobantes/' + (p.comprobante.includes('/') ? p.comprobante.split('/').pop() : p.comprobante));
+      $('#edit-pay-current-comprobante-link').attr('href', compUrl);
+      $('#edit-pay-current-comprobante-container').removeClass('hidden');
+    } else {
+      $('#edit-pay-current-comprobante-container').addClass('hidden');
+    }
 
     $('#edit-payment-title').html(`<i class="ri-edit-2-fill text-[#198754]"></i> Editar Abono #${p.id}`);
     $('#btn-open-edit-payment').trigger('click');

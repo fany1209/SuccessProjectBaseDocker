@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
@@ -328,6 +329,32 @@ class CuentasPorCobrarController extends Controller
             ]);
 
             return $this->utilResponse->errorResponse('Error al generar el archivo Excel', 500);
+        }
+    }
+
+    public function viewComprobante(string $filename): BinaryFileResponse|JsonResponse
+    {
+        try {
+            $path = $this->cxcRepo->getComprobanteFilePath($filename);
+
+            if (!$path || !file_exists($path)) {
+                abort(404, 'Comprobante no encontrado.');
+            }
+
+            return response()->file($path, [
+                'Cache-Control' => 'private, max-age=3600',
+            ]);
+        } catch (Throwable $e) {
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+                throw $e;
+            }
+
+            Log::error('Error al visualizar comprobante de CxC', [
+                'filename' => $filename,
+                'error'    => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al abrir el comprobante', 500);
         }
     }
 }

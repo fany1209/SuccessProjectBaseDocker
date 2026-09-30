@@ -172,6 +172,12 @@
         <div class="md:col-span-2">
           <label class="block text-sm font-medium text-gray-700 mb-1">Actualizar Comprobante (Opcional, max 25MB)</label>
           <input type="file" id="edit-pay-comprobante" accept=".jpg,.jpeg,.png,.pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+          <div id="edit-pay-current-comprobante-container" class="mt-2 text-xs text-gray-600 hidden">
+            <span>Comprobante actual: </span>
+            <a id="edit-pay-current-comprobante-link" href="#" target="_blank" class="text-blue-600 hover:underline font-medium inline-flex items-center gap-1">
+              <i class="ri-file-text-line"></i> Ver comprobante
+            </a>
+          </div>
         </div>
       </div>
 
