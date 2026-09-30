@@ -124,6 +124,7 @@
             <th class="px-4 py-2">Fecha</th>
             <th class="px-4 py-2">Comprobante</th>
             <th class="px-4 py-2 text-right">Monto</th>
+            <th class="px-4 py-2 text-center">Acciones</th>
           </tr>
         </thead>
         <tbody id="payments-list" class="divide-y divide-gray-100">
@@ -135,5 +136,51 @@
       </div>
     </div>
 
+  </div>
+</x-modal>
+
+<!-- Edit Payment Modal -->
+<x-modal id="edit-cxc-payment-modal">
+  <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2" id="edit-payment-title">
+      <i class="ri-edit-2-fill text-[#198754]"></i> Editar Abono
+    </h3>
+    <button type="button" class="close-modal text-gray-400 hover:text-gray-600">
+      <i class="ri-close-line text-2xl"></i>
+    </button>
+  </div>
+  
+  <div class="p-6">
+    <form id="edit-cxc-payment-form" enctype="multipart/form-data">
+      <input type="hidden" id="edit-pay-id">
+      <input type="hidden" id="edit-pay-cxc-id">
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Monto a pagar ($)</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">$</span>
+            <input type="number" step="0.01" min="0.01" id="edit-pay-amount" required class="w-full pl-8 rounded-lg border-2 border-gray-200 focus:border-[#198754] focus:ring-2 focus:ring-[#198754]/20 px-3 py-2 text-gray-700">
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de pago</label>
+          <input type="date" id="edit-pay-date" required class="w-full rounded-lg border-2 border-gray-200 focus:border-[#198754] focus:ring-2 focus:ring-[#198754]/20 px-3 py-2 text-gray-700">
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Actualizar Comprobante (Opcional, max 25MB)</label>
+          <input type="file" id="edit-pay-comprobante" accept=".jpg,.jpeg,.png,.pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-end gap-3">
+        <button type="button" class="close-modal px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">Cancelar</button>
+        <button type="submit" id="btn-save-edit-payment" class="px-4 py-2 bg-[#198754] text-white font-medium rounded-lg hover:bg-[#157347] transition flex items-center gap-2">
+          <i class="ri-save-line"></i> Guardar Cambios
+        </button>
+      </div>
+    </form>
   </div>
 </x-modal>

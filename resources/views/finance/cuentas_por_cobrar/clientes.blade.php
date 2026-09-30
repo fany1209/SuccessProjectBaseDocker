@@ -21,6 +21,7 @@
     @include('finance.cuentas_por_cobrar.modals.modals')
     <button id="btn-open-edit-cxc" type="button" class="open-modal hidden" data-target="edit-cxc"></button>
     <button id="btn-open-payments" type="button" class="open-modal hidden" data-target="payments-cxc"></button>
+    <button id="btn-open-edit-payment" type="button" class="open-modal hidden" data-target="edit-cxc-payment-modal"></button>
 
     <!-- Filtros -->
     <div class="mb-2 mt-6 flex justify-end w-full">
@@ -304,9 +305,25 @@ $(function(){
     $('#btn-open-payments').trigger('click');
   });
 
+  function refreshCxcHeaderSaldo(cxcId) {
+    $.get("{{ route('cuentas-por-cobrar.datatable') }}", function(dataResponse) {
+      if (dataResponse && dataResponse.data) {
+        const cxcRow = dataResponse.data.find(r => r.cxc_id == cxcId);
+        if (cxcRow) {
+          $('#pay-saldo').text(formatCurrency(cxcRow.saldo));
+          if (parseFloat(cxcRow.saldo) <= 0 || cxcRow.estatus === 'Pagado') {
+            $('#add-payment-form').hide();
+          } else {
+            $('#add-payment-form').show();
+          }
+        }
+      }
+    });
+  }
+
   // Cargar lista de pagos
   function loadPayments(id) {
-    $('#payments-list').html('<tr><td colspan="3" class="text-center py-4">Cargando...</td></tr>');
+    $('#payments-list').html('<tr><td colspan="5" class="text-center py-4">Cargando...</td></tr>');
     $('#no-payments-msg').addClass('hidden');
 
     $.get(`/cuentas-por-cobrar/${id}/payments`, function(res) {
@@ -325,6 +342,16 @@ $(function(){
                   ${p.comprobante ? `<a href="/storage/comprobantes/${p.comprobante}" target="_blank" class="text-blue-600 hover:underline"><i class="ri-file-text-line"></i> Ver</a>` : '<span class="text-gray-400">N/A</span>'}
                 </td>
                 <td class="px-4 py-2 text-right font-semibold text-green-700">${formatCurrency(p.amount)}</td>
+                <td class="px-4 py-2 text-center">
+                  <div class="flex items-center justify-center gap-2">
+                    <button type="button" class="btn-edit-payment p-1 rounded bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Editar" data-payment='${escapeHtml(JSON.stringify(p))}'>
+                      <i class="ri-edit-2-line"></i>
+                    </button>
+                    <button type="button" class="btn-delete-payment p-1 rounded bg-red-100 text-red-600 hover:bg-red-200 transition" title="Eliminar" data-id="${p.id}">
+                      <i class="ri-delete-bin-line"></i>
+                    </button>
+                  </div>
+                </td>
               </tr>
             `);
           });
@@ -338,7 +365,6 @@ $(function(){
     e.preventDefault();
     const id = $('#pay-cxc-id').val();
     const formData = new FormData(this);
-    // Add amount and date explicitly since inputs might not have 'name' attributes
     formData.append('amount', $('#pay-amount').val());
     formData.append('date', $('#pay-date').val());
     
@@ -363,12 +389,9 @@ $(function(){
             icon: 'success', title: res.message
           });
           loadPayments(id);
-          table.ajax.reload(null, false); // Reload datatable in background
+          table.ajax.reload(null, false);
+          refreshCxcHeaderSaldo(id);
           
-          // Optionally recalculate saldo in modal header dynamically or just rely on next open
-          const currentSaldo = parseFloat($('#pay-saldo').text().replace(/[^0-9.-]+/g,""));
-          const newSaldo = currentSaldo - parseFloat($('#pay-amount').val());
-          $('#pay-saldo').text(formatCurrency(newSaldo));
           $('#pay-amount').val('');
           $('#pay-comprobante').val('');
         }
@@ -378,6 +401,105 @@ $(function(){
       },
       complete: function() {
         $('#btn-save-payment').prop('disabled', false);
+      }
+    });
+  });
+
+  // Abrir Modal de Edición de Abono
+  $(document).on('click', '.btn-edit-payment', function() {
+    const p = $(this).data('payment');
+    const cxcId = $('#pay-cxc-id').val();
+
+    $('#edit-pay-id').val(p.id);
+    $('#edit-pay-cxc-id').val(cxcId);
+    $('#edit-pay-amount').val(p.amount);
+    $('#edit-pay-date').val(toInputDate(p.date));
+    $('#edit-pay-comprobante').val('');
+
+    $('#edit-payment-title').html(`<i class="ri-edit-2-fill text-[#198754]"></i> Editar Abono #${p.id}`);
+    $('#btn-open-edit-payment').trigger('click');
+  });
+
+  // Guardar Edición de Abono
+  $('#edit-cxc-payment-form').on('submit', function(e) {
+    e.preventDefault();
+    const paymentId = $('#edit-pay-id').val();
+    const cxcId = $('#edit-pay-cxc-id').val();
+
+    const formData = new FormData(this);
+    formData.append('amount', $('#edit-pay-amount').val());
+    formData.append('date', $('#edit-pay-date').val());
+    formData.append('_method', 'PUT');
+
+    const fileInput = document.getElementById('edit-pay-comprobante');
+    if (fileInput.files[0]) {
+      formData.append('comprobante', fileInput.files[0]);
+    }
+
+    $('#btn-save-edit-payment').prop('disabled', true).html('<i class="ri-loader-4-line animate-spin"></i> Guardando...');
+
+    $.ajax({
+      url: `/cuentas-por-cobrar/payments/${paymentId}`,
+      method: 'POST',
+      data: formData,
+      processData: false,
+      contentType: false,
+      headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
+      success: function(res) {
+        if(res.success) {
+          Swal.fire({
+            toast: true, position: 'top-end', showConfirmButton: false, timer: 3000,
+            icon: 'success', title: res.message
+          });
+          $('#edit-cxc-payment-modal').find('.close-modal').trigger('click');
+          loadPayments(cxcId);
+          table.ajax.reload(null, false);
+          refreshCxcHeaderSaldo(cxcId);
+        }
+      },
+      error: function(xhr) {
+        Swal.fire('Error', xhr.responseJSON?.message || 'Error al actualizar el abono', 'error');
+      },
+      complete: function() {
+        $('#btn-save-edit-payment').prop('disabled', false).html('<i class="ri-save-line"></i> Guardar Cambios');
+      }
+    });
+  });
+
+  // Eliminar Abono
+  $(document).on('click', '.btn-delete-payment', function() {
+    const paymentId = $(this).data('id');
+    const cxcId = $('#pay-cxc-id').val();
+
+    Swal.fire({
+      title: '¿Eliminar abono?',
+      text: 'Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if(result.isConfirmed) {
+        $.ajax({
+          url: `/cuentas-por-cobrar/payments/${paymentId}`,
+          method: 'DELETE',
+          headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
+          success: function(res) {
+            if(res.success) {
+              Swal.fire({
+                toast: true, position: 'top-end', showConfirmButton: false, timer: 3000,
+                icon: 'success', title: res.message
+              });
+              loadPayments(cxcId);
+              table.ajax.reload(null, false);
+              refreshCxcHeaderSaldo(cxcId);
+            }
+          },
+          error: function(xhr) {
+            Swal.fire('Error', xhr.responseJSON?.message || 'Error al eliminar el abono', 'error');
+          }
+        });
       }
     });
   });

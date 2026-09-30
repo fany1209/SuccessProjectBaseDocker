@@ -527,6 +527,8 @@ Route::prefix('laboratory/equipments')->group(function () {
         
         Route::get('/{id}/payments', [CuentasPorCobrarController::class, 'getPayments'])->name('cuentas-por-cobrar.payments.list');
         Route::post('/{id}/payments', [CuentasPorCobrarController::class, 'addPayment'])->name('cuentas-por-cobrar.payments.add');
+        Route::match(['post', 'put'], '/payments/{payment_id}', [CuentasPorCobrarController::class, 'updatePayment'])->name('cuentas-por-cobrar.payments.update');
+        Route::delete('/payments/{payment_id}', [CuentasPorCobrarController::class, 'deletePayment'])->name('cuentas-por-cobrar.payments.delete');
     });
 
     Route::prefix('cuentas-por-pagar')->middleware('can:finance.show')->group(function () {

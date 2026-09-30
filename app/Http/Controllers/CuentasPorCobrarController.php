@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Repositories\CuentasPorCobrar\CuentasPorCobrarRepository;
 use App\Http\Requests\CuentasPorCobrar\AddCxcPaymentRequest;
+use App\Http\Requests\CuentasPorCobrar\UpdateCxcPaymentRequest;
 use App\Http\Requests\CuentasPorCobrar\UpdateCxcDetailRequest;
 use App\Http\Resources\CuentasPorCobrar\CxcDetailResource;
 use App\Http\Resources\CuentasPorCobrar\CxcPaymentResource;
@@ -239,6 +240,62 @@ class CuentasPorCobrarController extends Controller
             ]);
 
             return $this->utilResponse->errorResponse('Error al registrar el pago', 500);
+        }
+    }
+
+    public function updatePayment(UpdateCxcPaymentRequest $request, $payment_id): JsonResponse
+    {
+        try {
+            $payment = $this->cxcRepo->updatePayment(
+                (int) $payment_id,
+                $request->validated(),
+                $request->file('comprobante')
+            );
+
+            if (!$payment) {
+                return $this->utilResponse->errorResponse('No se puede editar el abono de una cuenta cancelada o inexistente.', 403);
+            }
+
+            return $this->utilResponse->successResponse(
+                new CxcPaymentResource($payment),
+                'Abono actualizado correctamente'
+            );
+        } catch (DomainException $e) {
+            return $this->utilResponse->errorResponse($e->getMessage(), 403);
+        } catch (ModelNotFoundException $e) {
+            return $this->utilResponse->errorResponse('Abono no encontrado', 404);
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar abono en Cuentas Por Cobrar', [
+                'action'     => 'CuentasPorCobrarController@updatePayment',
+                'payment_id' => $payment_id,
+                'payload'    => $request->validated(),
+                'user_id'    => auth()->id(),
+                'error'      => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error interno al actualizar el abono', 500);
+        }
+    }
+
+    public function deletePayment($payment_id): JsonResponse
+    {
+        try {
+            $deleted = $this->cxcRepo->deletePayment((int) $payment_id);
+
+            if (!$deleted) {
+                return $this->utilResponse->errorResponse('No se puede eliminar el abono de una cuenta cancelada o inexistente.', 403);
+            }
+
+            return $this->utilResponse->successResponse(null, 'Abono eliminado correctamente');
+        } catch (Throwable $e) {
+            Log::error('Error al eliminar abono en Cuentas Por Cobrar', [
+                'action'     => 'CuentasPorCobrarController@deletePayment',
+                'payment_id' => $payment_id,
+                'user_id'    => auth()->id(),
+                'error'      => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error interno al eliminar el abono', 500);
         }
     }
 

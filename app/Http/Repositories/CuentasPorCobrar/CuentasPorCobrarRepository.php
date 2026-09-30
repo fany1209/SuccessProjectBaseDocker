@@ -314,24 +314,105 @@ class CuentasPorCobrarRepository
                 'comprobante' => $comprobanteName,
             ]);
 
-            $totalVenta = DB::table('sale_detail')
-                ->where('sale_id', $cxc->sale_id)
-                ->sum(DB::raw("quantity * cost * IF(has_tax = 1, 1.16, 1)"));
-
-            $pagado = $cxc->payments()->sum('amount');
-            $saldo = round($totalVenta - $pagado, 2);
-
-            $newEstatus = 'Pendiente';
-            if ($saldo <= 0) {
-                $newEstatus = 'Pagado';
-            } elseif ($pagado > 0) {
-                $newEstatus = 'Parcial';
-            }
-
-            $cxc->update(['estatus' => $newEstatus]);
+            $this->recalculateBalanceAndStatus($cxc);
 
             return $payment;
         });
+    }
+
+    public function updatePayment(int $paymentId, array $data, $file = null): ?CxcPayment
+    {
+        return DB::transaction(function () use ($paymentId, $data, $file) {
+            $payment = $this->cxcPayment->where('id', $paymentId)->lockForUpdate()->first();
+            if (!$payment) {
+                return null;
+            }
+
+            $cxc = $this->cxcDetail->where('id', $payment->cxc_detail_id)->lockForUpdate()->first();
+            if (!$cxc || $cxc->is_canceled) {
+                return null;
+            }
+
+            $paymentData = [
+                'amount' => $data['amount'],
+                'date'   => $data['date'],
+            ];
+
+            if ($file) {
+                $dest = storage_path('app/public/comprobantes');
+                if (!file_exists($dest)) {
+                    @mkdir($dest, 0755, true);
+                }
+
+                if ($payment->comprobante) {
+                    $oldFilePath = $dest . DIRECTORY_SEPARATOR . $payment->comprobante;
+                    if (file_exists($oldFilePath)) {
+                        @unlink($oldFilePath);
+                    }
+                }
+
+                $ext = $file->guessExtension() ?: 'pdf';
+                $comprobanteName = time() . '_' . Str::uuid() . '.' . $ext;
+                $file->move($dest, $comprobanteName);
+                $paymentData['comprobante'] = $comprobanteName;
+            }
+
+            $payment->update($paymentData);
+            $this->recalculateBalanceAndStatus($cxc);
+
+            return $payment;
+        });
+    }
+
+    public function deletePayment(int $paymentId): bool
+    {
+        return DB::transaction(function () use ($paymentId) {
+            $payment = $this->cxcPayment->where('id', $paymentId)->lockForUpdate()->first();
+            if (!$payment) {
+                return false;
+            }
+
+            $cxc = $this->cxcDetail->where('id', $payment->cxc_detail_id)->lockForUpdate()->first();
+            if (!$cxc || $cxc->is_canceled) {
+                return false;
+            }
+
+            if ($payment->comprobante) {
+                $filePath = storage_path('app/public/comprobantes/' . $payment->comprobante);
+                if (file_exists($filePath)) {
+                    @unlink($filePath);
+                }
+            }
+
+            $payment->delete();
+            $this->recalculateBalanceAndStatus($cxc);
+
+            return true;
+        });
+    }
+
+    public function recalculateBalanceAndStatus(CxcDetail $cxc): void
+    {
+        $totalVenta = DB::table('sale_detail')
+            ->where('sale_id', $cxc->sale_id)
+            ->sum(DB::raw("quantity * cost * IF(has_tax = 1, 1.16, 1)"));
+
+        $pagado = $cxc->payments()->sum('amount');
+        $saldo = round($totalVenta - $pagado, 2);
+
+        $newEstatus = 'Pendiente';
+        if ($saldo <= 0) {
+            $newEstatus = 'Pagado';
+        } elseif ($pagado > 0) {
+            $newEstatus = 'Parcial';
+        }
+
+        $updateData = ['estatus' => $newEstatus];
+        if ($newEstatus === 'Pagado' && !$cxc->fecha_conclusion) {
+            $updateData['fecha_conclusion'] = $cxc->payments()->max('date');
+        }
+
+        $cxc->update($updateData);
     }
 
     public function getSpreadsheet(?int $month = null, ?int $year = null): Spreadsheet
