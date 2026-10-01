@@ -39,4 +39,14 @@ class ReceptionOfSample extends Model
         'firma_recepcion_nombre',
         'estatus', 
     ];
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class, 'product_id', 'product_id');
+    }
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class, 'supplier_id', 'supplier_id');
+    }
 }

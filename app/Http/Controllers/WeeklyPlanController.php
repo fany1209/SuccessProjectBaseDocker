@@ -2,123 +2,131 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
+use App\Http\Repositories\WeeklyPlan\WeeklyPlanRepository;
+use App\Http\Resources\WeeklyPlan\WeeklyPlanResource;
+use App\Traits\UtilResponse;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\View;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-
+use Illuminate\View\View;
 
 class WeeklyPlanController extends Controller
 {
-    public function index()
+    protected UtilResponse $utilResponse;
+    protected WeeklyPlanRepository $weeklyPlanRepo;
+
+    public function __construct(UtilResponse $utilResponse, WeeklyPlanRepository $weeklyPlanRepo)
+    {
+        $this->utilResponse = $utilResponse;
+        $this->weeklyPlanRepo = $weeklyPlanRepo;
+    }
+
+    /**
+     * Muestra la vista principal de planes de trabajo semanales.
+     *
+     * @return View
+     */
+    public function index(): View
     {
         return view('weekly_plans.index');
     }
 
-    public function datatable(Request $request)
+    /**
+     * Retorna el listado de planes semanales en formato JSON para DataTables.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function datatable(Request $request): JsonResponse
     {
-        $rows = DB::table('weekly_work_plans')
-            ->select('id','week_range','review_date','project_name','responsible_name','created_at')
-            ->orderByDesc('review_date')
-            ->get()
-            ->map(function($r){
-                return [
-                    'id'          => $r->id,
-                    'report_code' => $r->week_range ?: sprintf('WKP-%05d', $r->id),
-                    'entry_date'  => optional(\Carbon\Carbon::parse($r->review_date))->format('Y-m-d'),
-                    'issue_date'  => optional(\Carbon\Carbon::parse($r->created_at))->format('Y-m-d'),
-                    'client_name' => $r->responsible_name ?: ($r->project_name ?: '—'),
-                    'pdf_url'     => route('weekly.plans.pdf', $r->id),
-                    'delete_url'  => route('weekly.plans.delete', $r->id),
-                ];
-            });
+        try {
+            $plans = $this->weeklyPlanRepo->all();
 
-        return response()->json(['data' => $rows]);
+            return response()->json([
+                'success' => true,
+                'flag'    => true,
+                'data'    => WeeklyPlanResource::collection($plans),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error al consultar datatable de planes semanales', [
+                'action'    => 'WeeklyPlanController@datatable',
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al cargar planes semanales', 500);
+        }
     }
 
+    /**
+     * Genera y transmite el reporte en PDF del plan de trabajo semanal.
+     *
+     * @param int|string $id
+     * @return mixed
+     */
     public function pdf($id)
     {
-        $plan = DB::table('weekly_work_plans')->where('id', $id)->first();
-        abort_unless($plan, 404, 'Registro no encontrado');
+        try {
+            $data = $this->weeklyPlanRepo->getPdfData((int) $id);
 
-        $objs = DB::table('weekly_objectives')
-            ->where('plan_id', $id)
-            ->orderBy('position_order')
-            ->get();
+            $pdf = Pdf::loadView('formats.laboratory.11', $data)->setPaper('letter');
 
-        $res = DB::table('weekly_results')
-            ->where('plan_id', $id)
-            ->orderBy('position_order')
-            ->get();
+            $slug = Str::slug(($data['semana_rango'] ?: 'semana'), '-');
+            $fileName = 'PlanSemanal_' . $slug . '_' . Carbon::now()->format('Ymd_His') . '.pdf';
 
-        $find = DB::table('weekly_findings')
-            ->where('plan_id', $id)
-            ->orderBy('position_order')
-            ->get();
+            return $pdf->stream($fileName);
+        } catch (ModelNotFoundException $e) {
+            return abort(404, 'Registro no encontrado');
+        } catch (\Throwable $e) {
+            Log::error('Error al generar PDF de plan semanal', [
+                'action'    => 'WeeklyPlanController@pdf',
+                'id'        => $id,
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
 
-        $next = DB::table('weekly_next_actions')
-            ->where('plan_id', $id)
-            ->orderBy('position_order')
-            ->get();
-
-        $data = [
-            'pagina_actual'        => 1,
-            'paginas_total'        => 3,
-            'semana_rango'         => $plan->week_range,       
-            'fecha_revision'       => $plan->review_date,     
-            'proyecto'             => $plan->project_name,
-            'responsable'          => $plan->responsible_name,
-            'total_horas'          => $plan->total_hours,
-            'objetivos' => $objs->map(fn($o) => [
-                'n'           => $o->item_number,
-                'titulo'      => $o->title,
-                'descripcion' => $o->description,
-                'horas'       => $o->hours,
-            ])->toArray(),
-
-            'resultados' => $res->map(fn($r) => [
-                'n'      => $r->objective_number,
-                'texto'  => $r->result_text,
-                'cumple' => (bool) $r->is_met,
-            ])->toArray(),
-
-            'hallazgos' => $find->map(fn($h) => [
-                'hallazgo' => $h->finding_text,
-                'causa'    => $h->cause_text,
-                'propuesta'=> $h->proposal_text,
-            ])->toArray(),
-
-            'proxima_semana_rango' => optional($next->first())->next_week_range ?? '',
-            'plan_proxima'         => $next->map(fn($n) => [
-                'plan'     => $n->plan_text,
-                'acciones' => $n->actions_text,
-            ])->toArray(),
-        ];
-
-        $pdf = Pdf::loadView('formats.laboratory.11', $data)->setPaper('letter');
-
-        $slug = Str::slug(($data['semana_rango'] ?: 'semana'), '-');
-        $fileName = 'PlanSemanal_' . $slug . '_' . Carbon::now()->format('Ymd_His') . '.pdf';
-
-        return $pdf->stream($fileName);
+            return $this->utilResponse->errorResponse('Error interno al generar PDF', 500);
+        }
     }
 
-    public function destroy($id)
+    /**
+     * Elimina el plan semanal especificado si el usuario cuenta con el permiso requerido.
+     *
+     * @param int|string $id
+     * @return JsonResponse
+     */
+    public function destroy($id): JsonResponse
     {
-        if (Gate::denies('laboratory.delete')) { 
-            return response()->json(['message' => 'No autorizado.'], 403);
+        if (Gate::denies('laboratory.delete')) {
+            return $this->utilResponse->errorResponse('No autorizado.', 403);
         }
 
-        $exists = DB::table('weekly_work_plans')->where('id',$id)->exists();
-        if (!$exists) return response()->json(['message'=>'Registro no encontrado.'],404);
+        if (!$id || !is_numeric($id)) {
+            return $this->utilResponse->errorResponse('ID no proporcionado o inválido.', 400);
+        }
 
-        DB::transaction(function() use ($id) {
-            DB::table('weekly_work_plans')->where('id',$id)->delete();
-        });
+        try {
+            $deleted = $this->weeklyPlanRepo->delete((int) $id);
 
-        return response()->json(['message' => 'Eliminado correctamente.']);
+            if ($deleted) {
+                return $this->utilResponse->successResponse([], 'Eliminado correctamente.', 200);
+            }
+
+            return $this->utilResponse->errorResponse('Registro no encontrado.', 404);
+        } catch (\Throwable $e) {
+            Log::error('Error al eliminar plan semanal', [
+                'action'    => 'WeeklyPlanController@destroy',
+                'id'        => $id,
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error en el servidor al eliminar.', 500);
+        }
     }
 }
