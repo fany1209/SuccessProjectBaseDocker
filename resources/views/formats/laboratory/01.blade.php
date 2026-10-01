@@ -126,7 +126,9 @@
       @php
         $origen = strtolower((string)($origen_muestra ?? ''));
         $otroTxt = $origen_otro ?? '';
-        function chk($v,$t){ return $v===$t ? '☑' : '☐'; }
+        if (!function_exists('chk')) {
+            function chk($v,$t){ return $v===$t ? '☑' : '☐'; }
+        }
       @endphp
       <td class="p4"><b>Origen de la muestra:</b></td>
       <td class="p4" colspan="3">
@@ -149,8 +151,8 @@
 
     <tr>
       @php
-        // Convertimos a minúsculas para asegurar la comparación
-        $objetivoStr = strtolower((string)($objetivo_muestra ?? ''));
+        $objetivoRaw = $objetivo_muestra ?? '';
+        $objetivoStr = is_array($objetivoRaw) ? strtolower(implode(',', $objetivoRaw)) : strtolower((string)$objetivoRaw);
         $objOtro = $objetivo_otro ?? '';
         
         // Función auxiliar interna para checar si la opción existe en la cadena
