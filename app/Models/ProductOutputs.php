@@ -11,7 +11,7 @@ class ProductOutputs extends Model
 
     protected $table = 'product_outputs';
 
-    protected $fillable = ['quantity', 'warehouse_batch', 'label_batch'];
+    protected $fillable = ['output_id', 'product_id', 'quantity', 'warehouse_batch', 'label_batch'];
 
     public $timestamps = false;
 }

@@ -2,217 +2,300 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\Concept;
-use App\Models\Control;
-use App\Models\Inventory;
-use App\Models\Location;
-use App\Models\Warehouse;
-use Illuminate\Support\Facades\DB;
+use App\Http\Repositories\Warehouse\WarehouseRepository;
+use App\Http\Requests\Warehouse\WarehouseTemperatureRequest;
+use App\Http\Resources\Warehouse\ControlResource;
+use App\Http\Resources\Warehouse\ProductionMaterialRequestResource;
+use App\Traits\UtilResponse;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 
-class WarehouseController extends Controller{
- public function index(Request $request) 
+class WarehouseController extends Controller
+{
+    protected UtilResponse $utilResponse;
+    protected WarehouseRepository $warehouseRepository;
+
+    public function __construct(UtilResponse $utilResponse, WarehouseRepository $warehouseRepository)
     {
-        $summary = DB::table('inventory')
-            ->join('cli', 'inventory.inventory_id', '=', 'cli.inventory_id')
-            ->join('locations', 'locations.location_id', '=', 'cli.location_id')
-            ->join('products', 'products.product_id', '=', 'inventory.product_id')
-            ->select('products.name','products.unit',DB::raw('SUM(cli.net_weight) as net_weight'),'locations.warehouse_id')
-            ->groupBy('products.name','locations.warehouse_id','products.unit')
-            ->get();
+        $this->utilResponse = $utilResponse;
+        $this->warehouseRepository = $warehouseRepository;
+    }
 
-        $available_locations = DB::table('inventory')
-            ->join('cli', 'inventory.inventory_id', '=', 'cli.inventory_id')
-            ->join('locations', 'locations.location_id', '=', 'cli.location_id')
-            ->join('concepts', 'concepts.concept_id', '=', 'cli.concept_id')
-            ->join('products', 'products.product_id', '=', 'inventory.product_id')
-            ->select('locations.name')->get();
+    /**
+     * Muestra la vista principal de almacén o retorna feedback de temperatura vía AJAX.
+     *
+     * @param Request $request
+     * @return View|JsonResponse
+     */
+    public function index(Request $request)
+    {
+        try {
+            $hours = ['09:00', '10:00', '16:00'];
+            $selectedWarehouse = $request->input('warehouse_id') ? (int) $request->input('warehouse_id') : null;
+            $timezone = config('app.timezone', 'UTC');
 
-        $concepts = Concept::all();
-        $warehouses = Warehouse::all();
-        $locations = Location::all();
-        $products_inventory = Inventory::select('products.product_id','products.name','products.unit')->join('products','products.product_id','=','inventory.product_id')->distinct()->get();
+            $feedback = $this->warehouseRepository->getFeedback($selectedWarehouse, $hours, $timezone);
 
-        $inventory = DB::table('inventory')
-            ->leftJoin('cli', 'inventory.inventory_id', '=', 'cli.inventory_id')
-            ->leftJoin('products', 'products.product_id', '=', 'inventory.product_id')
-            ->select(
-                'inventory.inventory_id',
-                'products.product_id',
-                'inventory.batch',
-                'products.name',
-                'inventory.stock',
-                DB::raw('CAST(inventory.stock - COALESCE(SUM(cli.net_weight), 0) AS DECIMAL(10,3)) as stock_wh')
-            )
-            ->groupBy(
-                'inventory.inventory_id',
-                'products.product_id',
-                'inventory.batch',
-                'products.name',
-                'inventory.stock'
-            )
-            ->get();
-
-        $hours = ['09:00', '10:00', '16:00'];
-        $selectedWarehouse = $request->input('warehouse_id'); 
-        $feedback = [false, false, false]; 
-
-        $timezone = config('app.timezone');
-
-        if ($selectedWarehouse) {
-            $controls = Control::where('warehouse_id', $selectedWarehouse)
-                ->whereDate('created_at', Carbon::today($timezone))
-                ->get();
-
-            foreach ($hours as $index => $hour) {
-                $hourInt = (int) explode(':', $hour)[0];
-                
-                $feedback[$index] = $controls->contains(function($c) use ($hourInt, $timezone) {
-                    $controlDate = Carbon::parse($c->created_at)->timezone($timezone);
-                    return (int)$controlDate->format('H') === $hourInt;
-                });
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success'  => true,
+                    'flag'     => true,
+                    'feedback' => $feedback,
+                    'data'     => ['feedback' => $feedback],
+                ]);
             }
-        }
 
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json(['feedback' => $feedback]);
-        }
+            $summary = $this->warehouseRepository->getInventorySummary();
+            $available_locations = $this->warehouseRepository->getAvailableLocations();
+            $concepts = $this->warehouseRepository->getAllConcepts();
+            $warehouses = $this->warehouseRepository->all();
+            $locations = $this->warehouseRepository->getAllLocations();
+            $products_inventory = $this->warehouseRepository->getProductsInventory();
+            $inventory = $this->warehouseRepository->getInventoryStockWH();
+            $isFormActive = !empty($selectedWarehouse);
 
-        $isFormActive = !empty($selectedWarehouse);
-
-        return view('warehouse', compact(
-            'concepts',
-            'warehouses',
-            'hours',
-            'feedback',
-            'selectedWarehouse',
-            'isFormActive',
-            'locations',
-            'products_inventory',
-            'inventory',
-            'available_locations',
-            'summary'
-        ));
-    }
-
-    public function temperature(Request $request) 
-    {
-        $request->validate([
-            'warehouse_id' => 'required|exists:warehouses,warehouse_id',
-            'measurements' => 'required|array|min:1',
-            'measurements.*.hour' => 'required|string',
-            'measurements.*.temperature' => 'required|numeric',
-            'measurements.*.humidity' => 'required|numeric',
-        ]);
-
-        foreach ($request->measurements as $measurement) {
-            Control::create([
-                'temperature' => $measurement['temperature'],
-                'humidity' => $measurement['humidity'],
-                'warehouse_id' => $request->warehouse_id,
-                'user_id' => auth()->id(),
-                'host_ip' => $request->ip(),
-                'host_user' => gethostname(),
-                'host_name' => gethostbyaddr($request->ip()),
+            return view('warehouse', compact(
+                'concepts',
+                'warehouses',
+                'hours',
+                'feedback',
+                'selectedWarehouse',
+                'isFormActive',
+                'locations',
+                'products_inventory',
+                'inventory',
+                'available_locations',
+                'summary'
+            ));
+        } catch (\Throwable $e) {
+            Log::error('Error al cargar vista/datos de almacén', [
+                'action'    => 'WarehouseController@index',
+                'user_id'   => auth()->id(),
+                'payload'   => $request->all(),
+                'exception' => $e->getMessage(),
             ]);
-        }
 
-        return response()->json(['success' => true]);
-    }
-    
-    public function getInfoLocation(Request $request){
-        $location = $request->input('location');
-        $products = DB::table('inventory')
-        ->join('cli', 'inventory.inventory_id', '=', 'cli.inventory_id')
-        ->join('locations', 'locations.location_id', '=', 'cli.location_id')
-        ->join('concepts', 'concepts.concept_id', '=', 'cli.concept_id')
-        ->join('products', 'products.product_id', '=', 'inventory.product_id')
-        ->select(
-            'products.name as pName',
-            'concepts.name as cName',
-            'bag_number',
-            'quantity',
-            'weight_per_unit as wpu',
-            'products.unit',
-            'net_weight as total',
-            'batch'
-        )
-        ->where('locations.name',$location)
-        ->get();
-        return response()->json(['products'=>$products]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al consultar datos de almacén', 500);
+            }
+
+            return back()->withErrors('Error al cargar la información de almacén.');
+        }
     }
 
-    public function getWarehouse(Request $request){
-        $concept = $request->input('concept');
-        $search = $request->input('search');
-        $query = DB::table('inventory')
-        ->join('cli', 'inventory.inventory_id', '=', 'cli.inventory_id')
-        ->join('locations', 'locations.location_id', '=', 'cli.location_id')
-        ->join('concepts', 'concepts.concept_id', '=', 'cli.concept_id')
-        ->join('products', 'products.product_id', '=', 'inventory.product_id')
-        ->select(
-            'cli_id',
-            'locations.name as lName',
-            'products.name as pName',
-            'concepts.name as cName',
-            'bag_number',
-            'quantity',
-            DB::raw('concat(format(weight_per_unit,2)," ",products.unit) as weight_per_unit'),
-            DB::raw('concat(format(net_weight,2)," ",products.unit) as net_weight'),
-            'batch',
-            'products.unit'
-        );
-        if(!empty($query)){
-            $query->where(function ($q) use ($search) {
-                $q->where('products.name', 'like', '%' . $search . '%')
-                ->orWhere('locations.name', 'like', '%' . $search . '%')
-                ->orWhere('concepts.name', 'like', '%' . $search . '%')
-                ->orWhere('inventory.batch', 'like', '%' . $search . '%');
-            });
-        }
-        if (!empty($concept)) {
-            $query->where('concepts.concept_id', $concept);
-        }
-        $result = $query->get();
-        return response()->json(['products'=>$result]);
-    }
-
-    public function productionRequests()
+    /**
+     * Registra mediciones horarias de temperatura y humedad en el almacén especificado.
+     *
+     * @param WarehouseTemperatureRequest $request
+     * @return JsonResponse
+     */
+    public function temperature(WarehouseTemperatureRequest $request): JsonResponse
     {
-        $requests = \App\Models\ProductionMaterialRequest::with('items')
-            ->orderBy('id', 'desc')
-            ->get();
-            
-        return view('warehouse.production_requests', compact('requests'));
+        try {
+            $validated = $request->validated();
+            $clientIp = $request->ip();
+
+            $meta = [
+                'user_id'   => auth()->id(),
+                'host_ip'   => $clientIp,
+                'host_user' => gethostname(),
+                'host_name' => @gethostbyaddr($clientIp) ?: gethostname(),
+            ];
+
+            $created = $this->warehouseRepository->storeTemperatureMeasurements(
+                (int) $validated['warehouse_id'],
+                $validated['measurements'],
+                $meta
+            );
+
+            return $this->utilResponse->successResponse(
+                ControlResource::collection($created),
+                'Mediciones registradas correctamente',
+                201
+            );
+        } catch (\Throwable $e) {
+            Log::error('Error al guardar mediciones de temperatura', [
+                'action'    => 'WarehouseController@temperature',
+                'user_id'   => auth()->id(),
+                'payload'   => $request->except(['_token']),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al guardar las mediciones de temperatura', 500);
+        }
     }
 
+    /**
+     * Retorna productos y peso contenidos en la ubicación especificada.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getInfoLocation(Request $request): JsonResponse
+    {
+        try {
+            $location = strip_tags(trim((string) $request->input('location')));
+            $products = $this->warehouseRepository->getInfoLocation($location);
+
+            return response()->json([
+                'success'  => true,
+                'flag'     => true,
+                'products' => $products,
+                'data'     => $products,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error al consultar información de ubicación', [
+                'action'    => 'WarehouseController@getInfoLocation',
+                'user_id'   => auth()->id(),
+                'payload'   => $request->all(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al consultar información de la ubicación', 500);
+        }
+    }
+
+    /**
+     * Filtra las existencias en almacén por concepto o texto de búsqueda.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getWarehouse(Request $request): JsonResponse
+    {
+        try {
+            $concept = $request->filled('concept') ? strip_tags(trim((string) $request->input('concept'))) : null;
+            $search = $request->filled('search') ? strip_tags(trim((string) $request->input('search'))) : null;
+
+            $result = $this->warehouseRepository->getWarehouseStock($concept, $search);
+
+            return response()->json([
+                'success'  => true,
+                'flag'     => true,
+                'products' => $result,
+                'data'     => $result,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error al consultar inventario en almacén', [
+                'action'    => 'WarehouseController@getWarehouse',
+                'user_id'   => auth()->id(),
+                'payload'   => $request->all(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al consultar existencias de almacén', 500);
+        }
+    }
+
+    /**
+     * Muestra el listado de solicitudes de material para producción.
+     *
+     * @param Request $request
+     * @return View|JsonResponse
+     */
+    public function productionRequests(Request $request)
+    {
+        try {
+            $requests = $this->warehouseRepository->getProductionRequests();
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->successResponse(
+                    ProductionMaterialRequestResource::collection($requests),
+                    'Solicitudes de producción recuperadas exitosamente'
+                );
+            }
+
+            return view('warehouse.production_requests', compact('requests'));
+        } catch (\Throwable $e) {
+            Log::error('Error al listar solicitudes de producción', [
+                'action'    => 'WarehouseController@productionRequests',
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al recuperar solicitudes de producción', 500);
+            }
+
+            return back()->withErrors('Error al recuperar solicitudes de producción.');
+        }
+    }
+
+    /**
+     * Marca una solicitud de material para producción como 'Surtido'.
+     *
+     * @param Request $request
+     * @param int|string $id
+     * @return JsonResponse|RedirectResponse
+     */
     public function attendProductionRequest(Request $request, $id)
     {
-        $matReq = \App\Models\ProductionMaterialRequest::findOrFail($id);
-        
-        $matReq->status = 'Surtido';
-        $matReq->save();
+        try {
+            $matReq = $this->warehouseRepository->attendProductionRequest((int) $id);
 
-        if ($request->ajax()) {
-            return response()->json(['message' => 'Solicitud marcada como Surtida.']);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'flag'    => true,
+                    'message' => 'Solicitud marcada como Surtida.',
+                    'data'    => new ProductionMaterialRequestResource($matReq),
+                ]);
+            }
+
+            return redirect()->back()->with('success', 'Solicitud marcada como Surtida.');
+        } catch (ModelNotFoundException $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Solicitud de material no encontrada', 404);
+            }
+            return redirect()->back()->withErrors('Solicitud de material no encontrada.');
+        } catch (\Throwable $e) {
+            Log::error('Error al atender solicitud de producción', [
+                'action'    => 'WarehouseController@attendProductionRequest',
+                'user_id'   => auth()->id(),
+                'id'        => $id,
+                'exception' => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al marcar la solicitud como surtida', 500);
+            }
+
+            return redirect()->back()->withErrors('Error al marcar la solicitud como surtida.');
         }
-        return redirect()->back()->with('success', 'Solicitud marcada como Surtida.');
     }
-    public function getRequestItems($id)
-    {
-        $request = \App\Models\ProductionMaterialRequest::with('items')->findOrFail($id);
-        
-        $items = $request->items->map(function($item) {
-            $product = \DB::table('products')->where('name', $item->product_name)->first();
-            return [
-                'product_id' => $product ? $product->product_id : null,
-                'product_name' => $item->product_name,
-                'quantity' => $item->quantity
-            ];
-        });
 
-        return response()->json(['items' => $items]);
+    /**
+     * Obtiene los productos y cantidades solicitadas para una orden de producción.
+     *
+     * @param int|string $id
+     * @return JsonResponse
+     */
+    public function getRequestItems($id): JsonResponse
+    {
+        try {
+            $items = $this->warehouseRepository->getRequestItems((int) $id);
+
+            return response()->json([
+                'success' => true,
+                'flag'    => true,
+                'items'   => $items,
+                'data'    => $items,
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return $this->utilResponse->errorResponse('Solicitud de producción no encontrada', 404);
+        } catch (\Throwable $e) {
+            Log::error('Error al obtener partidas de solicitud de producción', [
+                'action'    => 'WarehouseController@getRequestItems',
+                'user_id'   => auth()->id(),
+                'id'        => $id,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al consultar partidas de la solicitud', 500);
+        }
     }
 }

@@ -2,78 +2,179 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreTweakRequest;
-use App\Models\Inventory;
-use App\Models\Tweak;
+use App\Http\Repositories\Tweak\TweakRepository;
+use App\Http\Requests\Tweak\TweakRequest;
+use App\Http\Resources\Tweak\TweakResource;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class TweakController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * @var UtilResponse
      */
-    public function index()
+    protected UtilResponse $utilResponse;
+
+    /**
+     * @var TweakRepository
+     */
+    protected TweakRepository $tweakRepo;
+
+    /**
+     * Constructor con inyección exclusiva de UtilResponse y Repositorio.
+     *
+     * @param UtilResponse $utilResponse
+     * @param TweakRepository $tweakRepo
+     */
+    public function __construct(UtilResponse $utilResponse, TweakRepository $tweakRepo)
     {
-        //
+        $this->utilResponse = $utilResponse;
+        $this->tweakRepo = $tweakRepo;
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Listado general de ajustes de inventario para API o AJAX.
+     *
+     * @param Request $request
+     * @return JsonResponse
      */
-    public function create()
+    public function index(Request $request): JsonResponse
     {
-        //
-    }
+        try {
+            $tweaks = $this->tweakRepo->all($request->only(['inventory_id', 'type']));
+            $collection = TweakResource::collection($tweaks);
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreTweakRequest $request)
-    {
-        $new_stock = 0;
-        $data = $request->only(['type','quantity','comments','inventory_id']);
-        $data['user_id'] = auth()->id();
-        Tweak::create($data);
-        $stock = Inventory::select('stock')->where('inventory_id',$request->inventory_id)->first();
-        if($request->type == 'Input'){
-            $new_stock = $stock->stock + $request->quantity;
-        }else{
-            $new_stock = $stock->stock - $request->quantity;
+            return response()->json([
+                'success' => true,
+                'flag'    => true,
+                'code'    => 200,
+                'message' => 'Ajustes de inventario obtenidos correctamente.',
+                'data'    => $collection,
+                'tweaks'  => $collection,
+            ], 200);
+        } catch (Throwable $e) {
+            Log::error('Error al listar ajustes en TweakController@index', [
+                'action'    => 'TweakController@index',
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al consultar los ajustes de inventario.', 500);
         }
-        Inventory::where('inventory_id',$request->inventory_id)->update(['stock'=>$new_stock]);
-        return response()->json(['message' => 'Operation successfuly make it'], 201);
     }
 
     /**
-     * Display the specified resource.
+     * Obtiene el detalle de un ajuste de inventario.
+     *
+     * @param Request $request
+     * @param int|string $id
+     * @return JsonResponse
      */
-    public function show(string $id)
+    public function show(Request $request, $id): JsonResponse
     {
-        //
+        try {
+            $tweak = $this->tweakRepo->find($id);
+
+            if (!$tweak) {
+                return $this->utilResponse->errorResponse('Ajuste de inventario no encontrado.', 404);
+            }
+
+            $resource = (new TweakResource($tweak))->resolve();
+
+            return response()->json([
+                'success' => true,
+                'flag'    => true,
+                'code'    => 200,
+                'message' => 'Ajuste de inventario obtenido correctamente.',
+                'data'    => $resource,
+                'tweak'   => $resource,
+            ], 200);
+        } catch (Throwable $e) {
+            Log::error('Error al consultar ajuste en TweakController@show', [
+                'action'    => 'TweakController@show',
+                'id'        => $id,
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al obtener datos del ajuste.', 500);
+        }
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Registra un nuevo ajuste de inventario y actualiza el stock en transacción ACID.
+     *
+     * @param TweakRequest $request
+     * @return JsonResponse
      */
-    public function edit(string $id)
+    public function store(TweakRequest $request): JsonResponse
     {
-        //
+        try {
+            $data = $request->validated();
+            $data['user_id'] = auth()->id() ?? 1;
+
+            $tweak = $this->tweakRepo->create($data);
+
+            return response()->json([
+                'success' => true,
+                'flag'    => true,
+                'code'    => 201,
+                'message' => 'Operation successfuly make it',
+                'data'    => new TweakResource($tweak),
+            ], 201);
+        } catch (Throwable $e) {
+            Log::error('Error al registrar ajuste de inventario en TweakController@store', [
+                'action'    => 'TweakController@store',
+                'user_id'   => auth()->id(),
+                'payload'   => $request->all(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al registrar el ajuste de inventario: ' . $e->getMessage(), 500);
+        }
     }
 
     /**
-     * Update the specified resource in storage.
+     * Elimina un ajuste de inventario y revierte el stock con bloqueo pesimista.
+     *
+     * @param Request $request
+     * @param int|string $id
+     * @return JsonResponse
      */
-    public function update(Request $request, string $id)
+    public function destroy(Request $request, $id): JsonResponse
     {
-        //
-    }
+        try {
+            $deleted = $this->tweakRepo->delete($id);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+            if (!$deleted) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 404,
+                    'message' => 'Tweak not deleted',
+                    'data'    => [],
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'flag'    => true,
+                'code'    => 200,
+                'message' => 'Tweak deleted and stock reverted successfully',
+                'data'    => [],
+            ], 200);
+        } catch (Throwable $e) {
+            Log::error('Error al eliminar ajuste en TweakController@destroy', [
+                'action'    => 'TweakController@destroy',
+                'id'        => $id,
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al eliminar el ajuste de inventario.', 500);
+        }
     }
 }
