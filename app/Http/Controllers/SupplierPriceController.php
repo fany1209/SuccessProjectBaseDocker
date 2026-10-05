@@ -2,170 +2,148 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Repositories\SupplierPrice\SupplierPriceRepository;
+use App\Http\Requests\SupplierPrice\SupplierPriceStoreRequest;
+use App\Http\Requests\SupplierPrice\SupplierPriceUpdateRequest;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use App\Models\SupplierPrice; 
 use Illuminate\Support\Facades\Log;
 
 class SupplierPriceController extends Controller
 {
-    
+    protected UtilResponse $utilResponse;
+    protected SupplierPriceRepository $priceRepo;
+
+    public function __construct(UtilResponse $utilResponse, SupplierPriceRepository $priceRepo)
+    {
+        $this->utilResponse = $utilResponse;
+        $this->priceRepo = $priceRepo;
+    }
+
     public function index()
     {
-        $todosLosPrecios = SupplierPrice::orderBy('id', 'desc')->get();
-        $insumos = SupplierPrice::distinct()->orderBy('insumo', 'asc')->pluck('insumo');
-        
-        return view('finance.precios.index', compact('todosLosPrecios', 'insumos'));
+        try {
+            $data = $this->priceRepo->getIndexData();
+            return view('finance.precios.index', $data);
+        } catch (\Throwable $e) {
+            Log::error('Error loading supplier prices index', [
+                'action'    => 'SupplierPriceController@index',
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
+            return back()->withErrors('Error al cargar los precios de proveedores.');
+        }
     }
 
     public function grafica(Request $request)
     {
-        if ($request->ajax()) {
-            $insumo = $request->insumo;
-
-            if (!$insumo) {
-                return response()->json(['data' => [], 'analisis' => null]);
+        try {
+            if ($request->ajax() || $request->wantsJson()) {
+                $payload = $this->priceRepo->getGraficaData(
+                    $request->input('insumo'),
+                    $request->input('fecha_inicio'),
+                    $request->input('fecha_fin')
+                );
+                return response()->json($payload);
             }
 
-            $query = SupplierPrice::where('insumo', $insumo);
-
-            if ($request->filled('fecha_inicio')) {
-                $query->whereDate('fecha_cotizacion', '>=', $request->fecha_inicio);
-            }
-            if ($request->filled('fecha_fin')) {
-                $query->whereDate('fecha_cotizacion', '<=', $request->fecha_fin);
-            }
-
-            $datos = $query->orderBy('fecha_cotizacion', 'asc')->get();
-
-            if ($datos->isEmpty()) {
-                return response()->json(['data' => [], 'analisis' => null]);
-            }
-
-            $masBarato = $datos->sortBy('precio')->first(); 
-            $promedio = $datos->avg('precio');
-            $ultimoPrecio = $datos->last()->precio;
-            $precioAnterior = $datos->count() > 1 ? $datos[$datos->count() - 2]->precio : $ultimoPrecio;
-            
-            $tendencia = 'Estable';
-            if ($ultimoPrecio > $precioAnterior) $tendencia = 'Alza';
-            if ($ultimoPrecio < $precioAnterior) $tendencia = 'Baja';
-
-            $formateados = $datos->map(fn($item) => [
-                'fecha'     => \Carbon\Carbon::parse($item->fecha_cotizacion)->format('d/m/Y'),
-                'precio'    => (float)$item->precio,
-                'moneda'    => $item->moneda,
-                'proveedor' => $item->proveedor
+            $insumos = $this->priceRepo->getDistinctInsumos();
+            return view('finance.precios.grafica', compact('insumos'));
+        } catch (\Throwable $e) {
+            Log::error('Error loading grafica data', [
+                'action'    => 'SupplierPriceController@grafica',
+                'exception' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'data' => $formateados,
-                'analisis' => [
-                    'mejor_proveedor'  => $masBarato->proveedor,
-                    'mejor_precio'     => number_format($masBarato->precio, 2),
-                    'moneda'           => $masBarato->moneda,
-                    'ahorro_potencial' => number_format($promedio - $masBarato->precio, 2),
-                    'tendencia'        => $tendencia,
-                    'total_registros'  => $datos->count()
-                ]
-            ]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['data' => [], 'analisis' => null], 500);
+            }
+
+            return back()->withErrors('Error al cargar la gráfica de precios.');
         }
-
-        $insumos = SupplierPrice::distinct()->orderBy('insumo', 'asc')->pluck('insumo');
-        return view('finance.precios.grafica', compact('insumos'));
     }
 
-    public function store(Request $request)
+    public function store(SupplierPriceStoreRequest $request): JsonResponse
     {
-        $request->validate([
-            'insumo'           => 'required|string|max:255',
-            'clave_sat'        => 'nullable|string|max:20',
-            'proveedor'        => 'required|string|max:255',
-            'precio'           => 'required|numeric|min:0',
-            'tiene_iva'        => 'nullable',
-            'moneda'           => 'nullable|string|max:3',
-            'fecha_cotizacion' => 'required|date',
-        ]);
-
         try {
-            SupplierPrice::create([
-                'insumo'           => $request->insumo,
-                'clave_sat'        => $request->clave_sat,
-                'proveedor'        => $request->proveedor,
-                'precio'           => $request->precio,
-                'tiene_iva'        => $request->has('tiene_iva') ? 1 : 0,
-                'moneda'           => $request->moneda ?? 'MXN',
-                'fecha_cotizacion' => $request->fecha_cotizacion,
-            ]);
+            $this->priceRepo->create($request->validated());
 
             return response()->json([
                 'success' => true,
-                'message' => 'El precio ha sido guardado exitosamente.'
+                'message' => 'El precio ha sido guardado exitosamente.',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error storing supplier price', [
+                'action'    => 'SupplierPriceController@store',
+                'payload'   => $request->all(),
+                'exception' => $e->getMessage(),
             ]);
 
-        } catch (\Exception $e) {
-            Log::error("Error al guardar precio de proveedor: " . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Hubo un problema al guardar el precio: ' . $e->getMessage()
+                'message' => 'Hubo un problema al guardar el precio: ' . $e->getMessage(),
             ], 500);
         }
     }
 
-    public function update(Request $request, $id)
+    public function update(SupplierPriceUpdateRequest $request, $id): JsonResponse
     {
-        $request->validate([
-            'insumo'           => 'required|string|max:255',
-            'clave_sat'        => 'nullable|string|max:20',
-            'proveedor'        => 'required|string|max:255',
-            'precio'           => 'required|numeric|min:0',
-            'tiene_iva'        => 'nullable',
-            'moneda'           => 'nullable|string|max:3',
-            'fecha_cotizacion' => 'required|date',
-        ]);
-
         try {
-            $precioDB = SupplierPrice::findOrFail($id);
-            
-            $precioDB->update([
-                'insumo'           => $request->insumo,
-                'clave_sat'        => $request->clave_sat,
-                'proveedor'        => $request->proveedor,
-                'precio'           => $request->precio,
-                'tiene_iva'        => $request->has('tiene_iva') ? 1 : 0,
-                'moneda'           => $request->moneda ?? 'MXN',
-                'fecha_cotizacion' => $request->fecha_cotizacion,
-            ]);
+            $updated = $this->priceRepo->update($id, $request->validated());
+
+            if (!$updated) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Precio no encontrado para actualizar.',
+                ], 404);
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => 'El precio ha sido actualizado correctamente.'
+                'message' => 'El precio ha sido actualizado correctamente.',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error updating supplier price', [
+                'action'    => 'SupplierPriceController@update',
+                'id'        => $id,
+                'payload'   => $request->all(),
+                'exception' => $e->getMessage(),
             ]);
 
-        } catch (\Exception $e) {
-            Log::error("Error al actualizar precio de proveedor: " . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Hubo un problema al actualizar: ' . $e->getMessage()
+                'message' => 'Hubo un problema al actualizar: ' . $e->getMessage(),
             ], 500);
         }
     }
 
-    public function destroy($id)
+    public function destroy($id): JsonResponse
     {
         try {
-            $precio = SupplierPrice::findOrFail($id);
-            $precio->delete();
+            $deleted = $this->priceRepo->delete($id);
+
+            if (!$deleted) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se pudo encontrar el registro para eliminar.',
+                ], 404);
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => 'El registro ha sido eliminado correctamente.'
+                'message' => 'El registro ha sido eliminado correctamente.',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error deleting supplier price', [
+                'action'    => 'SupplierPriceController@destroy',
+                'id'        => $id,
+                'exception' => $e->getMessage(),
             ]);
 
-        } catch (\Exception $e) {
-            Log::error("Error al eliminar precio: " . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'No se pudo eliminar el registro.'
+                'message' => 'No se pudo eliminar el registro.',
             ], 500);
         }
     }

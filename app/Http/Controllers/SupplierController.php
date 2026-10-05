@@ -1,114 +1,137 @@
 <?php
-/*
-suppliers
-28/07/25
-stefany 
-Actualizado por: Jacob
-Fecha de actualización: 09-09-2025
-*/
+
 namespace App\Http\Controllers;
 
-use App\Helpers\DatabaseErrors;
-use App\Http\Requests\StoreSupplierRequest;
-use App\Models\Supplier;
-use App\Models\Sector;
-use Illuminate\Database\QueryException;
+use App\Http\Repositories\Supplier\SupplierRepository;
+use App\Http\Requests\Supplier\SupplierStoreRequest;
+use App\Http\Requests\Supplier\SupplierUpdateRequest;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SupplierController extends Controller
 {
-    
-    public function index(){
-        $sectors = Sector::all();
-        $total_suppliers = Supplier::count();
-        return view('suppliers', compact('sectors', 'total_suppliers'));
-    }
+    protected UtilResponse $utilResponse;
+    protected SupplierRepository $supplierRepo;
 
-    public function getSuppliers(Request $request)
+    public function __construct(UtilResponse $utilResponse, SupplierRepository $supplierRepo)
     {
-        $sector = $request->input('sector');
-        $search = $request->input('search');
-
-        $query = DB::table('suppliers')
-            ->join('sectors', 'sectors.sector_id', '=', 'suppliers.sector_id')
-            ->select(
-                'suppliers.supplier_id',
-                'sectors.name as sector',
-                'suppliers.supplier_code as code',
-                'suppliers.name',
-                'suppliers.contact', 
-                'suppliers.phone',
-                'suppliers.email',
-                'suppliers.rfc',
-                DB::raw("CONCAT(IFNULL(CONCAT(suppliers.address, ' '), ''), IFNULL(CONCAT(suppliers.district, ', '), ''), IFNULL(CONCAT(suppliers.city, ', '), ''), IFNULL(CONCAT(suppliers.state, ''), '')) as address")
-            );
-
-        if (!empty($search)) {
-            $query->where(function ($q) use ($search) {
-                $q->where('sectors.name', 'like', '%' . $search . '%')
-                    ->orWhere('suppliers.supplier_code', 'like', '%' . $search . '%')
-                    ->orWhere('suppliers.name', 'like', '%' . $search . '%')
-                    ->orWhere('suppliers.contact', 'like', '%' . $search . '%') 
-                    ->orWhere('suppliers.phone', 'like', '%' . $search . '%')
-                    ->orWhere('suppliers.email', 'like', '%' . $search . '%')
-                    ->orWhere('suppliers.rfc', 'like', '%' . $search . '%');
-            });
-        }
-
-        if (!empty($sector)) {
-            $query->where('suppliers.sector_id', $sector);
-        }
-        $query->orderBy('suppliers.supplier_id', 'desc');
-
-        $suppliers = $query->get();
-
-        $suppliersWithPermissions = $suppliers->map(function ($row) {
-            return [
-                'supplier_id' => $row->supplier_id,
-                'sector'      => $row->sector,
-                'code'        => $row->code,
-                'name'        => $row->name,
-                'contact'     => $row->contact, 
-                'phone'       => $row->phone,
-                'email'       => $row->email,
-                'rfc'         => $row->rfc,
-                'address'     => $row->address,
-                'canUpdate'   => auth()->user()->can('suppliers.update'),
-                'canDelete'   => auth()->user()->can('suppliers.delete'),
-            ];
-        });
-
-        return response()->json(['suppliers' => $suppliersWithPermissions]);
+        $this->utilResponse = $utilResponse;
+        $this->supplierRepo = $supplierRepo;
     }
 
-    public function destroy($id){
-        try{
-            DB::transaction(function () use ($id){
-                $supplier = Supplier::find($id);
-                if($supplier) {
-                    $supplier->delete();
-                    return response()->json(['success' => true, 'message' => 'Supplier deleted']);
-                } else {
-                    return response()->json(['success' => false, 'message' => 'Supplier not deleted'], 404);
-                }
-            });
-        }catch(QueryException $e){
-            return DatabaseErrors::handle($e);
-        }
-    }
-
-    public function show($id) 
+    public function index()
     {
-        $supplier = Supplier::where('supplier_id', $id)->first();
-        
-        return response()->json([
-            'supplier' => $supplier->only([
-                'supplier_id',
-                'supplier_code',
+        try {
+            $data = $this->supplierRepo->getIndexData();
+            return view('suppliers', $data);
+        } catch (\Throwable $e) {
+            Log::error('Error loading suppliers index', [
+                'action'    => 'SupplierController@index',
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
+            return back()->withErrors('Error al cargar la lista de proveedores.');
+        }
+    }
+
+    public function getSuppliers(Request $request): JsonResponse
+    {
+        try {
+            $suppliers = $this->supplierRepo->getSuppliers($request->only(['sector', 'search']));
+
+            $user = auth()->user();
+            $canUpdate = $user ? $user->can('suppliers.update') : false;
+            $canDelete = $user ? $user->can('suppliers.delete') : false;
+
+            $suppliersWithPermissions = $suppliers->map(function ($row) use ($canUpdate, $canDelete) {
+                return [
+                    'supplier_id' => $row->supplier_id,
+                    'sector'      => $row->sector,
+                    'code'        => $row->code,
+                    'name'        => $row->name,
+                    'contact'     => $row->contact,
+                    'phone'       => $row->phone,
+                    'email'       => $row->email,
+                    'rfc'         => $row->rfc,
+                    'address'     => $row->address,
+                    'canUpdate'   => $canUpdate,
+                    'canDelete'   => $canDelete,
+                ];
+            });
+
+            return response()->json(['suppliers' => $suppliersWithPermissions]);
+        } catch (\Throwable $e) {
+            Log::error('Error in getSuppliers', [
+                'action'    => 'SupplierController@getSuppliers',
+                'exception' => $e->getMessage(),
+            ]);
+            return response()->json(['suppliers' => []], 500);
+        }
+    }
+
+    public function show($id): JsonResponse
+    {
+        try {
+            $supplier = $this->supplierRepo->find($id);
+
+            if (!$supplier) {
+                return response()->json(['message' => 'Proveedor no encontrado'], 404);
+            }
+
+            return response()->json([
+                'supplier' => $supplier->only([
+                    'supplier_id',
+                    'supplier_code',
+                    'sector_id',
+                    'name',
+                    'contact',
+                    'phone',
+                    'email',
+                    'rfc',
+                    'postal_code',
+                    'state',
+                    'city',
+                    'district',
+                    'address',
+                    'country',
+                ]),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error fetching supplier', [
+                'action'    => 'SupplierController@show',
+                'id'        => $id,
+                'exception' => $e->getMessage(),
+            ]);
+            return response()->json(['message' => 'Error al obtener el proveedor'], 500);
+        }
+    }
+
+    public function store(SupplierStoreRequest $request): JsonResponse
+    {
+        try {
+            $this->supplierRepo->create($request->validated());
+
+            return response()->json(['message' => 'Operation successfully make it'], 201);
+        } catch (\Throwable $e) {
+            Log::error('Error storing supplier', [
+                'action'    => 'SupplierController@store',
+                'payload'   => $request->except(['password']),
+                'exception' => $e->getMessage(),
+            ]);
+            return response()->json(['message' => 'Error al registrar el proveedor'], 500);
+        }
+    }
+
+    public function update(SupplierUpdateRequest $request, $id = null): JsonResponse
+    {
+        try {
+            $targetId = $id ?? $request->input('supplier_id');
+            $data = $request->only([
                 'sector_id',
                 'name',
-                'contact', 
+                'contact',
                 'phone',
                 'email',
                 'rfc',
@@ -117,84 +140,44 @@ class SupplierController extends Controller
                 'city',
                 'district',
                 'address',
-                'country'
-            ])
-        ]);
-    }
+                'country',
+            ]);
 
-    public function update(StoreSupplierRequest $request) {
-        try {
-            return DB::transaction(function () use ($request) {
-                $data = $request->only([
-                    'sector_id', 
-                    'name', 
-                    'contact', 
-                    'phone', 
-                    'email', 
-                    'rfc', 
-                    'state', 
-                    'city', 
-                    'district', 
-                    'address'
-                ]);
+            $supplier = $this->supplierRepo->update($targetId, $data);
 
-                Supplier::where('supplier_id', $request->supplier_id)->update($data);
+            if (!$supplier) {
+                return response()->json(['message' => 'Proveedor no encontrado para actualizar'], 404);
+            }
 
-                return response()->json(['message' => 'Operation successfully make it'], 201);
-            });
-        } catch (QueryException $e) {
-            return DatabaseErrors::handle($e);
+            return response()->json(['message' => 'Operation successfully make it'], 201);
+        } catch (\Throwable $e) {
+            Log::error('Error updating supplier', [
+                'action'    => 'SupplierController@update',
+                'id'        => $id,
+                'payload'   => $request->except(['password']),
+                'exception' => $e->getMessage(),
+            ]);
+            return response()->json(['message' => 'Error al actualizar el proveedor'], 500);
         }
     }
 
-    public function store(StoreSupplierRequest $request) {
+    public function destroy($id): JsonResponse
+    {
         try {
-            return DB::transaction(function () use ($request) {
-                $count = Supplier::count();
-                $data = $request->all();
-                $next = $count + 1;
+            $deleted = $this->supplierRepo->delete($id);
 
-                $sector = Sector::find($data['sector_id']);
-                $prefix = 'SP';
-                
-                if ($sector) {
-                    $sectorName = strtolower(trim($sector->name));
-                    switch ($sectorName) {
-                        case 'pecuario':
-                            $prefix = 'SPP';
-                            break;
-                        case 'agro':
-                            $prefix = 'SPA';
-                            break;
-                        case 'food':
-                            $prefix = 'SPCH';
-                            break;
-                        case 'petfood':
-                            $prefix = 'SPPF';
-                            break;
-                        case 'envases':
-                            $prefix = 'SPE';
-                            break;
-                        case 'industrial':
-                            $prefix = 'SPI';
-                            break;
-                        case 'otro':
-                            $prefix = 'SPO';
-                            break;
-                        default:
-                            $prefix = 'SP';
-                            break;
-                    }
-                }
+            if ($deleted) {
+                return response()->json(['success' => true, 'message' => 'Supplier deleted']);
+            }
 
-                $data['supplier_code'] = $prefix . $next;
-
-                Supplier::create($data);
-
-                return response()->json(['message' => 'Operation successfully make it'], 201);
-            });
-        } catch (QueryException $e) {
-            return DatabaseErrors::handle($e);
+            return response()->json(['success' => false, 'message' => 'Supplier not deleted'], 404);
+        } catch (\Throwable $e) {
+            Log::error('Error deleting supplier', [
+                'action'    => 'SupplierController@destroy',
+                'id'        => $id,
+                'exception' => $e->getMessage(),
+            ]);
+            return response()->json(['success' => false, 'message' => 'Error al eliminar el proveedor'], 500);
         }
     }
 }
