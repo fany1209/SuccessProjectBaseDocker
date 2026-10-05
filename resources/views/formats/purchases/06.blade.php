@@ -218,12 +218,12 @@
         <ul>
           @foreach ($question->answers as $key => $answer)
           <li>
-            <input type="checkbox" {{ $questions_answers[$index]['answer'] == $key ? 'checked' : '' }} ><label>{{ $answer }}</label>
+            <input type="checkbox" {{ ($questions_answers[$index]['answer'] ?? '') == $key ? 'checked' : '' }} ><label>{{ $answer }}</label>
           </li>
           @endforeach
         </ul>
       </td>
-      <td class="p4 c">{{ $questions_answers[$index]['qualification'] }}</td>
+      <td class="p4 c">{{ $questions_answers[$index]['qualification'] ?? '' }}</td>
     </tr>
     @endforeach
   </table>

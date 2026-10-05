@@ -1,74 +1,87 @@
 <?php
 
 namespace App\Http\Controllers;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
+use App\Http\Repositories\SupplierCertificate\SupplierCertificateRepository;
+use App\Http\Requests\SupplierCertificate\SupplierCertificateStoreRequest;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class SupplierCertificateController extends Controller
 {
-        public function store(Request $request)
+    protected UtilResponse $utilResponse;
+    protected SupplierCertificateRepository $certificateRepo;
+
+    public function __construct(UtilResponse $utilResponse, SupplierCertificateRepository $certificateRepo)
     {
-        $request->validate([
-            'supplier_id' => 'required|exists:suppliers,supplier_id',
-            'product_id' => 'required|exists:products,product_id',
-            'fecha_emision' => 'required|date',
-            'file' => 'required|mimes:pdf|max:2048',
-        ]);
-
-        $path = $request->file('file')->store('certificates', 'public');
-        $fileId = DB::table('files')->insertGetId([
-            'path' => $path,
-            'product_id' => $request->product_id,
-        ]);
-
-        DB::table('supplier_certificates')->insert([
-            'supplier_id' => $request->supplier_id,
-            'file_id' => $fileId,
-            'fecha_emision' => $request->fecha_emision,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        return back()->with('success', 'Certificado guardado correctamente.');
+        $this->utilResponse = $utilResponse;
+        $this->certificateRepo = $certificateRepo;
     }
 
-        public function index()
+    public function index(): JsonResponse
     {
-        $certificates = DB::table('supplier_certificates as sc')
-            ->join('suppliers as s', 'sc.supplier_id', '=', 's.supplier_id')
-            ->join('files as f', 'sc.file_id', '=', 'f.file_id')
-            ->join('products as p', 'f.product_id', '=', 'p.product_id')
-            ->select(
-                'sc.id as certificate_id',
-                's.name as supplier_name',
-                'p.name as product_name',
-                'f.path as file_path',
-                'sc.fecha_emision',
-                'sc.created_at'
-            )
-            ->orderBy('sc.created_at', 'desc')
-            ->get();
-
-        return response()->json(['certificates' => $certificates]);
-    }
-
-        public function destroy($id)
-    {
-        $certificate = DB::table('supplier_certificates')->where('id', $id)->first();
-        if (!$certificate) {
-            return response()->json(['message' => 'No encontrado'], 404);
+        try {
+            $certificates = $this->certificateRepo->getAll();
+            return response()->json(['certificates' => $certificates]);
+        } catch (\Throwable $e) {
+            Log::error('Error fetching supplier certificates', [
+                'action'    => 'SupplierCertificateController@index',
+                'exception' => $e->getMessage(),
+            ]);
+            return response()->json(['certificates' => []], 500);
         }
-
-        $file = DB::table('files')->where('file_id', $certificate->file_id)->first();
-        if ($file) {
-            \Storage::disk('public')->delete($file->path);
-            DB::table('files')->where('file_id', $file->file_id)->delete();
-        }
-
-        DB::table('supplier_certificates')->where('id', $id)->delete();
-
-        return response()->json(['message' => 'Eliminado correctamente']);
     }
 
+    public function store(SupplierCertificateStoreRequest $request)
+    {
+        try {
+            $this->certificateRepo->store($request->validated(), $request->file('file'));
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Certificado guardado correctamente.',
+                ], 201);
+            }
+
+            return back()->with('success', 'Certificado guardado correctamente.');
+        } catch (\Throwable $e) {
+            Log::error('Error storing supplier certificate', [
+                'action'    => 'SupplierCertificateController@store',
+                'payload'   => $request->except(['file']),
+                'exception' => $e->getMessage(),
+            ]);
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al guardar el certificado: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            return back()->withErrors('Error al guardar el certificado: ' . $e->getMessage());
+        }
+    }
+
+    public function destroy($id): JsonResponse
+    {
+        try {
+            $deleted = $this->certificateRepo->delete($id);
+
+            if (!$deleted) {
+                return response()->json(['message' => 'No encontrado'], 404);
+            }
+
+            return response()->json(['message' => 'Eliminado correctamente']);
+        } catch (\Throwable $e) {
+            Log::error('Error deleting supplier certificate', [
+                'action'    => 'SupplierCertificateController@destroy',
+                'id'        => $id,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return response()->json(['message' => 'Error al eliminar el certificado'], 500);
+        }
+    }
 }
