@@ -67,4 +67,9 @@ class Sale extends Model
     {
         return $this->hasOne(CxcDetail::class, 'sale_id', 'sale_id');
     }
+
+    public function details()
+    {
+        return $this->hasMany(SaleDetail::class, 'sale_id', 'sale_id');
+    }
 }

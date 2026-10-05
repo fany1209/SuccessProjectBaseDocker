@@ -16,4 +16,14 @@ class SaleDetail extends Model
     protected $fillable = ['product_id', 'public_product_name', 'quantity', 'cost', 'invoice_val', 'warehouse_batch', 'public_batch', 'sale_id','has_tax',];
 
     public $timestamps = false;
+
+    public function sale()
+    {
+        return $this->belongsTo(Sale::class, 'sale_id', 'sale_id');
+    }
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class, 'product_id', 'product_id');
+    }
 }

@@ -2,335 +2,193 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Repositories\Order\OrderRepository;
+use App\Http\Requests\Order\OrderStatusUpdateRequest;
+use App\Http\Requests\Order\OrderStoreRequest;
+use App\Http\Requests\Order\OrderUpdateRequest;
+use App\Http\Resources\Order\OrderResource;
+use App\Traits\UtilResponse;
+use DomainException;
 use Illuminate\Http\Request;
-use App\Models\Order; 
-use App\Models\User;
-use App\Models\Product;
-use App\Notifications\NewOrderNotification;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 
 class OrderController extends Controller
 {
-    /**
-     * Asegura que la tabla order_items exista en la base de datos sin romper la ejecución
-     */
-    private function ensureOrderItemsTableExists(): bool
+    protected UtilResponse $utilResponse;
+    protected OrderRepository $orderRepo;
+
+    public function __construct(UtilResponse $utilResponse, OrderRepository $orderRepo)
     {
-        if (Schema::hasTable('order_items')) {
-            return true;
-        }
-
-        try {
-            Schema::create('order_items', function (Blueprint $table) {
-                $table->id();
-                $table->integer('order_id');
-                $table->string('producto');
-                $table->string('cantidad', 100)->nullable();
-                $table->timestamps();
-
-                $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
-            });
-
-            if (Schema::hasTable('orders') && Schema::hasColumn('orders', 'producto')) {
-                $existingOrders = DB::table('orders')->whereNotNull('producto')->where('producto', '!=', '')->get();
-                foreach ($existingOrders as $order) {
-                    DB::table('order_items')->insert([
-                        'order_id'   => $order->id,
-                        'producto'   => $order->producto,
-                        'cantidad'   => $order->cantidad,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                }
-            }
-
-            return true;
-        } catch (\Throwable $e) {
-            Log::warning("Could not auto-create order_items table: " . $e->getMessage());
-            return false;
-        }
+        $this->utilResponse = $utilResponse;
+        $this->orderRepo = $orderRepo;
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $productos = Product::orderBy('name', 'asc')->get();
-        return view('orders', compact('productos'));
+        try {
+            $data = $this->orderRepo->getIndexData();
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->successResponse($data, 'Catálogo de pedidos obtenido');
+            }
+
+            return view('orders', $data);
+        } catch (\Throwable $e) {
+            Log::error('Error al listar pedidos', [
+                'action'    => 'index',
+                'exception' => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error interno al obtener pedidos', 500);
+            }
+
+            abort(500, 'Error interno del servidor');
+        }
     }
 
     public function getData()
     {
-        $hasItemsTable = $this->ensureOrderItemsTableExists();
-        $user = auth()->user();
-
-        $relations = ['user:id,name,email'];
-        if ($hasItemsTable) {
-            $relations[] = 'items';
-        }
-
-        $query = Order::with($relations);
-
-        // Los usuarios con rol Sales (que no sean Admin) solo pueden ver los pedidos que ellos mismos hayan ingresado
-        if ($user->hasRole('Sales') && !$user->hasRole('Admin')) {
-            $query->where('user_id', $user->id);
-        }
-
-        return response()->json([
-            'data' => $query->orderBy('id', 'desc')->get()
-        ]);
-    }
-
-    public function store(Request $request)
-    {
         try {
-            $request->validate([
-                'año'      => 'required|integer',
-                'semana'   => 'required|integer',
-                'empresa'  => 'required|string|max:255',
-                'po'       => 'nullable|string|max:100',
-                'pdf_file' => 'nullable|file|mimes:pdf|max:10240',
-                'items'    => 'nullable|array',
-                'items.*.producto' => 'nullable|string|max:255',
-                'items.*.cantidad' => 'nullable|string|max:100',
+            $orders = $this->orderRepo->getData(Auth::user());
+
+            return response()->json([
+                'data' => OrderResource::collection($orders),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error al obtener datos JSON de pedidos', [
+                'action'    => 'getData',
+                'exception' => $e->getMessage(),
             ]);
 
-            $data = $request->except(['items']);
-            $data['user_id'] = auth()->id();
+            return response()->json(['data' => []], 500);
+        }
+    }
 
-            // Soportar items múltiples o fallback a campo individual
-            $itemsData = [];
-            if ($request->has('items') && is_array($request->items)) {
-                foreach ($request->items as $item) {
-                    if (!empty($item['producto'])) {
-                        $itemsData[] = [
-                            'producto' => $item['producto'],
-                            'cantidad' => $item['cantidad'] ?? null,
-                        ];
-                    }
-                }
-            } elseif ($request->filled('producto')) {
-                $itemsData[] = [
-                    'producto' => $request->input('producto'),
-                    'cantidad' => $request->input('cantidad'),
-                ];
-            }
-
-            // Resumen de producto/cantidad para compatibilidad con vistas legacy
-            if (!empty($itemsData)) {
-                $data['producto'] = implode(', ', array_column($itemsData, 'producto'));
-                $data['cantidad'] = implode(', ', array_filter(array_column($itemsData, 'cantidad')));
-            }
-
-            if ($request->has('documentacion_requerida')) {
-                $data['documentacion_requerida'] = implode(', ', $request->input('documentacion_requerida'));
-            }
-
-            if ($request->hasFile('pdf_file')) {
-                $file = $request->file('pdf_file');
-                $destination = public_path('orders_pdf');
-                if (!file_exists($destination)) {
-                    mkdir($destination, 0755, true);
-                }
-                $fileName = time() . '_' . Str::uuid() . '.pdf';
-                $file->move($destination, $fileName);
-                $data['pdf_path'] = $fileName;
-            }
-
-            $hasItemsTable = $this->ensureOrderItemsTableExists();
-            $order = DB::transaction(function() use ($data, $itemsData, $hasItemsTable) {
-                $order = Order::create($data);
-                if (!empty($itemsData) && $hasItemsTable) {
-                    $order->items()->createMany($itemsData);
-                }
-                return $order;
-            });
-
-            $usersToNotify = User::role(['Admin', 'Quality', 'Warehouse'])->get();
-            if ($usersToNotify->count() > 0) {
-                Notification::send($usersToNotify, new NewOrderNotification($order));
-            }
+    public function store(OrderStoreRequest $request)
+    {
+        try {
+            $pdfFile = $request->hasFile('pdf_file') ? $request->file('pdf_file') : null;
+            $order = $this->orderRepo->store($request->validated(), $pdfFile, Auth::user());
 
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Pedido registrado y notificado correctamente.'
+                'message' => 'Pedido registrado y notificado correctamente.',
+                'order'   => new OrderResource($order),
             ], 200);
-
-        } catch (\Exception $e) {
-            Log::error("Error al guardar pedido: " . $e->getMessage());
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-        }
-    }
-
-    public function edit($id) 
-    {
-        $hasItemsTable = $this->ensureOrderItemsTableExists();
-        $relations = ['user:id,name,email'];
-        if ($hasItemsTable) {
-            $relations[] = 'items';
-        }
-
-        $order = Order::with($relations)->findOrFail($id);
-        $user = auth()->user();
-
-        if ($user->hasRole('Sales') && !$user->hasRole('Admin') && $order->user_id !== $user->id) {
-            return response()->json(['error' => 'No autorizado'], 403);
-        }
-
-        return response()->json($order);
-    }
-
-    public function update(Request $request, $id)
-    {
-        try {
-            $request->validate([
-                'año'      => 'nullable|integer',
-                'semana'   => 'nullable|integer',
-                'empresa'  => 'nullable|string|max:255',
-                'po'       => 'nullable|string|max:100',
-                'pdf_file' => 'nullable|file|mimes:pdf|max:10240',
-                'items'    => 'nullable|array',
-                'items.*.producto' => 'nullable|string|max:255',
-                'items.*.cantidad' => 'nullable|string|max:100',
+        } catch (DomainException $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            Log::error('Error al guardar pedido', [
+                'action'    => 'store',
+                'user_id'   => Auth::id(),
+                'payload'   => $request->except(['_token', 'pdf_file']),
+                'exception' => $e->getMessage(),
             ]);
 
-            $order = Order::findOrFail($id);
-            $user = auth()->user();
+            return response()->json(['status' => 'error', 'message' => 'Error interno: ' . $e->getMessage()], 500);
+        }
+    }
 
-            if ($user->hasRole('Sales') && !$user->hasRole('Admin') && $order->user_id !== $user->id) {
+    public function edit($id)
+    {
+        try {
+            $order = $this->orderRepo->find((int) $id);
+
+            if (!$order) {
+                return response()->json(['error' => 'Pedido no encontrado'], 404);
+            }
+
+            $user = Auth::user();
+            if (!$this->orderRepo->isAuthorized($order, $user)) {
                 return response()->json(['error' => 'No autorizado'], 403);
             }
 
-            $data = $request->only(['año', 'semana', 'empresa', 'po']);
+            return response()->json(new OrderResource($order));
+        } catch (\Throwable $e) {
+            Log::error('Error al consultar pedido para edición', [
+                'action'    => 'edit',
+                'id'        => $id,
+                'exception' => $e->getMessage(),
+            ]);
 
-            // Soportar items múltiples o fallback
-            $itemsData = [];
-            if ($request->has('items') && is_array($request->items)) {
-                foreach ($request->items as $item) {
-                    if (!empty($item['producto'])) {
-                        $itemsData[] = [
-                            'producto' => $item['producto'],
-                            'cantidad' => $item['cantidad'] ?? null,
-                        ];
-                    }
-                }
-            } elseif ($request->filled('producto')) {
-                $itemsData[] = [
-                    'producto' => $request->input('producto'),
-                    'cantidad' => $request->input('cantidad'),
-                ];
-            }
-
-            if (!empty($itemsData)) {
-                $data['producto'] = implode(', ', array_column($itemsData, 'producto'));
-                $data['cantidad'] = implode(', ', array_filter(array_column($itemsData, 'cantidad')));
-            }
-
-            if ($request->has('documentacion_requerida')) {
-                $data['documentacion_requerida'] = implode(', ', $request->input('documentacion_requerida'));
-            } else {
-                $data['documentacion_requerida'] = null;
-            }
-
-            if ($request->hasFile('pdf_file')) {
-                if ($order->pdf_path && file_exists(public_path('orders_pdf/' . $order->pdf_path))) {
-                    @unlink(public_path('orders_pdf/' . $order->pdf_path));
-                }
-
-                $file = $request->file('pdf_file');
-                $destination = public_path('orders_pdf');
-                if (!file_exists($destination)) {
-                    mkdir($destination, 0755, true);
-                }
-                $fileName = time() . '_' . Str::uuid() . '.pdf';
-                $file->move($destination, $fileName);
-                $data['pdf_path'] = $fileName;
-            }
-
-            $hasItemsTable = $this->ensureOrderItemsTableExists();
-            DB::transaction(function() use ($order, $data, $itemsData, $hasItemsTable) {
-                $order->update($data);
-                if ($hasItemsTable && !empty($itemsData)) {
-                    $order->items()->delete();
-                    $order->items()->createMany($itemsData);
-                }
-            });
-
-            return response()->json(['success' => true]);
-
-        } catch (\Exception $e) {
-            Log::error("Error en Update: " . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Error interno al consultar pedido'], 500);
         }
     }
 
-    public function updateStatus(Request $request, $id)
+    public function update(OrderUpdateRequest $request, $id)
     {
         try {
-            $order = Order::findOrFail($id);
-            $user = auth()->user();
+            $pdfFile = $request->hasFile('pdf_file') ? $request->file('pdf_file') : null;
+            $updated = $this->orderRepo->update((int) $id, $request->validated(), $pdfFile, Auth::user());
 
-            $request->validate([
-                'estatus_almacen'        => 'nullable|string|max:50',
-                'estatus_calidad'        => 'nullable|string|max:50',
-                'estatus_administrativo' => 'nullable|string|max:50',
+            if (!$updated) {
+                return response()->json(['error' => 'Pedido no encontrado'], 404);
+            }
+
+            return response()->json(['success' => true]);
+        } catch (DomainException $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() <= 499 ? $e->getCode() : 403;
+            return response()->json(['error' => $e->getMessage()], $status);
+        } catch (\Throwable $e) {
+            Log::error('Error al actualizar pedido', [
+                'action'    => 'update',
+                'id'        => $id,
+                'payload'   => $request->except(['_token', 'pdf_file']),
+                'exception' => $e->getMessage(),
             ]);
 
-            $fieldsToUpdate = [];
+            return response()->json(['error' => 'Error interno: ' . $e->getMessage()], 500);
+        }
+    }
 
-            if ($request->has('estatus_almacen')) {
-                if (!$user->hasRole('Warehouse') && !$user->hasRole('Admin')) {
-                    return response()->json(['error' => 'No autorizado para modificar estatus de almacén'], 403);
-                }
-                $fieldsToUpdate['estatus_almacen'] = $request->input('estatus_almacen');
+    public function updateStatus(OrderStatusUpdateRequest $request, $id)
+    {
+        try {
+            $updated = $this->orderRepo->updateStatus((int) $id, $request->validated(), Auth::user());
+
+            if (!$updated) {
+                return response()->json(['error' => 'Pedido no encontrado'], 404);
             }
 
-            if ($request->has('estatus_calidad')) {
-                if (!$user->hasRole('Quality') && !$user->hasRole('Admin')) {
-                    return response()->json(['error' => 'No autorizado para modificar estatus de calidad'], 403);
-                }
-                $fieldsToUpdate['estatus_calidad'] = $request->input('estatus_calidad');
-            }
-
-            if ($request->has('estatus_administrativo')) {
-                if (!$user->hasRole('Admin')) {
-                    return response()->json(['error' => 'No autorizado para modificar estatus administrativo'], 403);
-                }
-                $fieldsToUpdate['estatus_administrativo'] = $request->input('estatus_administrativo');
-            }
-
-            if (empty($fieldsToUpdate)) {
-                return response()->json(['error' => 'No se especificó ningún campo de estatus válido para actualizar'], 422);
-            }
-
-            $order->update($fieldsToUpdate);
             return response()->json(['success' => true]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+        } catch (DomainException $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() <= 499 ? $e->getCode() : 403;
+            return response()->json(['error' => $e->getMessage()], $status);
+        } catch (\Throwable $e) {
+            Log::error('Error al actualizar estatus de pedido', [
+                'action'    => 'updateStatus',
+                'id'        => $id,
+                'payload'   => $request->all(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return response()->json(['error' => 'Error interno: ' . $e->getMessage()], 500);
         }
     }
 
     public function destroy($id)
     {
         try {
-            $order = Order::findOrFail($id);
-            $user = auth()->user();
+            $deleted = $this->orderRepo->delete((int) $id, Auth::user());
 
-            if ($user->hasRole('Sales') && !$user->hasRole('Admin') && $order->user_id !== $user->id) {
-                return response()->json(['error' => 'No autorizado'], 403);
-            }
-            
-            if ($order->pdf_path && file_exists(public_path('orders_pdf/' . $order->pdf_path))) {
-                unlink(public_path('orders_pdf/' . $order->pdf_path));
+            if (!$deleted) {
+                return response()->json(['error' => 'Pedido no encontrado'], 404);
             }
 
-            $order->delete();
             return response()->json(['success' => true]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+        } catch (DomainException $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() <= 499 ? $e->getCode() : 403;
+            return response()->json(['error' => $e->getMessage()], $status);
+        } catch (\Throwable $e) {
+            Log::error('Error al eliminar pedido', [
+                'action'    => 'destroy',
+                'id'        => $id,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return response()->json(['error' => 'Error interno: ' . $e->getMessage()], 500);
         }
     }
 }

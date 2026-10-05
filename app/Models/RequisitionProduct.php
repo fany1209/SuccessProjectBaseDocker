@@ -16,6 +16,7 @@ class RequisitionProduct extends Model
         'use',
         'quantity',
         'image_url',
+        'insumo',
         'pr_id'
     ];
 
