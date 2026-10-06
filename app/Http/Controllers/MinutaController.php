@@ -2,198 +2,154 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Http\Repositories\Minuta\MinutaRepository;
+use App\Http\Requests\Minuta\MinutaStoreRequest;
+use App\Http\Requests\Minuta\MinutaUpdateRequest;
+use App\Http\Resources\Minuta\MinutaResource;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use App\Models\Minuta;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
-    use Barryvdh\DomPDF\Facade\Pdf;
-
+use Illuminate\View\View;
 
 class MinutaController extends Controller
 {
-    public function index()
+    protected UtilResponse $utilResponse;
+    protected MinutaRepository $minutaRepository;
+
+    public function __construct(UtilResponse $utilResponse, MinutaRepository $minutaRepository)
     {
-        $total_minutas = Minuta::count();
+        $this->utilResponse = $utilResponse;
+        $this->minutaRepository = $minutaRepository;
+    }
+
+    public function index(): View
+    {
+        $total_minutas = $this->minutaRepository->countTotal();
         return view('minutas', compact('total_minutas'));
     }
 
-    public function getMinutas(Request $request)
-    {
-        $query = Minuta::query();
-
-        if ($request->status) {
-            $query->where('estatus', 'LIKE', "%{$request->status}%");
-        }
-
-        if ($request->search) {
-            $query->where(function($q) use ($request) {
-                $q->where('tema_general', 'LIKE', "%{$request->search}%")
-                  ->orWhere('ponente', 'LIKE', "%{$request->search}%")
-                  ->orWhere('asistente_nombre', 'LIKE', "%{$request->search}%");
-            });
-        }
-
-        $minutas = $query->get()->map(function($m) {
-            return [
-                'id_minuta'              => $m->id_minuta,
-                'fecha_hora'             => $m->fecha_hora,
-                'lugar'                  => $m->lugar,
-                'tema_general'           => $m->tema_general,
-                'ponente'                => $m->ponente,
-                'asistente_nombre'       => $m->asistente_nombre,
-                'asistente_departamento' => $m->asistente_departamento,
-                'tema_tratado'           => $m->tema_tratado,
-                'acuerdo'                => $m->acuerdo,
-                'responsable'            => $m->responsable,
-                'fecha_cierre'           => $m->fecha_cierre,
-                'estatus'                => $m->estatus,
-                'canUpdate'              => true, 
-                'canDelete'              => true
-            ];
-        });
-
-        return response()->json(['minutas' => $minutas]);
-    }
-
-    private function formatRequestData(Request $request)
-    {
-        $data = $request->all();
-        $user = auth()->user();
-
-        $data['lugar']        = strip_tags($request->input('lugar', ''));
-        $data['tema_general'] = strip_tags($request->input('tema_general', ''));
-        $data['ponente']      = strip_tags($request->input('ponente', ''));
-
-        if ($request->has('asistente_nombre')) {
-            $nombres = array_map('strip_tags', array_filter($request->asistente_nombre));
-            $deptos  = array_map('strip_tags', array_filter($request->asistente_departamento));
-            $data['asistente_nombre'] = implode(", ", $nombres);
-            $data['asistente_departamento'] = implode(", ", $deptos);
-        }
-
-        if ($request->has('acuerdo')) {
-            $data['tema_tratado'] = implode(" | ", array_map('strip_tags', array_filter($request->tema_tratado)));
-            $data['acuerdo']      = implode(" | ", array_map('strip_tags', array_filter($request->acuerdo)));
-            $data['responsable']  = implode(", ", array_map('strip_tags', array_filter($request->responsable)));
-
-            if ($user->can('admin.dashboard')) {
-                
-                if ($request->has('fecha_compromiso')) {
-                    $fechas_comp_limpias = array_map(function($fecha) {
-                        return $fecha ? substr($fecha, 0, 10) : null;
-                    }, $request->fecha_compromiso);
-                    $data['fecha_compromiso'] = implode(", ", array_filter($fechas_comp_limpias));
-                }
-
-                if ($request->has('fecha_cierre')) {
-                    $fechas_cierre_limpias = array_map(function($fecha) {
-                        return $fecha ? substr($fecha, 0, 10) : null;
-                    }, $request->fecha_cierre);
-                    $data['fecha_cierre'] = implode(", ", array_filter($fechas_cierre_limpias));
-                }
-
-                $data['estatus'] = implode(", ", array_filter($request->estatus));
-
-            } else {
-                
-                $minutaExistente = \App\Models\Minuta::find($request->id_minuta);
-                
-                if ($minutaExistente) {
-                    $data['fecha_compromiso'] = $minutaExistente->fecha_compromiso;
-                    $data['fecha_cierre']     = $minutaExistente->fecha_cierre;
-                    $data['estatus']          = $minutaExistente->estatus;
-                } else {
-                    $data['fecha_compromiso'] = "";
-                    $data['fecha_cierre']     = "";
-                    $data['estatus']          = "Pendiente";
-                }
-            }
-        }
-
-        return $data;
-    }
-
-    public function store(Request $request)
+    public function getMinutas(Request $request): JsonResponse
     {
         try {
-            $request->validate([
-                'fecha_hora'   => 'required',
-                'tema_general' => 'required',
+            $minutas = $this->minutaRepository->getMinutas($request->input('status'), $request->input('search'));
+
+            return response()->json([
+                'minutas' => MinutaResource::collection($minutas),
             ]);
-            $formattedData = $this->formatRequestData($request);
-            $formattedData['user_id'] = auth()->id(); 
+        } catch (\Throwable $e) {
+            Log::error('Error al consultar lista de minutas', [
+                'action' => 'getMinutas',
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
 
-            Minuta::create($formattedData);
+            return response()->json(['minutas' => []], 500);
+        }
+    }
 
-            return response()->json(['success' => true, 'message' => 'Minuta guardada con éxito']);
-        } catch (\Exception $e) {
-            Log::error("Error en Minuta Store: " . $e->getMessage());
+    public function store(MinutaStoreRequest $request): JsonResponse
+    {
+        try {
+            $minuta = $this->minutaRepository->create($request->all(), auth()->user());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Minuta guardada con éxito',
+                'data' => new MinutaResource($minuta),
+            ], 201);
+        } catch (\Throwable $e) {
+            Log::error('Error en creación de minuta', [
+                'action' => 'store',
+                'user_id' => auth()->id(),
+                'payload' => $request->all(),
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json(['error' => 'Error al crear: ' . $e->getMessage()], 500);
         }
     }
 
-    public function show($id)
+    public function show($id): JsonResponse
     {
         try {
-            $minuta = Minuta::findOrFail($id);
-            return response()->json(['minuta' => $minuta]);
-        } catch (\Exception $e) {
+            $minuta = $this->minutaRepository->find((int) $id);
+
+            if (!$minuta) {
+                return response()->json(['error' => 'No se encontró la minuta.'], 404);
+            }
+
+            return response()->json([
+                'minuta' => new MinutaResource($minuta),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error al consultar detalle de minuta', [
+                'action' => 'show',
+                'id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json(['error' => 'No se encontró la minuta.'], 404);
         }
     }
 
-    public function update(Request $request, $id)
+    public function update(MinutaUpdateRequest $request, $id): JsonResponse
     {
         try {
-            $minuta = Minuta::findOrFail($id);
-            
-            $formattedData = $this->formatRequestData($request);
-            
-            $minuta->update($formattedData);
+            $minuta = $this->minutaRepository->update((int) $id, $request->all(), auth()->user());
 
-            return response()->json(['success' => true, 'message' => 'Minuta actualizada']);
-        } catch (\Exception $e) {
-            Log::error("Error en Minuta Update: " . $e->getMessage());
+            return response()->json([
+                'success' => true,
+                'message' => 'Minuta actualizada',
+                'data' => new MinutaResource($minuta),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error al actualizar minuta', [
+                'action' => 'update',
+                'id' => $id,
+                'user_id' => auth()->id(),
+                'payload' => $request->all(),
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json(['error' => 'Error al actualizar: ' . $e->getMessage()], 500);
         }
     }
 
-    public function destroy($id)
+    public function destroy($id): JsonResponse
     {
         try {
-            $minuta = Minuta::findOrFail($id);
-            $minuta->delete();
+            $this->minutaRepository->delete((int) $id);
+
             return response()->json(['success' => true]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            Log::error('Error al eliminar minuta', [
+                'action' => 'destroy',
+                'id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json(['error' => 'Error al eliminar.'], 500);
         }
     }
 
-    public function downloadPDF($id)
+    public function downloadPDF($id): Response|JsonResponse
     {
-        $minuta = Minuta::with('usuario')->findOrFail($id);
+        try {
+            return $this->minutaRepository->generatePdf((int) $id);
+        } catch (\Throwable $e) {
+            Log::error('Error al generar PDF de minuta', [
+                'action' => 'downloadPDF',
+                'id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
 
-        $fecha_hora = \Carbon\Carbon::parse($minuta->fecha_hora);
-        $fecha = $fecha_hora->format('Y-m-d'); 
-        $hora  = $fecha_hora->format('g:i A'); 
-        $creado_por = $minuta->usuario->name ?? 'No identificado';
-
-        $pdf = Pdf::loadView('formats.minutas.10', [
-            'fecha'                  => $fecha,
-            'hora'                   => $hora, 
-            'lugar'                  => $minuta->lugar,
-            'tema_general'           => $minuta->tema_general,
-            'ponente'                => $minuta->ponente,
-            'creado_por'             => $creado_por, 
-            'asistente_nombre'       => $minuta->asistente_nombre,
-            'asistente_departamento' => $minuta->asistente_departamento,
-            'tema_tratado'           => $minuta->tema_tratado,
-            'acuerdo'                => $minuta->acuerdo,
-            'responsable'            => $minuta->responsable,
-            'fecha_compromiso'       => $minuta->fecha_compromiso,
-            'fecha_cierre'           => $minuta->fecha_cierre,
-            'estatus'                => $minuta->estatus,
-        ]);
-
-        return $pdf->stream("Minuta_SSS_FOR_REH_10_{$id}.pdf");
+            return response()->json(['error' => 'Error al generar el PDF de la minuta.'], 500);
+        }
     }
 }

@@ -2,96 +2,171 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PerformanceNote;
-use App\Models\User;
+use App\Http\Controllers\Controller;
+use App\Http\Repositories\PerformanceNote\PerformanceNoteRepository;
+use App\Http\Requests\PerformanceNote\PerformanceNoteStoreRequest;
+use App\Http\Resources\PerformanceNote\PerformanceNoteResource;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 
 class PerformanceNoteController extends Controller
 {
-    public function index(Request $request)
+    protected UtilResponse $utilResponse;
+    protected PerformanceNoteRepository $noteRepository;
+
+    public function __construct(UtilResponse $utilResponse, PerformanceNoteRepository $noteRepository)
     {
-        $isAdmin = auth()->user()->isAdmin();
-
-        if ($isAdmin) {
-            $notes = PerformanceNote::with('user', 'admin')
-                        ->orderBy('created_at', 'desc')
-                        ->get();
-            $users = User::all();
-        } else {
-            $notes = PerformanceNote::with('admin')
-                        ->where('user_id', auth()->id())
-                        ->orderBy('created_at', 'desc')
-                        ->get();
-            $users = collect(); // normal users don't need the list of users
-        }
-
-        return view('performance_notes.index', compact('notes', 'users', 'isAdmin'));
+        $this->utilResponse = $utilResponse;
+        $this->noteRepository = $noteRepository;
     }
 
-    public function store(Request $request)
+    public function index(Request $request): View|AnonymousResourceCollection|JsonResponse|RedirectResponse
     {
-        if (!auth()->user()->isAdmin()) {
-            return response()->json(['message' => 'No autorizado'], 403);
+        try {
+            $user = auth()->user();
+            $isAdmin = $user && method_exists($user, 'isAdmin') && $user->isAdmin();
+            $notes = $this->noteRepository->getNotesForUser($user);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return PerformanceNoteResource::collection($notes);
+            }
+
+            $users = $isAdmin ? $this->noteRepository->getAllUsers() : collect();
+
+            return view('performance_notes.index', compact('notes', 'users', 'isAdmin'));
+        } catch (\Throwable $e) {
+            Log::error('Error al consultar notas de desempeño', [
+                'action' => 'index',
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al consultar las notas de desempeño.', 500);
+            }
+
+            return back()->withErrors('Error al consultar las notas de desempeño.');
         }
-
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'type' => 'required|string|in:positive,improvement,neutral',
-            'comments' => 'required|string'
-        ]);
-
-        $note = PerformanceNote::create([
-            'user_id' => $request->user_id,
-            'admin_id' => auth()->id(),
-            'type' => $request->type,
-            'comments' => $request->comments
-        ]);
-
-        $usuarioDestino = User::find($request->user_id);
-        if ($usuarioDestino) {
-            $usuarioDestino->notify(new \App\Notifications\PerformanceNoteNotification($note));
-        }
-
-        if ($request->ajax()) {
-            return response()->json(['message' => 'Nota agregada correctamente.']);
-        }
-        return redirect()->back()->with('success', 'Nota agregada correctamente.');
     }
 
-    public function destroy($id)
+    public function store(PerformanceNoteStoreRequest $request): JsonResponse|RedirectResponse
     {
-        if (!auth()->user()->isAdmin()) {
-            return response()->json(['message' => 'No autorizado'], 403);
-        }
+        try {
+            $note = $this->noteRepository->createNote($request->validated(), (int) auth()->id());
 
-        $note = PerformanceNote::findOrFail($id);
-        $note->delete();
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Nota agregada correctamente.',
+                    'data' => new PerformanceNoteResource($note),
+                ], 201);
+            }
 
-        if (request()->ajax()) {
-            return response()->json(['message' => 'Nota eliminada correctamente.']);
+            return redirect()->back()->with('success', 'Nota agregada correctamente.');
+        } catch (\Throwable $e) {
+            Log::error('Error al registrar nota de desempeño', [
+                'action' => 'store',
+                'user_id' => auth()->id(),
+                'payload' => $request->all(),
+                'error' => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al registrar la nota de desempeño.', 500);
+            }
+
+            return back()->withErrors('Error al registrar la nota de desempeño.');
         }
-        return redirect()->back()->with('success', 'Nota eliminada correctamente.');
     }
 
-    public function unreadNotifications()
+    public function destroy(Request $request, $id): JsonResponse|RedirectResponse
     {
         $user = auth()->user();
-        if (!$user) return response()->json(['notifications' => []]);
+        if (!$user || !method_exists($user, 'isAdmin') || !$user->isAdmin()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['message' => 'No autorizado'], 403);
+            }
+            abort(403, 'No autorizado');
+        }
 
-        $notifications = $user->unreadNotifications->where('type', 'App\Notifications\PerformanceNoteNotification');
-        return response()->json(['notifications' => $notifications]);
+        try {
+            $this->noteRepository->deleteNote((int) $id);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Nota eliminada correctamente.',
+                ]);
+            }
+
+            return redirect()->back()->with('success', 'Nota eliminada correctamente.');
+        } catch (\Throwable $e) {
+            Log::error('Error al eliminar nota de desempeño', [
+                'action' => 'destroy',
+                'user_id' => auth()->id(),
+                'note_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al eliminar la nota de desempeño.', 500);
+            }
+
+            return back()->withErrors('Error al eliminar la nota de desempeño.');
+        }
     }
 
-    public function markNotificationAsRead($id)
+    public function unreadNotifications(): JsonResponse
     {
-        $user = auth()->user();
-        if (!$user) return response()->json(['success' => false], 401);
+        try {
+            $user = auth()->user();
+            if (!$user) {
+                return response()->json(['notifications' => []]);
+            }
 
-        $notification = $user->unreadNotifications->where('id', $id)->first();
-        if ($notification) {
-            $notification->markAsRead();
-            return response()->json(['success' => true]);
+            $notifications = $this->noteRepository->getUnreadNotifications($user);
+
+            return response()->json(['notifications' => $notifications]);
+        } catch (\Throwable $e) {
+            Log::error('Error al consultar notificaciones de desempeño no leídas', [
+                'action' => 'unreadNotifications',
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['notifications' => []], 500);
         }
-        return response()->json(['success' => false], 404);
+    }
+
+    public function markNotificationAsRead($id): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            if (!$user) {
+                return response()->json(['success' => false], 401);
+            }
+
+            $marked = $this->noteRepository->markNotificationAsRead($user, (string) $id);
+
+            if ($marked) {
+                return response()->json(['success' => true]);
+            }
+
+            return response()->json(['success' => false], 404);
+        } catch (\Throwable $e) {
+            Log::error('Error al marcar notificación como leída', [
+                'action' => 'markNotificationAsRead',
+                'user_id' => auth()->id(),
+                'notification_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['success' => false], 500);
+        }
     }
 }
