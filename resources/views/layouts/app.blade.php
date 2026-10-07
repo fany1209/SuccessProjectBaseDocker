@@ -165,17 +165,35 @@
                                 newNotifs.forEach(n => {
                                     shownNotifications.push(n.id);
                                     let msg = n.data.message || 'Nueva notificación de almacén';
+                                    let isEdited = (n.data.type === 'sale_edited' || n.data.type === 'order_edited');
+                                    let notifTitle = n.data.title || (isEdited ? ('⚠️ ' + (n.data.folio ? 'Venta Folio ' + n.data.folio : 'Pedido') + ' Modificado') : 'Notificación de Venta');
+                                    let notifIcon = isEdited ? 'warning' : 'info';
+
+                                    let changesHtml = '';
+                                    if (isEdited && Array.isArray(n.data.changes) && n.data.changes.length > 0) {
+                                        changesHtml = `
+                                            <div class="mt-2 text-left bg-amber-50 p-2 rounded border border-amber-200 text-amber-900 text-[11px] max-h-36 overflow-y-auto">
+                                                <p class="font-bold mb-1 text-amber-950">Cambios en el pedido:</p>
+                                                <ul class="list-disc list-inside space-y-0.5">
+                                                    ${n.data.changes.map(c => `<li>${escapeHtml(c)}</li>`).join('')}
+                                                </ul>
+                                            </div>
+                                        `;
+                                    }
+
+                                    let swalHtml = `<div class="text-left"><p class="text-xs mb-1 font-medium">${escapeHtml(msg)}</p>${changesHtml}</div>`;
+
                                     Swal.fire({
                                         toast: true,
                                         position: 'top-end',
-                                        icon: 'info',
-                                        title: 'Notificación de Venta',
-                                        text: msg,
+                                        icon: notifIcon,
+                                        title: notifTitle,
+                                        html: swalHtml,
                                         showConfirmButton: true,
                                         confirmButtonText: 'Ver detalles',
                                         showCancelButton: true,
                                         cancelButtonText: 'Cerrar',
-                                        timer: 10000,
+                                        timer: isEdited ? 15000 : 10000,
                                         timerProgressBar: true
                                     }).then((result) => {
                                         if (result.isConfirmed && n.data.url) {
@@ -187,14 +205,16 @@
 
                                     let dropdown = $('#notifications-dropdown-list');
                                     if(dropdown.length > 0) {
-                                        let urlLink = n.data.url ? `<a href="${n.data.url}" class="text-[10px] text-indigo-600 hover:underline">Ver detalles</a>` : '';
+                                        let urlLink = n.data.url ? `<a href="${n.data.url}" class="text-[10px] text-indigo-600 hover:underline mt-1 inline-block">Ver detalles</a>` : '';
+                                        let borderClass = isEdited ? 'border-amber-500' : 'border-green-500';
                                         let html = `
-                                            <div class="p-2 bg-white border-l-4 border-green-500">
+                                            <div class="p-2 bg-white border-l-4 ${borderClass}">
                                                 <div class="flex justify-between">
-                                                    <span class="text-sm font-bold">Notificación</span>
+                                                    <span class="text-sm font-bold">${escapeHtml(notifTitle)}</span>
                                                     <small class="text-gray-400">Ahora mismo</small>
                                                 </div>
                                                 <p class="text-xs">${escapeHtml(msg)}</p>
+                                                ${changesHtml}
                                                 ${urlLink}
                                             </div>
                                         `;

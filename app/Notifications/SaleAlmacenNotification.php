@@ -16,44 +16,42 @@ class SaleAlmacenNotification extends Notification
     public $message;
     public $reason;
     public $date;
+    public $changes;
+    public $title;
 
-    /**
-     * Create a new notification instance.
-     */
-    public function __construct($sale, $type, $message, $reason = null, $date = null)
+    public function __construct($sale, $type, $message, $reason = null, $date = null, array $changes = [], ?string $title = null)
     {
         $this->sale = $sale;
-        $this->type = $type; // 'new_sale', 'confirmed', 'postponed', 'cancelled'
+        $this->type = $type; // 'new_sale', 'confirmed', 'postponed', 'cancelled', 'sale_edited'
         $this->message = $message;
         $this->reason = $reason;
         $this->date = $date;
+        $this->changes = $changes;
+        $this->title = $title;
     }
 
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
     public function via(object $notifiable): array
     {
         return ['database'];
     }
 
-    /**
-     * Get the array representation of the notification.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(object $notifiable): array
     {
         return [
             'sale_id' => $this->sale->sale_id,
-            'folio' => $this->sale->folio,
-            'type' => $this->type,
+            'folio'   => $this->sale->folio,
+            'type'    => $this->type,
+            'title'   => $this->title ?? ($this->type === 'sale_edited' ? 'Venta Folio ' . $this->sale->folio . ' Modificada' : 'Notificación de Venta'),
             'message' => $this->message,
-            'reason' => $this->reason,
-            'date' => $this->date,
-            'url' => route('sales.almacen_detail', $this->sale->sale_id)
+            'reason'  => $this->reason,
+            'date'    => $this->date,
+            'changes' => $this->changes,
+            'url'     => route('sales.almacen_detail', $this->sale->sale_id),
         ];
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        return $this->toArray($notifiable);
     }
 }

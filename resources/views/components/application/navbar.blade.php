@@ -197,15 +197,31 @@
                             @endif
                         </div>
                         @foreach ($notificationsList as $notification)
-                            <div class="p-2 {{ $notification->read_at ? 'opacity-60 bg-gray-50' : 'bg-white border-l-4 border-green-500' }}">
+                            @php
+                                $nType = $notification->data['type'] ?? '';
+                                $isEdit = ($nType === 'sale_edited' || $nType === 'order_edited');
+                                $borderCol = $isEdit ? 'border-amber-500' : 'border-green-500';
+                            @endphp
+                            <div class="p-2 {{ $notification->read_at ? 'opacity-60 bg-gray-50' : 'bg-white border-l-4 ' . $borderCol }}">
                                 <div class="flex justify-between">
                                     <span class="text-sm font-bold">{{ $notification->data['title'] ?? 'Notificación' }}</span>
                                     <small class="text-gray-400">{{ $notification->created_at->diffForHumans() }}</small>
                                 </div>
                                 <p class="text-xs">{{ $notification->data['message'] ?? 'No detail provided' }}</p>
                                 
+                                @if(!empty($notification->data['changes']) && is_array($notification->data['changes']))
+                                    <div class="mt-1 p-1.5 bg-amber-50 border border-amber-200 rounded text-[11px] text-amber-900">
+                                        <p class="font-semibold text-[10px] uppercase text-amber-800 mb-0.5">Cambios detectados:</p>
+                                        <ul class="list-disc list-inside space-y-0.5">
+                                            @foreach($notification->data['changes'] as $ch)
+                                                <li>{{ $ch }}</li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                @endif
+
                                 @if(isset($notification->data['url']))
-                                    <a href="{{ $notification->data['url'] }}" class="text-[10px] text-indigo-600 hover:underline">Ver detalles</a>
+                                    <a href="{{ $notification->data['url'] }}" class="text-[10px] text-indigo-600 hover:underline mt-1 inline-block">Ver detalles</a>
                                 @endif
 
                                 @if($notification->read_at)

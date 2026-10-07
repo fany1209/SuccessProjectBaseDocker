@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Notifications\SaleAlmacenNotification;
 use DomainException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 class SaleRepository
@@ -346,13 +347,27 @@ class SaleRepository
         });
     }
 
-    public function update(int $saleId, array $data): bool
+    public function update(int $saleId, array $data, ?User $currentUser = null): bool
     {
-        return DB::transaction(function () use ($saleId, $data) {
+        return DB::transaction(function () use ($saleId, $data, $currentUser) {
             $sale = $this->sale->where('sale_id', $saleId)->lockForUpdate()->first();
             if (!$sale) {
                 return false;
             }
+
+            // Snapshot old relations and values for diff detection
+            $sale->loadMissing(['customer', 'prospect']);
+            $oldDetails = $this->saleDetail->with('product')->where('sale_id', $saleId)->get()->keyBy('sale_detail_id');
+
+            $oldClientName = (int) $sale->is_customer === 1
+                ? ($sale->customer?->name ?? ($sale->customer_id ? 'Cliente #' . $sale->customer_id : 'N/A'))
+                : ($sale->prospect?->name ?? ($sale->prospect_id ? 'Prospecto #' . $sale->prospect_id : 'N/A'));
+            $oldSeller = $sale->seller ? trim($sale->seller) : '';
+            $oldDate = $sale->date;
+            $oldPO = $sale->purchase_order ? trim($sale->purchase_order) : '';
+            $oldInvoice = $sale->invoice ? trim($sale->invoice) : '';
+            $oldSaleType = $sale->sale_type ? trim($sale->sale_type) : '';
+            $oldTerm = $sale->term ? trim($sale->term) : '';
 
             $fields = [
                 'seller', 'purchase_order', 'invoice', 'sale_type', 'term', 'date',
@@ -414,27 +429,48 @@ class SaleRepository
 
             $sale->update($updateData);
 
-            $saleDetailsIds = $data['sale_detail'] ?? [];
-            $productsId = $data['product_id'] ?? [];
+            $saleDetailsIds     = $data['sale_detail'] ?? [];
+            $productsId         = $data['product_id'] ?? [];
             $publicProductNames = $data['public_product_name'] ?? [];
-            $publicBatchs = $data['public_batch'] ?? [];
-            $quantities = $data['quantity'] ?? [];
-            $invoiceValues = $data['invoice_val'] ?? [];
-            $costs = $data['cost'] ?? [];
-            $hasTaxs = $data['has_tax'] ?? [];
+            $publicBatchs       = $data['public_batch'] ?? [];
+            $quantities         = $data['quantity'] ?? [];
+            $invoiceValues      = $data['invoice_val'] ?? [];
+            $costs              = $data['cost'] ?? [];
+            $hasTaxs            = $data['has_tax'] ?? [];
 
-            $existingIds = array_filter($saleDetailsIds, function ($id) {
-                return (int) $id > 0;
+            $existingIds = array_filter(array_map('intval', $saleDetailsIds), function ($id) {
+                return $id > 0;
             });
+
+            // Map product IDs to names in bulk for fast lookups
+            $incomingProdIds = array_unique(array_filter(array_map('intval', $productsId)));
+            $productNamesMap = !empty($incomingProdIds)
+                ? $this->product->whereIn('product_id', $incomingProdIds)->pluck('name', 'product_id')->toArray()
+                : [];
+
+            $changes = [];
+
+            // Detect product deletions
+            foreach ($oldDetails as $oldId => $oldDetail) {
+                if (!in_array($oldId, $existingIds)) {
+                    $pName = $oldDetail->public_product_name ?: ($oldDetail->product?->name ?? 'Producto #' . $oldDetail->product_id);
+                    $qty = (float) $oldDetail->quantity;
+                    $changes[] = "Producto removido: '{$pName}' (tenía {$qty} unidades)";
+                }
+            }
 
             $this->saleDetail->where('sale_id', $saleId)
                 ->whereNotIn('sale_detail_id', $existingIds)
                 ->delete();
 
             foreach ($productsId as $i => $productId) {
-                $detailId = (int) ($saleDetailsIds[$i] ?? 0);
+                $detailId   = (int) ($saleDetailsIds[$i] ?? 0);
                 $invoiceVal = (int) ($invoiceValues[$i] ?? 0);
-                $cost = (float) ($costs[$i] ?? 0);
+                $cost       = (float) ($costs[$i] ?? 0);
+                $newQty     = (float) ($quantities[$i] ?? 0);
+                $newBatch   = !empty($publicBatchs[$i]) ? trim($publicBatchs[$i]) : null;
+                $fallback   = $productNamesMap[$productId] ?? "Producto #{$productId}";
+                $pName      = !empty($publicProductNames[$i]) ? trim($publicProductNames[$i]) : $fallback;
 
                 if ($invoiceVal === 1) {
                     $cost = 0;
@@ -443,18 +479,118 @@ class SaleRepository
                 $detailPayload = [
                     'product_id'          => $productId,
                     'public_product_name' => $publicProductNames[$i] ?? '',
-                    'quantity'            => $quantities[$i] ?? 0,
+                    'quantity'            => $newQty,
                     'cost'                => $cost,
                     'invoice_val'         => $invoiceVal,
-                    'public_batch'        => $publicBatchs[$i] ?? null,
+                    'public_batch'        => $newBatch,
                     'has_tax'             => (int) ($hasTaxs[$i] ?? 0),
                 ];
 
-                if ($detailId > 0) {
+                if ($detailId > 0 && isset($oldDetails[$detailId])) {
+                    $oldDetail = $oldDetails[$detailId];
+                    $oldQty = (float) $oldDetail->quantity;
+                    $oldBatch = $oldDetail->public_batch ? trim($oldDetail->public_batch) : null;
+                    $oldName = $oldDetail->public_product_name ? trim($oldDetail->public_product_name) : ($oldDetail->product?->name ?? "Producto #{$oldDetail->product_id}");
+
+                    if (abs($oldQty - $newQty) > 0.0001) {
+                        $diff = $newQty - $oldQty;
+                        $diffStr = $diff > 0 ? "+{$diff}" : "{$diff}";
+                        $changes[] = "Cantidad modificada para '{$pName}': de {$oldQty} a {$newQty} ({$diffStr})";
+                    }
+
+                    if ($oldBatch !== $newBatch) {
+                        $b1 = $oldBatch ?: 'Sin lote';
+                        $b2 = $newBatch ?: 'Sin lote';
+                        $changes[] = "Lote modificado para '{$pName}': de '{$b1}' a '{$b2}'";
+                    }
+
+                    if ((int)$oldDetail->product_id !== (int)$productId) {
+                        $changes[] = "Producto reemplazado: de '{$oldName}' a '{$pName}'";
+                    }
+
                     $this->saleDetail->where('sale_detail_id', $detailId)->update($detailPayload);
                 } else {
+                    $batchStr = $newBatch ? " (Lote: {$newBatch})" : "";
+                    $changes[] = "Producto agregado: '{$pName}' con cantidad {$newQty}{$batchStr}";
+
                     $detailPayload['sale_id'] = $saleId;
                     $this->saleDetail->create($detailPayload);
+                }
+            }
+
+            // Detect general attributes changes
+            if (isset($data['date']) && $oldDate != $data['date']) {
+                $oldDStr = \Carbon\Carbon::parse($oldDate)->format('d/m/Y');
+                $newDStr = \Carbon\Carbon::parse($data['date'])->format('d/m/Y');
+                $changes[] = "Fecha modificada: de {$oldDStr} a {$newDStr}";
+            }
+
+            if (array_key_exists('purchase_order', $data) && $oldPO !== trim((string)$data['purchase_order'])) {
+                $oldPoVal = $oldPO ?: 'Sin PO';
+                $newPoVal = trim((string)$data['purchase_order']) ?: 'Sin PO';
+                $changes[] = "Orden de compra (PO): de '{$oldPoVal}' a '{$newPoVal}'";
+            }
+
+            if (array_key_exists('invoice', $data) && $oldInvoice !== trim((string)$data['invoice'])) {
+                $oldInvVal = $oldInvoice ?: 'Sin factura';
+                $newInvVal = trim((string)$data['invoice']) ?: 'Sin factura';
+                $changes[] = "Factura: de '{$oldInvVal}' a '{$newInvVal}'";
+            }
+
+            if (isset($data['sale_type']) && $oldSaleType !== trim((string)$data['sale_type'])) {
+                $changes[] = "Tipo de venta: de '{$oldSaleType}' a '{$data['sale_type']}'";
+            }
+
+            if (array_key_exists('term', $data) && $oldTerm !== trim((string)$data['term'])) {
+                $oldTVal = $oldTerm ?: 'Inmediato';
+                $newTVal = trim((string)$data['term']) ?: 'Inmediato';
+                $changes[] = "Plazo de crédito: de '{$oldTVal}' a '{$newTVal}'";
+            }
+
+            if (isset($data['seller']) && $oldSeller !== trim((string)$data['seller'])) {
+                $changes[] = "Vendedor modificado: de '{$oldSeller}' a '{$data['seller']}'";
+            }
+
+            // Customer / Prospect changes
+            $isCustNew = (int) ($data['is_customer'] ?? $sale->is_customer);
+            if ($isCustNew === 1) {
+                $newCustId = (int) ($data['customer_id'] ?? $sale->customer_id);
+                if ((int)$sale->is_customer !== 1 || (int)$sale->customer_id !== $newCustId) {
+                    $newCust = $this->customer->find($newCustId);
+                    $newCustName = $newCust?->name ?? "Cliente #{$newCustId}";
+                    $changes[] = "Cliente modificado: de '{$oldClientName}' a '{$newCustName}'";
+                }
+            } else {
+                $newProspId = (int) ($data['prospect_id'] ?? $sale->prospect_id);
+                if ((int)$sale->is_customer === 1 || (int)$sale->prospect_id !== $newProspId) {
+                    $newProsp = $this->prospect->find($newProspId);
+                    $newProspName = $newProsp?->name ?? "Prospecto #{$newProspId}";
+                    $changes[] = "Prospecto modificado: de '{$oldClientName}' a '{$newProspName}'";
+                }
+            }
+
+            // Send notification to Warehouse and Admin if changes occurred
+            if (!empty($changes)) {
+                try {
+                    $editorName = $currentUser?->name ?? (auth()->check() ? auth()->user()->name : 'un vendedor');
+                    $almacenUsers = $this->user->role(['Warehouse', 'Admin'])->get();
+                    if ($almacenUsers->isNotEmpty()) {
+                        $message = 'La venta Folio ' . $sale->folio . ' ha sido modificada por ' . $editorName . '.';
+                        Notification::send($almacenUsers, new SaleAlmacenNotification(
+                            $sale,
+                            'sale_edited',
+                            $message,
+                            null,
+                            null,
+                            $changes,
+                            'Venta Folio ' . $sale->folio . ' Modificada'
+                        ));
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Error al enviar notificación de venta editada', [
+                        'sale_id'   => $saleId,
+                        'exception' => $e->getMessage(),
+                    ]);
                 }
             }
 
@@ -636,9 +772,32 @@ class SaleRepository
                 ->first();
         }
 
+        $recentEdits = DB::table('notifications')
+            ->where('type', 'App\\Notifications\\SaleAlmacenNotification')
+            ->where(function ($q) use ($saleId) {
+                $q->where('data', 'like', '%"sale_id":' . $saleId . '%')
+                  ->orWhere('data', 'like', '%"sale_id":"' . $saleId . '"%');
+            })
+            ->where('data', 'like', '%"type":"sale_edited"%')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($notif) {
+                $data = json_decode($notif->data, true);
+                return [
+                    'created_at' => $notif->created_at,
+                    'message'    => $data['message'] ?? '',
+                    'changes'    => $data['changes'] ?? [],
+                ];
+            })
+            ->unique(function ($item) {
+                return $item['created_at'] . serialize($item['changes']);
+            })
+            ->values();
+
         return [
-            'sale'   => $sale,
-            'output' => $output,
+            'sale'        => $sale,
+            'output'      => $output,
+            'recentEdits' => $recentEdits,
         ];
     }
 

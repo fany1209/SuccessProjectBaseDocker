@@ -7,6 +7,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use App\Notifications\NewOrderNotification;
+use App\Notifications\OrderUpdatedNotification;
 use DomainException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -196,13 +197,45 @@ class OrderRepository
                 $data['pdf_path'] = $fileName;
             }
 
+            // Snapshot old values for diff
+            $oldEmpresa = $order->empresa ? trim($order->empresa) : '';
+            $oldPO = $order->po ? trim($order->po) : '';
+            $oldItems = $order->items()->get();
+
             unset($data['items'], $data['pdf_file']);
 
             $order->update($data);
 
+            $changes = [];
+            if ($oldEmpresa !== trim((string)$order->empresa)) {
+                $changes[] = "Empresa modificada: de '{$oldEmpresa}' a '{$order->empresa}'";
+            }
+            if ($oldPO !== trim((string)($order->po ?? ''))) {
+                $oldPOVal = $oldPO ?: 'Sin PO';
+                $newPOVal = $order->po ? trim($order->po) : 'Sin PO';
+                $changes[] = "PO modificada: de '{$oldPOVal}' a '{$newPOVal}'";
+            }
+
             if (!empty($itemsData)) {
                 $order->items()->delete();
                 $order->items()->createMany($itemsData);
+
+                // Check differences in items
+                $oldItemsSummary = $oldItems->map(fn($it) => $it->producto . ($it->cantidad ? " ({$it->cantidad})" : ''))->implode(', ');
+                $newItemsSummary = collect($itemsData)->map(fn($it) => $it['producto'] . ($it['cantidad'] ? " ({$it['cantidad']})" : ''))->implode(', ');
+                if ($oldItemsSummary !== $newItemsSummary) {
+                    $changes[] = "Productos/cantidades modificados: '{$newItemsSummary}' (anterior: '{$oldItemsSummary}')";
+                }
+            }
+
+            if (!empty($changes)) {
+                try {
+                    $usersToNotify = $this->user->role(['Admin', 'Warehouse'])->get();
+                    if ($usersToNotify->isNotEmpty()) {
+                        Notification::send($usersToNotify, new OrderUpdatedNotification($order, $changes, $currentUser));
+                    }
+                } catch (\Throwable $ignored) {
+                }
             }
 
             return true;

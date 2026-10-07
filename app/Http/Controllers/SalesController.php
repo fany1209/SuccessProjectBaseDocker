@@ -128,7 +128,7 @@ class SalesController extends Controller
     {
         try {
             $saleId = (int) ($id ?? $request->input('sale_id'));
-            $updated = $this->saleRepo->update($saleId, $request->validated());
+            $updated = $this->saleRepo->update($saleId, $request->validated(), Auth::user());
 
             if (!$updated) {
                 return response()->json(['message' => 'Sale not found'], 404);
@@ -289,7 +289,10 @@ class SalesController extends Controller
             return response()->json(['notifications' => []]);
         }
 
-        $notifications = $user->unreadNotifications->where('type', 'App\Notifications\SaleAlmacenNotification');
+        $notifications = $user->unreadNotifications->whereIn('type', [
+            'App\Notifications\SaleAlmacenNotification',
+            'App\Notifications\OrderUpdatedNotification',
+        ]);
 
         return response()->json(['notifications' => $notifications]);
     }

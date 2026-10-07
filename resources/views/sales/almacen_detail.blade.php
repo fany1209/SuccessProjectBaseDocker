@@ -14,6 +14,38 @@
             </span>
         </div>
         <div class="card-body">
+            @if(isset($recentEdits) && $recentEdits->isNotEmpty())
+            <div class="alert alert-warning border border-warning shadow-sm mb-4" role="alert">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="d-flex align-items-center">
+                        <i class="ri-alert-fill fs-5 text-warning me-2"></i>
+                        <h5 class="alert-heading mb-0 fw-bold text-dark">Alerta: Este pedido ha sido editado</h5>
+                    </div>
+                    <span class="badge bg-warning text-dark px-2 py-1">Modificado</span>
+                </div>
+                <p class="mb-2 text-dark small">
+                    Se han registrado modificaciones posteriores a la creación de este pedido. Por favor verifica los cambios realizados antes de confirmar o despachar la mercancía:
+                </p>
+                <div class="d-flex flex-column gap-2 mt-2">
+                    @foreach($recentEdits as $edit)
+                    <div class="bg-white p-2.5 rounded border shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold small text-dark">{{ $edit['message'] }}</span>
+                            <small class="text-muted">{{ \Carbon\Carbon::parse($edit['created_at'])->diffForHumans() }} ({{ \Carbon\Carbon::parse($edit['created_at'])->format('d/m/Y H:i') }})</small>
+                        </div>
+                        @if(!empty($edit['changes']))
+                        <ul class="mb-0 ps-3 small text-secondary">
+                            @foreach($edit['changes'] as $change)
+                                <li class="text-dark"><strong>{{ $change }}</strong></li>
+                            @endforeach
+                        </ul>
+                        @endif
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
             <div class="row mb-3">
                 <div class="col-md-6">
                     <strong>Vendedor:</strong> {{ $sale->user->name ?? 'N/A' }}<br>

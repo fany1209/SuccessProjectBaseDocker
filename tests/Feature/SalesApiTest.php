@@ -8,7 +8,9 @@ use App\Models\Sale;
 use App\Models\SaleDetail;
 use App\Models\Sector;
 use App\Models\User;
+use App\Notifications\SaleAlmacenNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -55,7 +57,7 @@ beforeEach(function () {
         'name'         => 'Producto Venta ' . uniqid(),
         'category_id'  => $this->category->category_id,
         'sat_code'     => '10101501',
-        'sku'          => 'SKU-VTA-' . rand(10000, 99999),
+        'sku'          => substr('SKU-' . uniqid(), 0, 20),
         'presentation' => 'Bulto 25kg',
         'unit'         => 'kg',
     ]);
@@ -553,3 +555,85 @@ test('postponedReminders returns postponed sales for warehouse/admin users', fun
     $response->assertStatus(200);
     $response->assertJsonStructure(['reminders']);
 });
+
+test('update sends sale_edited notification with changes to warehouse and admin users', function () {
+    Notification::fake();
+
+    $warehouseRole = Role::findOrCreate('Warehouse', 'web');
+    $warehouseUser = User::factory()->create();
+    $warehouseUser->assignRole($warehouseRole);
+
+    $sale = ($this->createSale)([
+        'seller' => 'Vendedor Original',
+        'date'   => '2026-10-01',
+    ]);
+    $existingDetail = SaleDetail::where('sale_id', $sale->sale_id)->first();
+
+    $payload = [
+        'sale_id'             => $sale->sale_id,
+        'seller'              => 'Vendedor Editado',
+        'is_customer'         => 1,
+        'customer_id'         => $this->customer->customer_id,
+        'sale_type'           => 'Cash',
+        'date'                => '2026-10-05',
+        'user_id'             => $this->user->id,
+        'sales_status_id'     => $this->statusId,
+        'sector_id'           => $this->sector->sector_id,
+        'sale_detail'         => [$existingDetail->sale_detail_id],
+        'product_id'          => [$this->product->product_id],
+        'quantity'            => [45], // changed from 5 to 45
+        'cost'                => [300],
+        'has_tax'             => [1],
+        'invoice_val'         => [0],
+        'public_product_name' => [$this->product->name],
+    ];
+
+    $response = $this->actingAs($this->user)->putJson(route('sales.update', $sale->sale_id), $payload);
+
+    $response->assertStatus(201);
+
+    Notification::assertSentTo(
+        [$this->user, $warehouseUser],
+        SaleAlmacenNotification::class,
+        function ($notification) use ($sale) {
+            $data = $notification->toArray($this->user);
+            return $notification->type === 'sale_edited'
+                && $data['sale_id'] === $sale->sale_id
+                && !empty($data['changes'])
+                && collect($data['changes'])->contains(fn($c) => str_contains($c, 'Cantidad modificada'))
+                && collect($data['changes'])->contains(fn($c) => str_contains($c, 'Vendedor modificado'))
+                && collect($data['changes'])->contains(fn($c) => str_contains($c, 'Fecha modificada'));
+        }
+    );
+});
+
+test('almacenDetail view and getAlmacenDetail include recentEdits', function () {
+    $sale = ($this->createSale)();
+
+    // Insert an edit notification for this sale
+    DB::table('notifications')->insert([
+        'id'              => (string) \Illuminate\Support\Str::uuid(),
+        'type'            => 'App\Notifications\SaleAlmacenNotification',
+        'notifiable_type' => 'App\Models\User',
+        'notifiable_id'   => $this->user->id,
+        'data'            => json_encode([
+            'sale_id' => $sale->sale_id,
+            'folio'   => $sale->folio,
+            'type'    => 'sale_edited',
+            'title'   => 'Venta Folio ' . $sale->folio . ' Modificada',
+            'message' => 'La venta Folio ' . $sale->folio . ' fue editada por Juan.',
+            'changes' => ["Cantidad modificada para 'Insumo': de 10 a 20 (+10)"],
+            'url'     => route('sales.almacen_detail', $sale->sale_id),
+        ]),
+        'read_at'         => null,
+        'created_at'      => now(),
+        'updated_at'      => now(),
+    ]);
+
+    $response = $this->actingAs($this->user)->get(route('sales.almacen_detail', $sale->sale_id));
+
+    $response->assertStatus(200);
+    $response->assertSee('Alerta: Este pedido ha sido editado');
+    $response->assertSee("Cantidad modificada para &#039;Insumo&#039;: de 10 a 20 (+10)", false);
+});
+
