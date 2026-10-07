@@ -14,6 +14,11 @@ class Task extends Model
         'status', 'priority', 'due_date', 'completed_at'
     ];
 
+    protected $casts = [
+        'completed_at' => 'datetime',
+        'due_date' => 'date',
+    ];
+
     public function responsable()
     {
         return $this->belongsTo(User::class, 'user_id');

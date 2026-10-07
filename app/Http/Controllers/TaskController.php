@@ -1,128 +1,165 @@
 <?php
+
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Http\Repositories\Task\TaskRepository;
+use App\Http\Requests\Task\TaskStoreRequest;
+use App\Http\Requests\Task\TaskUpdateRequest;
+use App\Http\Requests\Task\TaskUpdateStatusRequest;
+use App\Http\Resources\Task\TaskResource;
 use App\Models\Task;
-use App\Models\User;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use App\Events\TaskAssignedEvent;
-use App\Notifications\TaskNotification;
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 
 class TaskController extends Controller
 {
-    public function index()
+    protected UtilResponse $utilResponse;
+    protected TaskRepository $taskRepo;
+
+    public function __construct(UtilResponse $utilResponse, TaskRepository $taskRepo)
     {
-        $user = auth()->user();
-        $isAdmin = $user->hasRole('Admin');
-
-        $query = Task::with(['responsable', 'creador']);
-        
-        if (!$isAdmin) {
-            $query->where('user_id', $user->id);
-        }
-        
-        $tasks = $query->get();
-
-        $statusCounts = [
-            'Pendientes'  => $tasks->where('status', 'pending')->count(),
-            'En Proceso'  => $tasks->where('status', 'in_progress')->count(),
-            'Completadas' => $tasks->where('status', 'completed')->count(),
-        ];
-
-        $users = $isAdmin ? User::all() : collect();
-
-        return view('tasks.index', compact('tasks', 'users', 'statusCounts', 'isAdmin'));
+        $this->utilResponse = $utilResponse;
+        $this->taskRepo = $taskRepo;
     }
 
-    public function create()
+    public function index(Request $request): View|JsonResponse
     {
-        $users = User::all(); 
+        try {
+            $user = auth()->user();
+            $isAdmin = $user && method_exists($user, 'hasRole') && $user->hasRole('Admin');
+
+            $tasks = $this->taskRepo->getTasksForUser($user);
+            $statusCounts = $this->taskRepo->getStatusCounts($tasks);
+            $users = $isAdmin ? $this->taskRepo->getAllUsers() : collect();
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'tasks' => TaskResource::collection($tasks),
+                    'statusCounts' => $statusCounts,
+                ]);
+            }
+
+            return view('tasks.index', compact('tasks', 'users', 'statusCounts', 'isAdmin'));
+        } catch (\Throwable $e) {
+            Log::error('Error al consultar lista de tareas', [
+                'action' => 'index',
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al consultar tareas.', 500);
+            }
+
+            return back()->withErrors('Error al consultar tareas.');
+        }
+    }
+
+    public function create(): View
+    {
+        $users = $this->taskRepo->getAllUsers();
         return view('tasks.create', compact('users'));
     }
 
-    public function store(Request $request)
+    public function store(TaskStoreRequest $request): JsonResponse|RedirectResponse
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'user_id' => 'required|exists:users,id',
-            'priority' => 'required|in:low,medium,high,urgent',
-            'due_date' => 'nullable|date',
-        ]);
+        try {
+            $task = $this->taskRepo->create($request->validated(), (int) auth()->id());
 
-        $task = Task::create([
-            'title' => $request->title,
-            'description' => $request->description,
-            'admin_id' => auth()->id(),
-            'user_id' => $request->user_id,
-            'priority' => $request->priority,
-            'due_date' => $request->due_date,
-            'status' => 'pending',
-        ]);
-        
-        // broadcast(new TaskAssignedEvent($task))->toOthers();
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'task' => new TaskResource($task),
+                ], 201);
+            }
 
-        $usuarioDestino = User::find($request->user_id);
-        if ($usuarioDestino) {
-            $usuarioDestino->notify(new TaskNotification($task));
+            return redirect()->route('tasks.index')->with('success', 'Tarea asignada con éxito.');
+        } catch (\Throwable $e) {
+            Log::error('Error al crear tarea', [
+                'action' => 'store',
+                'user_id' => auth()->id(),
+                'payload' => $request->all(),
+                'error' => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al asignar tarea.', 500);
+            }
+
+            return back()->withErrors('Error al asignar tarea.');
         }
+    }
 
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'task' => $task]);
+    public function updateStatus(TaskUpdateStatusRequest $request, Task $task): JsonResponse
+    {
+        try {
+            $updated = $this->taskRepo->updateStatus((int) $task->id, (string) $request->validated('status'));
+            $completedAt = $updated->completed_at ? \Carbon\Carbon::parse($updated->completed_at)->format('d/m/Y H:i') : null;
+
+            return response()->json([
+                'success' => true,
+                'completed_at' => $completedAt,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error al actualizar estatus de tarea', [
+                'action' => 'updateStatus',
+                'task_id' => $task->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['error' => 'Error al actualizar estatus.'], 500);
         }
-
-        return redirect()->route('tasks.index')->with('success', 'Tarea asignada con éxito.');
     }
 
-    public function updateStatus(Request $request, Task $task) 
+    public function edit(Task $task): JsonResponse
     {
-        $updateData = ['status' => $request->status];
+        return response()->json(new TaskResource($task->load(['responsable', 'creador'])));
+    }
 
-        if ($request->status === 'completed') {
-            $updateData['completed_at'] = now(); 
-        } else {
-            $updateData['completed_at'] = null;
+    public function update(TaskUpdateRequest $request, Task $task): JsonResponse
+    {
+        try {
+            $this->taskRepo->update((int) $task->id, $request->validated());
+
+            return response()->json(['success' => true]);
+        } catch (\Throwable $e) {
+            Log::error('Error al actualizar tarea', [
+                'action' => 'update',
+                'task_id' => $task->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['error' => 'Error al actualizar tarea.'], 500);
         }
-
-        $task->update($updateData);
-
-        return response()->json([
-            'success' => true,
-            'completed_at' => $task->completed_at ? $task->completed_at->format('d/m/Y H:i') : null
-        ]);
     }
 
-    public function edit(Task $task)
+    public function destroy(Task $task): JsonResponse
     {
-        return response()->json($task);
-    }
-
-    public function update(Request $request, Task $task)
-    {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'user_id' => 'required|exists:users,id',
-            'priority' => 'required|in:low,medium,high,urgent',
-            'due_date' => 'nullable|date',
-        ]);
-
-        $task->update([
-            'title' => $request->title,
-            'description' => $request->description,
-            'user_id' => $request->user_id,
-            'priority' => $request->priority,
-            'due_date'    => $request->due_date,
-        ]);
-
-        return response()->json(['success' => true]);
-    }
-
-    public function destroy(Task $task)
-    {
-        if (!auth()->user()->hasRole('Admin')) {
+        $user = auth()->user();
+        if (!$user || !method_exists($user, 'hasRole') || !$user->hasRole('Admin')) {
             return response()->json(['error' => 'No tienes permisos para borrar tareas.'], 403);
         }
 
-        $task->delete();
+        try {
+            $this->taskRepo->delete((int) $task->id);
 
-        return response()->json(['success' => 'Tarea eliminada correctamente.']);
+            return response()->json(['success' => 'Tarea eliminada correctamente.']);
+        } catch (\Throwable $e) {
+            Log::error('Error al eliminar tarea', [
+                'action' => 'destroy',
+                'task_id' => $task->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['error' => 'Error al eliminar tarea.'], 500);
+        }
     }
 }

@@ -26,22 +26,11 @@ class WeeklyPlanController extends Controller
         $this->weeklyPlanRepo = $weeklyPlanRepo;
     }
 
-    /**
-     * Muestra la vista principal de planes de trabajo semanales.
-     *
-     * @return View
-     */
     public function index(): View
     {
         return view('weekly_plans.index');
     }
 
-    /**
-     * Retorna el listado de planes semanales en formato JSON para DataTables.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
     public function datatable(Request $request): JsonResponse
     {
         try {
@@ -63,12 +52,6 @@ class WeeklyPlanController extends Controller
         }
     }
 
-    /**
-     * Genera y transmite el reporte en PDF del plan de trabajo semanal.
-     *
-     * @param int|string $id
-     * @return mixed
-     */
     public function pdf($id)
     {
         try {
@@ -94,12 +77,6 @@ class WeeklyPlanController extends Controller
         }
     }
 
-    /**
-     * Elimina el plan semanal especificado si el usuario cuenta con el permiso requerido.
-     *
-     * @param int|string $id
-     * @return JsonResponse
-     */
     public function destroy($id): JsonResponse
     {
         if (Gate::denies('laboratory.delete')) {

@@ -2,218 +2,309 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Http\Repositories\Vitayela\VitayelaRepository;
+use App\Http\Requests\Vitayela\VitayelaInventoryOutputRequest;
+use App\Http\Requests\Vitayela\VitayelaInventoryStoreRequest;
+use App\Http\Requests\Vitayela\VitayelaMaterialRequestStoreRequest;
+use App\Http\Requests\Vitayela\VitayelaProductionStoreRequest;
+use App\Http\Resources\Vitayela\VitayelaInventoryResource;
+use App\Http\Resources\Vitayela\VitayelaMovementResource;
+use App\Http\Resources\Vitayela\VitayelaProductionResource;
+use App\Traits\UtilResponse;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use App\Models\VitayelaProduction;
-use App\Models\VitayelaInventory;
-use App\Models\VitayelaInventoryMovement;
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 
 class VitayelaController extends Controller
 {
-    public function index()
+    protected UtilResponse $utilResponse;
+    protected VitayelaRepository $vitayelaRepo;
+
+    public function __construct(UtilResponse $utilResponse, VitayelaRepository $vitayelaRepo)
     {
-        $productions = VitayelaProduction::orderBy('vitayela_production_id', 'desc')->get();
-        $inventories = VitayelaInventory::orderBy('vitayela_inventory_id', 'desc')->get();
-        $db_products = \App\Models\Product::orderBy('name', 'asc')->get();
+        $this->utilResponse = $utilResponse;
+        $this->vitayelaRepo = $vitayelaRepo;
+    }
+
+    public function index(): View
+    {
+        $productions = $this->vitayelaRepo->getAllProductions();
+        $inventories = $this->vitayelaRepo->getAllInventories();
+        $db_products = $this->vitayelaRepo->getAllProducts();
 
         return view('production.vitayela.index', compact('productions', 'inventories', 'db_products'));
     }
 
-    public function storeProduction(Request $request)
+    public function storeProduction(VitayelaProductionStoreRequest $request): JsonResponse|RedirectResponse
     {
-        $request->validate([
-            'fecha_preparacion' => 'nullable|date',
-            'kg_preparados' => 'nullable|numeric|min:0',
-            'fecha_ensacado' => 'nullable|date',
-            'kg_ensacados' => 'nullable|numeric|min:0',
-            'num_sacos' => 'nullable|integer|min:0',
-            'descripcion' => 'nullable|string'
-        ]);
-
-        VitayelaProduction::create($request->all());
-
-        if ($request->ajax()) {
-            return response()->json(['message' => 'Registro agregado correctamente.']);
-        }
-        return redirect()->route('production.vitayela.index')->with('success', 'Registro de producción agregado correctamente.');
-    }
-
-    public function updateProduction(Request $request, $id)
-    {
-        $request->validate([
-            'fecha_preparacion' => 'nullable|date',
-            'kg_preparados' => 'nullable|numeric|min:0',
-            'fecha_ensacado' => 'nullable|date',
-            'kg_ensacados' => 'nullable|numeric|min:0',
-            'num_sacos' => 'nullable|integer|min:0',
-            'descripcion' => 'nullable|string'
-        ]);
-
-        $production = VitayelaProduction::findOrFail($id);
-        $production->update($request->all());
-
-        if ($request->ajax()) {
-            return response()->json(['message' => 'Registro actualizado correctamente.']);
-        }
-        return redirect()->route('production.vitayela.index')->with('success', 'Registro de producción actualizado correctamente.');
-    }
-
-    public function destroyProduction($id)
-    {
-        $production = VitayelaProduction::findOrFail($id);
-        $production->delete();
-
-        if (request()->ajax()) {
-            return response()->json(['message' => 'Registro eliminado correctamente.']);
-        }
-        return redirect()->route('production.vitayela.index')->with('success', 'Registro de producción eliminado.');
-    }
-
-    public function storeInventory(Request $request)
-    {
-        $request->validate([
-            'producto_descripcion' => 'required|string',
-            'cantidad' => 'nullable|numeric|min:0',
-            'unidad' => 'nullable|string',
-            'stock_min' => 'nullable|numeric|min:0'
-        ]);
-
-        $inv = VitayelaInventory::create($request->all());
-
-        if ($inv->cantidad > 0) {
-            VitayelaInventoryMovement::create([
-                'vitayela_inventory_id' => $inv->vitayela_inventory_id,
-                'tipo' => 'Entrada',
-                'cantidad' => $inv->cantidad
-            ]);
-        }
-
-        if ($request->ajax()) {
-            return response()->json(['message' => 'Producto agregado correctamente.']);
-        }
-        return redirect()->route('production.vitayela.index')->with('success', 'Registro de inventario agregado correctamente.');
-    }
-
-    public function updateInventory(Request $request, $id)
-    {
-        $request->validate([
-            'producto_descripcion' => 'required|string',
-            'cantidad' => 'nullable|numeric|min:0',
-            'unidad' => 'nullable|string',
-            'stock_min' => 'nullable|numeric|min:0'
-        ]);
-
-        $inventory = VitayelaInventory::findOrFail($id);
-        $oldCantidad = $inventory->cantidad;
-        $inventory->update($request->all());
-
-        if ($inventory->cantidad != $oldCantidad) {
-            $diff = $inventory->cantidad - $oldCantidad;
-            VitayelaInventoryMovement::create([
-                'vitayela_inventory_id' => $inventory->vitayela_inventory_id,
-                'tipo' => $diff > 0 ? 'Entrada' : 'Ajuste',
-                'cantidad' => abs($diff)
-            ]);
-        }
-
-        if ($request->ajax()) {
-            return response()->json(['message' => 'Producto actualizado correctamente.']);
-        }
-        return redirect()->route('production.vitayela.index')->with('success', 'Registro de inventario actualizado correctamente.');
-    }
-
-    public function destroyInventory($id)
-    {
-        $inventory = VitayelaInventory::findOrFail($id);
-        $inventory->delete();
-
-        if (request()->ajax()) {
-            return response()->json(['message' => 'Producto eliminado correctamente.']);
-        }
-        return redirect()->route('production.vitayela.index')->with('success', 'Registro de inventario eliminado.');
-    }
-
-    public function outputInventory(Request $request, $id)
-    {
-        $request->validate([
-            'cantidad_salida' => 'required|numeric|min:0.01'
-        ]);
-
-        $inventory = VitayelaInventory::findOrFail($id);
-        
-        if ($request->cantidad_salida > $inventory->cantidad) {
-            return response()->json(['message' => 'La cantidad de salida no puede ser mayor a la cantidad en stock.'], 400);
-        }
-
-        $inventory->cantidad -= $request->cantidad_salida;
-        $inventory->save();
-
-        VitayelaInventoryMovement::create([
-            'vitayela_inventory_id' => $inventory->vitayela_inventory_id,
-            'tipo' => 'Salida',
-            'cantidad' => $request->cantidad_salida
-        ]);
-
-        $alert = false;
-        $message = 'Salida registrada correctamente.';
-
-        if ($inventory->cantidad <= $inventory->stock_min) {
-            $alert = true;
-            $message = 'Salida registrada. ALERTA: El producto ha alcanzado su stock mínimo, es necesario solicitar más.';
-        }
-
-        return response()->json([
-            'message' => $message,
-            'alert' => $alert
-        ]);
-    }
-
-    public function getMovements($id)
-    {
-        $movements = VitayelaInventoryMovement::where('vitayela_inventory_id', $id)
-            ->orderBy('movement_id', 'desc')
-            ->get();
-            
-        return response()->json($movements);
-    }
-
-    public function storeMaterialRequest(Request $request)
-    {
-        $request->validate([
-            'applicant_name' => 'required|string|max:100',
-            'comments' => 'nullable|string',
-            'products' => 'required|array|min:1',
-            'products.*.name' => 'required|string|max:255',
-            'products.*.quantity' => 'required|numeric|min:0.01',
-        ]);
-
         try {
-            \DB::transaction(function () use ($request) {
-                $materialRequest = \App\Models\ProductionMaterialRequest::create([
-                    'area' => 'vitayela',
-                    'applicant_name' => $request->applicant_name,
-                    'status' => 'Pendiente',
-                    'comments' => $request->comments
-                ]);
+            $production = $this->vitayelaRepo->storeProduction($request->validated());
 
-                foreach ($request->products as $prod) {
-                    \App\Models\ProductionMaterialRequestItem::create([
-                        'request_id' => $materialRequest->id,
-                        'product_name' => $prod['name'],
-                        'quantity' => $prod['quantity'],
-                        'dispatched_quantity' => 0
-                    ]);
-                }
-            });
-
-            if ($request->ajax()) {
-                return response()->json(['message' => 'Solicitud enviada a almacén correctamente.']);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Registro agregado correctamente.',
+                    'data' => new VitayelaProductionResource($production),
+                ], 201);
             }
+
+            return redirect()->route('production.vitayela.index')
+                ->with('success', 'Registro de producción agregado correctamente.');
+        } catch (\Throwable $e) {
+            Log::error('Error al guardar producción de vitayela', [
+                'action' => 'storeProduction',
+                'user_id' => auth()->id(),
+                'payload' => $request->all(),
+                'error' => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al registrar producción.', 500);
+            }
+
+            return back()->withErrors('Error al registrar producción.');
+        }
+    }
+
+    public function updateProduction(VitayelaProductionStoreRequest $request, $id): JsonResponse|RedirectResponse
+    {
+        try {
+            $production = $this->vitayelaRepo->updateProduction((int) $id, $request->validated());
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Registro actualizado correctamente.',
+                    'data' => new VitayelaProductionResource($production),
+                ]);
+            }
+
+            return redirect()->route('production.vitayela.index')
+                ->with('success', 'Registro de producción actualizado correctamente.');
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['message' => 'Registro no encontrado.'], 404);
+        } catch (\Throwable $e) {
+            Log::error('Error al actualizar producción de vitayela', [
+                'action' => 'updateProduction',
+                'id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al actualizar producción.', 500);
+            }
+
+            return back()->withErrors('Error al actualizar producción.');
+        }
+    }
+
+    public function destroyProduction($id): JsonResponse|RedirectResponse
+    {
+        try {
+            $this->vitayelaRepo->destroyProduction((int) $id);
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Registro eliminado correctamente.',
+                ]);
+            }
+
+            return redirect()->route('production.vitayela.index')
+                ->with('success', 'Registro de producción eliminado.');
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['message' => 'Registro no encontrado.'], 404);
+        } catch (\Throwable $e) {
+            Log::error('Error al eliminar producción de vitayela', [
+                'action' => 'destroyProduction',
+                'id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al eliminar producción.', 500);
+            }
+
+            return back()->withErrors('Error al eliminar producción.');
+        }
+    }
+
+    public function storeInventory(VitayelaInventoryStoreRequest $request): JsonResponse|RedirectResponse
+    {
+        try {
+            $inv = $this->vitayelaRepo->storeInventory($request->validated());
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Producto agregado correctamente.',
+                    'data' => new VitayelaInventoryResource($inv),
+                ], 201);
+            }
+
+            return redirect()->route('production.vitayela.index')
+                ->with('success', 'Registro de inventario agregado correctamente.');
+        } catch (\Throwable $e) {
+            Log::error('Error al guardar inventario de vitayela', [
+                'action' => 'storeInventory',
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al agregar producto a inventario.', 500);
+            }
+
+            return back()->withErrors('Error al agregar producto a inventario.');
+        }
+    }
+
+    public function updateInventory(VitayelaInventoryStoreRequest $request, $id): JsonResponse|RedirectResponse
+    {
+        try {
+            $inventory = $this->vitayelaRepo->updateInventory((int) $id, $request->validated());
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Producto actualizado correctamente.',
+                    'data' => new VitayelaInventoryResource($inventory),
+                ]);
+            }
+
+            return redirect()->route('production.vitayela.index')
+                ->with('success', 'Registro de inventario actualizado correctamente.');
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['message' => 'Producto no encontrado.'], 404);
+        } catch (\Throwable $e) {
+            Log::error('Error al actualizar inventario de vitayela', [
+                'action' => 'updateInventory',
+                'id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al actualizar inventario.', 500);
+            }
+
+            return back()->withErrors('Error al actualizar inventario.');
+        }
+    }
+
+    public function destroyInventory($id): JsonResponse|RedirectResponse
+    {
+        try {
+            $this->vitayelaRepo->destroyInventory((int) $id);
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Producto eliminado correctamente.',
+                ]);
+            }
+
+            return redirect()->route('production.vitayela.index')
+                ->with('success', 'Registro de inventario eliminado.');
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['message' => 'Producto no encontrado.'], 404);
+        } catch (\Throwable $e) {
+            Log::error('Error al eliminar inventario de vitayela', [
+                'action' => 'destroyInventory',
+                'id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al eliminar producto.', 500);
+            }
+
+            return back()->withErrors('Error al eliminar producto.');
+        }
+    }
+
+    public function outputInventory(VitayelaInventoryOutputRequest $request, $id): JsonResponse
+    {
+        try {
+            $result = $this->vitayelaRepo->outputInventory((int) $id, (float) $request->validated('cantidad_salida'));
+
+            return response()->json([
+                'success' => true,
+                'message' => $result['message'],
+                'alert' => $result['alert'],
+            ]);
+        } catch (\DomainException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Producto no encontrado.',
+            ], 404);
+        } catch (\Throwable $e) {
+            Log::error('Error al registrar salida de inventario vitayela', [
+                'action' => 'outputInventory',
+                'id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al registrar salida de inventario.', 500);
+        }
+    }
+
+    public function getMovements($id): JsonResponse
+    {
+        try {
+            $movements = $this->vitayelaRepo->getMovements((int) $id);
+
+            return response()->json($movements);
+        } catch (\Throwable $e) {
+            Log::error('Error al obtener movimientos de inventario vitayela', [
+                'action' => 'getMovements',
+                'id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([], 500);
+        }
+    }
+
+    public function storeMaterialRequest(VitayelaMaterialRequestStoreRequest $request): JsonResponse|RedirectResponse
+    {
+        try {
+            $materialRequest = $this->vitayelaRepo->storeMaterialRequest($request->validated());
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Solicitud enviada a almacén correctamente.',
+                    'data' => $materialRequest,
+                ], 201);
+            }
+
             return redirect()->back()->with('success', 'Solicitud enviada a almacén correctamente.');
         } catch (\Throwable $e) {
-            \Log::error('Error storeMaterialRequest', ['error' => $e->getMessage()]);
-            if ($request->ajax()) {
+            Log::error('Error en storeMaterialRequest de vitayela', [
+                'action' => 'storeMaterialRequest',
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
                 return response()->json(['message' => 'Error al enviar la solicitud.'], 500);
             }
+
             return redirect()->back()->with('error', 'Error al enviar la solicitud.');
         }
     }

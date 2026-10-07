@@ -2,134 +2,111 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Http\Repositories\YeastProduction\YeastProductionRepository;
+use App\Http\Requests\YeastProduction\YeastProductionUpdateRequest;
+use App\Http\Resources\YeastProduction\YeastProductionResource;
+use App\Traits\UtilResponse;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 
-use App\Models\YeastProduction;
-use Illuminate\Support\Facades\DB;
 class YeastProductionController extends Controller
 {
-    public function index()
+    protected UtilResponse $utilResponse;
+    protected YeastProductionRepository $yeastRepo;
+
+    public function __construct(UtilResponse $utilResponse, YeastProductionRepository $yeastRepo)
     {
-        $yeastProductions = YeastProduction::with('output')->orderBy('yeast_production_id', 'desc')->get();
-        $pallets = \App\Models\Pallet::with('yeastProductions')->orderBy('pallet_id', 'desc')->get();
-        return view('production.yeast.index', compact('yeastProductions', 'pallets'));
+        $this->utilResponse = $utilResponse;
+        $this->yeastRepo = $yeastRepo;
     }
 
-    public function sendToInventory(Request $request, $id)
+    public function index(Request $request): View|AnonymousResourceCollection|JsonResponse
     {
-        $pallet = \App\Models\Pallet::findOrFail($id);
+        try {
+            $yeastProductions = $this->yeastRepo->getAllProductions();
+            $pallets = $this->yeastRepo->getAllPallets();
 
-        if ($pallet->status !== 'Cerrada' || $pallet->inventory_status !== 'Pendiente') {
-            return response()->json(['message' => 'La tarima no está disponible para enviar.'], 400);
-        }
+            if ($request->ajax() || $request->wantsJson()) {
+                return YeastProductionResource::collection($yeastProductions);
+            }
 
-        $pallet->inventory_status = 'Enviada';
-        $pallet->save();
-
-        return response()->json(['message' => 'Tarima enviada al almacén correctamente.']);
-    }
-
-    public function update(Request $request, $id)
-
-    {
-        $request->validate([
-            'internal_weight' => 'nullable|numeric|min:0',
-            'external_weight' => 'nullable|numeric|min:0',
-            'bags_natural' => 'nullable|integer|min:0',
-            'bags_mix' => 'nullable|integer|min:0',
-            'bags_white' => 'nullable|integer|min:0',
-            'finished_product_kg' => 'nullable|numeric|min:0',
-        ]);
-
-        $yeastProduction = YeastProduction::findOrFail($id);
-
-        $bagsNatural = $request->bags_natural ?? 0;
-        $bagsMix = $request->bags_mix ?? 0;
-        $bagsWhite = $request->bags_white ?? 0;
-        $bagsQuantity = $bagsNatural + $bagsMix + $bagsWhite;
-
-        DB::transaction(function () use ($request, $yeastProduction, $bagsNatural, $bagsMix, $bagsWhite, $bagsQuantity) {
-            // Update the production record
-            $yeastProduction->update([
-                'internal_weight' => $request->internal_weight,
-                'external_weight' => $request->external_weight,
-                'bags_natural' => $request->bags_natural,
-                'bags_mix' => $request->bags_mix,
-                'bags_white' => $request->bags_white,
-                'finished_product_kg' => $request->finished_product_kg,
-                'bags_quantity' => $bagsQuantity,
+            return view('production.yeast.index', compact('yeastProductions', 'pallets'));
+        } catch (\Throwable $e) {
+            Log::error('Error al listar producción de levadura', [
+                'action' => 'index',
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
             ]);
 
-            // Reverse previous allocations
-            $pivots = DB::table('pallet_yeast_production')->where('yeast_production_id', $yeastProduction->yeast_production_id)->get();
-            foreach ($pivots as $pivot) {
-                $pallet = \App\Models\Pallet::find($pivot->pallet_id);
-                if ($pallet) {
-                    $pallet->current_sacks -= $pivot->sacks_contributed;
-                    $pallet->status = 'Abierta';
-                    $pallet->save();
-                }
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al consultar producción de levadura.', 500);
             }
-            DB::table('pallet_yeast_production')->where('yeast_production_id', $yeastProduction->yeast_production_id)->delete();
 
-            // Allocate new sacks
-            $this->allocateSacks($yeastProduction->yeast_production_id, 'Natural', $bagsNatural);
-            $this->allocateSacks($yeastProduction->yeast_production_id, 'Mix', $bagsMix);
-            $this->allocateSacks($yeastProduction->yeast_production_id, 'Blanca', $bagsWhite);
-        });
-
-        return response()->json([
-            'message' => 'Registro de producción de levadura actualizado correctamente.'
-        ]);
-    }
-
-    private function getNextPalletNumber($color_type)
-    {
-        $prefix = '';
-        if ($color_type == 'Natural') $prefix = 'TAR-NAT-';
-        elseif ($color_type == 'Mix') $prefix = 'TAR-MIX-';
-        elseif ($color_type == 'Blanca') $prefix = 'TAR-BLC-';
-
-        $last = \App\Models\Pallet::where('color_type', $color_type)->orderBy('pallet_id', 'desc')->first();
-        if ($last) {
-            $num = (int) str_replace($prefix, '', $last->pallet_number);
-            return $prefix . ($num + 1);
+            return back()->withErrors('Error al consultar producción de levadura.');
         }
-        return $prefix . '1';
     }
 
-    private function allocateSacks($yeast_production_id, $color_type, $sacks_to_allocate)
+    public function sendToInventory(Request $request, $id): JsonResponse
     {
-        while ($sacks_to_allocate > 0) {
-            $pallet = \App\Models\Pallet::where('color_type', $color_type)->where('status', 'Abierta')->first();
+        try {
+            $this->yeastRepo->sendPalletToInventory((int) $id);
 
-            if (!$pallet) {
-                $pallet = new \App\Models\Pallet();
-                $pallet->pallet_number = $this->getNextPalletNumber($color_type);
-                $pallet->color_type = $color_type;
-                $pallet->current_sacks = 0;
-                $pallet->status = 'Abierta';
-                $pallet->save();
-            }
-
-            $available_space = 40 - $pallet->current_sacks;
-            $to_add = min($available_space, $sacks_to_allocate);
-
-            $pallet->current_sacks += $to_add;
-            if ($pallet->current_sacks >= 40) {
-                $pallet->status = 'Cerrada';
-            }
-            $pallet->save();
-
-            DB::table('pallet_yeast_production')->insert([
-                'pallet_id' => $pallet->pallet_id,
-                'yeast_production_id' => $yeast_production_id,
-                'sacks_contributed' => $to_add,
-                'created_at' => now(),
-                'updated_at' => now(),
+            return response()->json([
+                'success' => true,
+                'message' => 'Tarima enviada al almacén correctamente.',
+            ]);
+        } catch (\DomainException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tarima no encontrada.',
+            ], 404);
+        } catch (\Throwable $e) {
+            Log::error('Error al enviar tarima a inventario', [
+                'action' => 'sendToInventory',
+                'id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
             ]);
 
-            $sacks_to_allocate -= $to_add;
+            return $this->utilResponse->errorResponse('Error al enviar tarima a almacén.', 500);
+        }
+    }
+
+    public function update(YeastProductionUpdateRequest $request, $id): JsonResponse
+    {
+        try {
+            $updated = $this->yeastRepo->updateProduction((int) $id, $request->validated());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Registro de producción de levadura actualizado correctamente.',
+                'data' => new YeastProductionResource($updated),
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Registro de producción no encontrado.',
+            ], 404);
+        } catch (\Throwable $e) {
+            Log::error('Error al actualizar registro de producción de levadura', [
+                'action' => 'update',
+                'id' => $id,
+                'user_id' => auth()->id(),
+                'payload' => $request->all(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al actualizar registro de producción.', 500);
         }
     }
 }
