@@ -182,6 +182,8 @@ Route::middleware([
     Route::get('/getWarehouse', [WarehouseController::class, 'getWarehouse'])->middleware('can:warehouse.show')->name('warehouse.getWarehouse');
     Route::get('/getInfoLocation', [WarehouseController::class, 'getInfoLocation'])->middleware('can:warehouse.show')->name('warehouse.getInfoLocation');
     Route::post('/temperature', [WarehouseController::class, 'temperature'])->middleware('can:warehouse.show')->name('warehouse.temperature');
+    Route::get('/warehouse/production-transfers', [WarehouseController::class, 'pendingTransfers'])->middleware('can:warehouse.show')->name('warehouse.pendingTransfers');
+    Route::post('/warehouse/production-transfers/{id}/receive', [WarehouseController::class, 'receiveTransfer'])->middleware('can:warehouse.show')->name('warehouse.receiveTransfer');
     
     // Production Requests
     Route::get('/warehouse/production-requests', [WarehouseController::class, 'productionRequests'])->middleware('can:warehouse.show')->name('warehouse.productionRequests');
@@ -569,6 +571,7 @@ Route::prefix('laboratory/equipments')->group(function () {
         Route::put('/inventories/{id}', [FertilController::class, 'updateInventory'])->name('updateInventory');
         Route::delete('/inventories/{id}', [FertilController::class, 'destroyInventory'])->name('destroyInventory');
         Route::post('/inventories/{id}/output', [FertilController::class, 'outputInventory'])->name('outputInventory');
+        Route::post('/inventories/{id}/transfer-to-warehouse', [FertilController::class, 'transferToWarehouse'])->name('transferToWarehouse');
         Route::get('/inventories/{id}/movements', [FertilController::class, 'getMovements'])->name('getMovements');
     });
 
@@ -583,6 +586,7 @@ Route::prefix('laboratory/equipments')->group(function () {
         Route::put('/inventories/{id}', [VitayelaController::class, 'updateInventory'])->name('updateInventory');
         Route::delete('/inventories/{id}', [VitayelaController::class, 'destroyInventory'])->name('destroyInventory');
         Route::post('/inventories/{id}/output', [VitayelaController::class, 'outputInventory'])->name('outputInventory');
+        Route::post('/inventories/{id}/transfer-to-warehouse', [VitayelaController::class, 'transferToWarehouse'])->name('transferToWarehouse');
         Route::get('/inventories/{id}/movements', [VitayelaController::class, 'getMovements'])->name('getMovements');
         Route::post('/request-material', [VitayelaController::class, 'storeMaterialRequest'])->name('storeMaterialRequest');
     });

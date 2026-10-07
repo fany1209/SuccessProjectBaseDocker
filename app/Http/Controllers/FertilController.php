@@ -413,6 +413,85 @@ class FertilController extends Controller
         }
     }
 
+    public function transferToWarehouse(Request $request, $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'product_id' => 'required|exists:products,product_id',
+            'cantidad_salida' => 'required|numeric|min:0.01',
+            'peso_por_unidad' => 'required|numeric|min:0.01',
+            'unit_type'       => 'nullable|string|max:50',
+        ]);
+
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($id, $validated) {
+                // This implicitly uses outputInventory logic or does it manually inside the transaction
+                $inventory = \App\Models\FertilInventory::where('fertil_inventory_id', $id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($validated['cantidad_salida'] > $inventory->cantidad) {
+                    throw new DomainException('La cantidad a enviar no puede ser mayor a la cantidad en stock.');
+                }
+
+                $inventory->cantidad -= $validated['cantidad_salida'];
+                $inventory->save();
+
+                \App\Models\FertilInventoryMovement::create([
+                    'fertil_inventory_id' => $inventory->fertil_inventory_id,
+                    'tipo'                => 'Salida',
+                    'cantidad'            => $validated['cantidad_salida'],
+                ]);
+
+                \App\Models\ProductionWarehouseTransfer::create([
+                    'area' => 'fertil',
+                    'production_id' => $id,
+                    'product_id' => $validated['product_id'],
+                    'product_name' => $inventory->producto_descripcion,
+                    'quantity' => $validated['cantidad_salida'],
+                    'unit_type' => $validated['unit_type'] ?? null,
+                    'weight_per_unit' => $validated['peso_por_unidad'],
+                    'total_weight' => $validated['cantidad_salida'] * $validated['peso_por_unidad'],
+                    'status' => 'Pendiente',
+                    'created_by' => auth()->id(),
+                ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'flag'    => true,
+                'code'    => 200,
+                'message' => 'Producto enviado a almacén exitosamente.',
+                'alert'   => false,
+                'data'    => null,
+            ], 200);
+        } catch (DomainException $e) {
+            return response()->json([
+                'success' => false,
+                'flag'    => false,
+                'code'    => 400,
+                'message' => $e->getMessage(),
+                'error'   => $e->getMessage(),
+                'data'    => null,
+            ], 400);
+        } catch (\Throwable $e) {
+            Log::error('Error al transferir a almacen en fertil', [
+                'action'  => 'FertilController@transferToWarehouse',
+                'id'      => $id,
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'flag'    => false,
+                'code'    => 500,
+                'message' => 'Error al procesar la transferencia.',
+                'error'   => 'Error interno al procesar transferencia.',
+                'data'    => null,
+            ], 500);
+        }
+    }
+
     public function getMovements($id): JsonResponse
     {
         try {
