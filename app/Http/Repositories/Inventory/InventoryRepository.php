@@ -578,6 +578,11 @@ class InventoryRepository
             ->where('inventory_status', 'Enviada')
             ->orderBy('pallet_id', 'desc')
             ->get();
+            
+        $transfers = \App\Models\ProductionWarehouseTransfer::with('product')
+            ->where('status', 'Pendiente')
+            ->orderBy('transfer_id', 'desc')
+            ->get();
 
         foreach ($pallets as $pallet) {
             $calculatedWeight = 0;
@@ -594,7 +599,7 @@ class InventoryRepository
         $suppliers = Supplier::select('supplier_id', 'name', 'supplier_code')->get();
         $concepts = Concept::select('concept_id', 'name')->get();
         $transport_lines = TransportLine::select('transport_line_id', 'name')->get();
-        $products = Product::select('product_id', 'name', 'unit')->get();
+        $products = Product::select('product_id', 'name', 'unit', 'batch_code', 'sku')->get();
 
         $internalSupplier = Supplier::where('name', 'Producción Interna')
             ->orWhere('supplier_code', 'PROD-INT')
@@ -628,8 +633,13 @@ class InventoryRepository
             ->orWhere('name', 'like', '%Yeacali%')
             ->first();
 
+        $transfers = \App\Models\ProductionWarehouseTransfer::with('product')
+            ->where('status', 'Pendiente')
+            ->orderBy('transfer_id', 'desc')
+            ->get();
+
         return compact(
-            'pallets', 'warehouses', 'locations', 'suppliers', 'concepts',
+            'pallets', 'transfers', 'warehouses', 'locations', 'suppliers', 'concepts',
             'transport_lines', 'products', 'internalSupplier', 'internalConcept', 'defaultProduct'
         );
     }
