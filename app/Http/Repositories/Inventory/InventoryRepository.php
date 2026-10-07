@@ -745,12 +745,6 @@ class InventoryRepository
         });
     }
 
-    /**
-     * Resuelve rutas absolutas hacia public_html de forma desacoplada.
-     *
-     * @param string $subpath
-     * @return string
-     */
     protected function getPublicHtmlPath(string $subpath = ''): string
     {
         $base = base_path('../public_html');

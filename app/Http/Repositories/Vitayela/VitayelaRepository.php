@@ -5,6 +5,7 @@ namespace App\Http\Repositories\Vitayela;
 use App\Models\Product;
 use App\Models\ProductionMaterialRequest;
 use App\Models\ProductionMaterialRequestItem;
+use App\Models\ProductionWarehouseTransfer;
 use App\Models\VitayelaInventory;
 use App\Models\VitayelaInventoryMovement;
 use App\Models\VitayelaProduction;
@@ -17,17 +18,20 @@ class VitayelaRepository
     protected VitayelaInventory $inventoryModel;
     protected VitayelaInventoryMovement $movementModel;
     protected ProductionMaterialRequest $materialRequestModel;
+    protected ProductionWarehouseTransfer $transferModel;
 
     public function __construct(
         VitayelaProduction $productionModel,
         VitayelaInventory $inventoryModel,
         VitayelaInventoryMovement $movementModel,
-        ProductionMaterialRequest $materialRequestModel
+        ProductionMaterialRequest $materialRequestModel,
+        ProductionWarehouseTransfer $transferModel
     ) {
         $this->productionModel = $productionModel;
         $this->inventoryModel = $inventoryModel;
         $this->movementModel = $movementModel;
         $this->materialRequestModel = $materialRequestModel;
+        $this->transferModel = $transferModel;
     }
 
     public function getAllProductions(): Collection
@@ -165,6 +169,45 @@ class VitayelaRepository
                 'message' => $message,
                 'alert' => $alert,
             ];
+        });
+    }
+
+    public function transferToWarehouse(int $id, array $data, int $userId): ProductionWarehouseTransfer
+    {
+        return DB::transaction(function () use ($id, $data, $userId) {
+            $inventory = $this->inventoryModel->newQuery()
+                ->lockForUpdate()
+                ->findOrFail($id);
+
+            $cantidadSalida = (float) $data['cantidad_salida'];
+
+            if ($cantidadSalida > (float) $inventory->cantidad) {
+                throw new \DomainException('La cantidad a enviar no puede ser mayor a la cantidad en stock.');
+            }
+
+            $inventory->cantidad -= $cantidadSalida;
+            $inventory->save();
+
+            $this->movementModel->create([
+                'vitayela_inventory_id' => $inventory->vitayela_inventory_id,
+                'tipo' => 'Salida',
+                'cantidad' => $cantidadSalida,
+            ]);
+
+            $pesoPorUnidad = (float) $data['peso_por_unidad'];
+
+            return $this->transferModel->create([
+                'area' => 'vitayela',
+                'production_id' => $id,
+                'product_id' => $data['product_id'],
+                'product_name' => $inventory->producto_descripcion,
+                'unit_type' => $data['unit_type'] ?? null,
+                'quantity' => $cantidadSalida,
+                'weight_per_unit' => $pesoPorUnidad,
+                'total_weight' => $cantidadSalida * $pesoPorUnidad,
+                'status' => 'Pendiente',
+                'created_by' => $userId,
+            ]);
         });
     }
 

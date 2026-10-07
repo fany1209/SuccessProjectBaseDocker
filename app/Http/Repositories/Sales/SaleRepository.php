@@ -18,6 +18,12 @@ use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Color;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 class SaleRepository
 {
@@ -1012,5 +1018,242 @@ class SaleRepository
             ->whereDate('almacen_postponed_date', '<=', $today)
             ->select('sale_id', 'folio', 'almacen_comment', 'almacen_postponed_date')
             ->get();
+    }
+
+    public function getSalesForExcel(array $filters = [], ?User $user = null): \Illuminate\Support\Collection
+    {
+        $sector = $filters['sector'] ?? null;
+        $search = $filters['search'] ?? null;
+        $clients = $filters['clients'] ?? null;
+        $seller = $filters['seller'] ?? null;
+        $saleType = $filters['sale_type'] ?? null;
+        $dateFrom = $filters['date_from'] ?? null;
+        $dateTo = $filters['date_to'] ?? null;
+
+        $query = DB::table('sales')
+            ->leftJoin('sectors', 'sectors.sector_id', '=', 'sales.sector_id')
+            ->leftJoin('customers', 'customers.customer_id', '=', 'sales.customer_id')
+            ->leftJoin('prospects', 'prospects.prospect_id', '=', 'sales.prospect_id')
+            ->leftJoin('sales_status', 'sales_status.sales_status_id', '=', 'sales.sales_status_id')
+            ->leftJoin('sale_detail', 'sale_detail.sale_id', '=', 'sales.sale_id')
+            ->select(
+                'sales.sale_id',
+                'sales.folio',
+                'sales.date',
+                'sales.seller',
+                'sectors.name as sector_name',
+                DB::raw('COALESCE(customers.name, prospects.name, "—") as client_name'),
+                'sales.sale_type',
+                'sales.invoice',
+                'sales.purchase_order',
+                'sales_status.name as status_name',
+                'sales.is_customer',
+                DB::raw('COUNT(sale_detail.sale_detail_id) as total_products'),
+                DB::raw('COALESCE(SUM(CASE WHEN sale_detail.has_tax = 1 THEN sale_detail.quantity * sale_detail.cost * 1.16 ELSE sale_detail.quantity * sale_detail.cost END), 0) as total_amount')
+            )
+            ->groupBy(
+                'sales.sale_id',
+                'sales.folio',
+                'sales.date',
+                'sales.seller',
+                'sectors.name',
+                'customers.name',
+                'prospects.name',
+                'sales.sale_type',
+                'sales.invoice',
+                'sales.purchase_order',
+                'sales_status.name',
+                'sales.is_customer'
+            )
+            ->orderBy('sales.folio', 'desc');
+
+        if (isset($clients) && $clients !== '') {
+            if ((string) $clients === '1') {
+                $query->where('sales.is_customer', 1);
+            } elseif ((string) $clients === '0') {
+                $query->where('sales.is_customer', 0);
+            }
+        }
+
+        if (!empty($sector)) {
+            $query->where('sales.sector_id', $sector);
+        }
+
+        if (!empty($seller)) {
+            $query->where('sales.seller', 'like', '%' . $seller . '%');
+        }
+
+        if (!empty($saleType)) {
+            $query->where('sales.sale_type', 'like', '%' . $saleType . '%');
+        }
+
+        if (!empty($dateFrom)) {
+            $query->whereDate('sales.date', '>=', $dateFrom);
+        }
+
+        if (!empty($dateTo)) {
+            $query->whereDate('sales.date', '<=', $dateTo);
+        }
+
+        if (!empty($search)) {
+            $searchStr = trim($search);
+            $query->where(function ($q) use ($searchStr) {
+                $q->where('sectors.name', 'like', '%' . $searchStr . '%')
+                    ->orWhere('customers.name', 'like', '%' . $searchStr . '%')
+                    ->orWhere('prospects.name', 'like', '%' . $searchStr . '%')
+                    ->orWhere('sales.seller', 'like', '%' . $searchStr . '%')
+                    ->orWhere('sales.folio', 'like', '%' . $searchStr . '%')
+                    ->orWhere('sales.invoice', 'like', '%' . $searchStr . '%')
+                    ->orWhere('sales.purchase_order', 'like', '%' . $searchStr . '%');
+            });
+        }
+
+        if ($user && method_exists($user, 'hasRole') && !$user->hasRole('Admin')) {
+            $query->where('sales.user_id', $user->id);
+        }
+
+        return $query->get();
+    }
+
+    public function getSpreadsheet(array $filters = [], ?User $user = null): Spreadsheet
+    {
+        $sales = $this->getSalesForExcel($filters, $user);
+
+        $spreadsheet = new Spreadsheet();
+        $spreadsheet->getDefaultStyle()->getFont()->setName('Arial')->setSize(10);
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Ventas');
+
+        // Dynamic Title Row 1
+        $titleStr = 'REPORTE GENERAL DE VENTAS';
+        $dateFrom = $filters['date_from'] ?? null;
+        $dateTo = $filters['date_to'] ?? null;
+        if ($dateFrom && $dateTo) {
+            $titleStr .= ' (' . date('d/m/Y', strtotime($dateFrom)) . ' AL ' . date('d/m/Y', strtotime($dateTo)) . ')';
+        } elseif ($dateFrom) {
+            $titleStr .= ' (DESDE ' . date('d/m/Y', strtotime($dateFrom)) . ')';
+        } elseif ($dateTo) {
+            $titleStr .= ' (HASTA ' . date('d/m/Y', strtotime($dateTo)) . ')';
+        }
+
+        $headers = [
+            'Folio',
+            'Fecha',
+            'Vendedor',
+            'Categoría',
+            'Cliente',
+            'Tipo de Venta',
+            'Factura',
+            'Orden de Compra',
+            'Productos',
+            'Total',
+            'Estatus',
+        ];
+
+        $lastCol = chr(ord('A') + count($headers) - 1);
+
+        // Row 1: Title
+        $sheet->setCellValue('A1', $titleStr);
+        $sheet->mergeCells('A1:' . $lastCol . '1');
+        $sheet->getStyle('A1:' . $lastCol . '1')->applyFromArray([
+            'font'      => [
+                'bold'  => true,
+                'size'  => 14,
+                'color' => ['argb' => Color::COLOR_BLACK],
+            ],
+            'fill'      => [
+                'fillType'   => Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'FF92D050'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical'   => Alignment::VERTICAL_CENTER,
+            ],
+        ]);
+        $sheet->getRowDimension(1)->setRowHeight(25);
+
+        // Row 2: Headers
+        $columnLetter = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($columnLetter . '2', $header);
+            $columnLetter++;
+        }
+
+        $sheet->getStyle('A2:' . $lastCol . '2')->applyFromArray([
+            'font'      => [
+                'bold'   => true,
+                'italic' => true,
+                'color'  => ['argb' => Color::COLOR_BLACK],
+            ],
+            'fill'      => [
+                'fillType'   => Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'FFA9D08E'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical'   => Alignment::VERTICAL_CENTER,
+            ],
+        ]);
+        $sheet->getRowDimension(2)->setRowHeight(20);
+
+        // Row 3 onwards: Data rows
+        $row = 3;
+        foreach ($sales as $sale) {
+            $formattedDate = $sale->date ? date('d/m/Y', strtotime($sale->date)) : '—';
+            $totalAmount = round((float) $sale->total_amount, 2);
+
+            $sheet->setCellValue('A' . $row, $sale->folio ?: '—');
+            $sheet->setCellValue('B' . $row, $formattedDate);
+            $sheet->setCellValue('C' . $row, $sale->seller ?: '—');
+            $sheet->setCellValue('D' . $row, $sale->sector_name ?: '—');
+            $sheet->setCellValue('E' . $row, $sale->client_name ?: '—');
+            $sheet->setCellValue('F' . $row, $sale->sale_type ?: '—');
+            $sheet->setCellValue('G' . $row, $sale->invoice ?: '—');
+            $sheet->setCellValue('H' . $row, $sale->purchase_order ?: '—');
+            $sheet->setCellValue('I' . $row, (int) $sale->total_products);
+            $sheet->setCellValue('J' . $row, $totalAmount);
+
+            // Estatus styling
+            $estatusCell = 'K' . $row;
+            $statusName = $sale->status_name ?: 'EN PROCESO';
+            $statusUpper = strtoupper($statusName);
+            $sheet->setCellValue($estatusCell, $statusUpper);
+
+            if (str_contains($statusUpper, 'CANCELAD')) {
+                $sheet->getStyle($estatusCell)->getFont()->getColor()->setARGB(Color::COLOR_RED);
+                $sheet->getStyle($estatusCell)->getFont()->setBold(true);
+            } elseif (str_contains($statusUpper, 'FINALIZAD') || str_contains($statusUpper, 'PAGAD')) {
+                $sheet->getStyle($estatusCell)->getFont()->getColor()->setARGB('FF157347');
+                $sheet->getStyle($estatusCell)->getFont()->setBold(true);
+            } elseif (str_contains($statusUpper, 'PROCESO') || str_contains($statusUpper, 'PENDIENT')) {
+                $sheet->getStyle($estatusCell)->getFont()->getColor()->setARGB('FF0000FF');
+            }
+
+            // Currency formatting
+            $sheet->getStyle('J' . $row)->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_CURRENCY_USD);
+
+            // Borders
+            $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->applyFromArray([
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color'       => ['argb' => 'FFCCCCCC'],
+                    ],
+                ],
+            ]);
+
+            // Alignment
+            $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+            $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            $row++;
+        }
+
+        // AutoSize columns
+        foreach (range('A', $lastCol) as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        return $spreadsheet;
     }
 }

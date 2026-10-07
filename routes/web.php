@@ -280,6 +280,7 @@ Route::middleware([
     Route::delete('/deleteFile', [ProductController::class, 'deleteFile'])->middleware('can:products.show')->name('catalog.deleteFile');
     
     //Sales
+    Route::get('/sales/export-excel', [SalesController::class, 'exportExcel'])->middleware('can:sales.show')->name('sales.exportExcel');
     Route::resource('sales', SalesController::class)->middleware('can:sales.show');
     Route::get('/getSales', [SalesController::class, 'getSales'])->middleware('can:sales.show')->name('sales.getSales');
     Route::delete('/deleteDetail', [SalesController::class, 'deleteDetail'])->middleware('can:sales.show')->name('sales.deleteDetail');

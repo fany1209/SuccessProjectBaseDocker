@@ -28,7 +28,7 @@ beforeEach(function () {
         'code' => 'V' . rand(10, 99),
     ]);
 
-    $randomSuffix = rand(10000, 99999);
+    $randomSuffix = rand(100000000, 999999999);
     $this->customer = Customer::create([
         'sector_id'     => $this->sector->sector_id,
         'customer_code' => 'SCV' . $randomSuffix,
@@ -73,8 +73,8 @@ beforeEach(function () {
             'seller'          => 'Vendedor Prueba',
             'first_time'      => 1,
             'is_customer'     => 1,
-            'purchase_order'  => 'PO-' . rand(100000, 999999),
-            'invoice'         => 'INV-' . rand(100000, 999999),
+            'purchase_order'  => 'PO-' . uniqid() . '-' . rand(1000, 9999),
+            'invoice'         => 'INV-' . uniqid() . '-' . rand(1000, 9999),
             'sale_type'       => 'Credit',
             'term'            => '30 días',
             'date'            => '2026-10-05',
@@ -636,4 +636,59 @@ test('almacenDetail view and getAlmacenDetail include recentEdits', function () 
     $response->assertSee('Alerta: Este pedido ha sido editado');
     $response->assertSee("Cantidad modificada para &#039;Insumo&#039;: de 10 a 20 (+10)", false);
 });
+
+test('exportExcel downloads styled excel spreadsheet for authorized user', function () {
+    ($this->createSale)();
+
+    $response = $this->actingAs($this->user)->get(route('sales.exportExcel'));
+
+    $response->assertStatus(200);
+    $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    expect($response->headers->get('content-disposition'))->toContain('attachment; filename=Reporte_Ventas_');
+    expect($response->headers->get('content-disposition'))->toContain('.xlsx');
+});
+
+test('exportExcel forbids access to unauthenticated user or user without permission', function () {
+    $guestResponse = $this->get(route('sales.exportExcel'));
+    $guestResponse->assertRedirect('/login');
+
+    $unauthorizedUser = User::factory()->create();
+    $unauthorizedResponse = $this->actingAs($unauthorizedUser)->get(route('sales.exportExcel'));
+    $unauthorizedResponse->assertStatus(403);
+});
+
+test('exportExcel repository creates spreadsheet with design matching cuentasporpagar', function () {
+    $sale = ($this->createSale)(['seller' => 'Vendedor Excel Test']);
+
+    $repo = app(\App\Http\Repositories\Sales\SaleRepository::class);
+    $spreadsheet = $repo->getSpreadsheet(['seller' => 'Vendedor Excel Test'], $this->user);
+
+    $sheet = $spreadsheet->getActiveSheet();
+    expect($sheet->getTitle())->toBe('Ventas');
+
+    // Title Row 1 check
+    expect($sheet->getCell('A1')->getValue())->toContain('REPORTE GENERAL DE VENTAS');
+    $titleFill = $sheet->getStyle('A1')->getFill()->getStartColor()->getARGB();
+    expect($titleFill)->toBe('FF92D050');
+
+    // Header Row 2 check
+    expect($sheet->getCell('A2')->getValue())->toBe('Folio');
+    expect($sheet->getCell('B2')->getValue())->toBe('Fecha');
+    expect($sheet->getCell('C2')->getValue())->toBe('Vendedor');
+    expect($sheet->getCell('D2')->getValue())->toBe('Categoría');
+    expect($sheet->getCell('E2')->getValue())->toBe('Cliente');
+    expect($sheet->getCell('F2')->getValue())->toBe('Tipo de Venta');
+    expect($sheet->getCell('G2')->getValue())->toBe('Factura');
+    expect($sheet->getCell('H2')->getValue())->toBe('Orden de Compra');
+    expect($sheet->getCell('I2')->getValue())->toBe('Productos');
+    expect($sheet->getCell('J2')->getValue())->toBe('Total');
+    expect($sheet->getCell('K2')->getValue())->toBe('Estatus');
+
+    $headerFill = $sheet->getStyle('A2')->getFill()->getStartColor()->getARGB();
+    expect($headerFill)->toBe('FFA9D08E');
+
+    // Row 3 (data row)
+    expect($sheet->getCell('C3')->getValue())->toBe('Vendedor Excel Test');
+});
+
 

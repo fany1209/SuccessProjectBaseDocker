@@ -10,9 +10,12 @@ use App\Http\Requests\Sales\SaleUpdateRequest;
 use App\Http\Resources\Sales\SaleResource;
 use App\Traits\UtilResponse;
 use DomainException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SalesController extends Controller
 {
@@ -98,6 +101,45 @@ class SalesController extends Controller
             ]);
 
             return response()->json(['sales' => [], 'error' => 'Error interno al consultar ventas'], 500);
+        }
+    }
+
+    public function exportExcel(Request $request): StreamedResponse|JsonResponse
+    {
+        try {
+            $filters = $request->only([
+                'sector',
+                'seller',
+                'sale_type',
+                'date_from',
+                'date_to',
+                'search',
+                'clients',
+            ]);
+
+            $spreadsheet = $this->saleRepo->getSpreadsheet($filters, Auth::user());
+            $writer = new Xlsx($spreadsheet);
+            $fileName = 'Reporte_Ventas_' . date('Y-m-d') . '.xlsx';
+
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
+
+            return response()->streamDownload(function () use ($writer) {
+                $writer->save('php://output');
+            }, $fileName, [
+                'Content-Type'  => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Cache-Control' => 'max-age=0',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error al exportar ventas a Excel', [
+                'action'    => 'exportExcel',
+                'user_id'   => Auth::id(),
+                'filters'   => $request->all(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error interno al exportar ventas a Excel', 500);
         }
     }
 

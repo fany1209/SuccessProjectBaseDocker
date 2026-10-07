@@ -1,13 +1,3 @@
-{{--
-Sales
-Mostrar Sales
-Fecha de creación: 24-09-2025
-Creado por: Jacob
-Actualizado por: FANY
-Fecha de actualización: 09-03-2026
-Actualizado por: Emilio
-Fecha de actualización: 15-06-2026
---}}
 <section class="col-span-12 w-full flex flex-col items-center px-1">
     <div class="flex flex-col justify-center items-center w-full">
 
@@ -18,9 +8,14 @@ Fecha de actualización: 15-06-2026
                 <input type="text" id="global-search" class="filter-input w-full p-2 pr-10 border border-gray-300 focus:border-green-500 focus:ring-green-500 rounded-md shadow-sm" placeholder="Search by customer, seller, folio...">
                 <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
             </div>
-            <button id="toggle-filters" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md shadow-sm text-gray-700 font-medium flex items-center gap-2" title="Toggle Filters">
-                <i class="fas fa-filter"></i> Filters
-            </button>
+            <div class="flex items-center gap-2">
+                <button id="toggle-filters" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md shadow-sm text-gray-700 font-medium flex items-center gap-2" title="Toggle Filters">
+                    <i class="fas fa-filter"></i> Filters
+                </button>
+                <button type="button" id="btn-export-excel" class="bg-[#198754] text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium hover:bg-[#157347] transition flex items-center gap-2" title="Exportar a Excel">
+                    <i class="fas fa-file-excel text-white"></i> Exportar a Excel
+                </button>
+            </div>
         </div>
 
         <div id="advanced-filters" class="hidden w-full bg-gray-50 p-4 rounded-md shadow-sm mb-2 border border-gray-200">
@@ -207,6 +202,29 @@ Fecha de actualización: 15-06-2026
                     $('#filter-date-to').val('');
                     $('#global-search').val('');
                     table.ajax.reload();
+                });
+
+                $('#btn-export-excel').on('click', function(e) {
+                    e.preventDefault();
+                    const params = new URLSearchParams();
+                    const sector = $('#sector').val();
+                    const seller = $('#filter-seller').val();
+                    const saleType = $('#filter-type').val();
+                    const dateFrom = $('#filter-date-from').val();
+                    const dateTo = $('#filter-date-to').val();
+                    const search = $('#global-search').val();
+
+                    if (sector) params.append('sector', sector);
+                    if (seller) params.append('seller', seller);
+                    if (saleType) params.append('sale_type', saleType);
+                    if (dateFrom) params.append('date_from', dateFrom);
+                    if (dateTo) params.append('date_to', dateTo);
+                    if (search) params.append('search', search);
+                    params.append('clients', '1');
+
+                    const queryString = params.toString();
+                    const url = "{{ route('sales.exportExcel') }}" + (queryString ? '?' + queryString : '');
+                    window.location.href = url;
                 });
 
                 deleteSale();

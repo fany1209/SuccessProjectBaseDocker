@@ -265,3 +265,103 @@ test('storeMaterialRequest creates material request and items', function () {
         'quantity' => 100.0,
     ]);
 });
+
+test('transferToWarehouse transfers inventory and creates transfer record', function () {
+    $category = \App\Models\Category::first() ?? \App\Models\Category::create(['name' => 'Cat ' . uniqid()]);
+    $product = \App\Models\Product::first() ?? \App\Models\Product::create([
+        'category_id' => $category->category_id,
+        'name' => 'Producto Vitayela Test ' . uniqid(),
+        'sat_code' => '12345678',
+        'sku' => 'VITA-' . rand(1000, 9999),
+        'presentation' => 'Bulto',
+        'unit' => 'KG',
+        'stock_min' => 10,
+        'stock_max' => 100,
+    ]);
+
+    $inv = VitayelaInventory::create([
+        'producto_descripcion' => 'Vitayela Base Ensacada',
+        'cantidad' => 100.0,
+        'stock_min' => 20.0,
+        'unidad' => 'KG',
+    ]);
+
+    $payload = [
+        'product_id' => $product->product_id,
+        'cantidad_salida' => 40.0,
+        'peso_por_unidad' => 25.0,
+        'unit_type' => 'Saco',
+    ];
+
+    $response = $this->actingAs($this->user)->postJson(
+        route('production.vitayela.transferToWarehouse', $inv->vitayela_inventory_id),
+        $payload
+    );
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'success' => true,
+        'message' => 'Producto enviado a almacén exitosamente.',
+    ]);
+
+    $this->assertDatabaseHas('vitayela_inventories', [
+        'vitayela_inventory_id' => $inv->vitayela_inventory_id,
+        'cantidad' => 60.0,
+    ]);
+
+    $this->assertDatabaseHas('vitayela_inventory_movements', [
+        'vitayela_inventory_id' => $inv->vitayela_inventory_id,
+        'tipo' => 'Salida',
+        'cantidad' => 40.0,
+    ]);
+
+    $this->assertDatabaseHas('production_warehouse_transfers', [
+        'area' => 'vitayela',
+        'production_id' => $inv->vitayela_inventory_id,
+        'product_id' => $product->product_id,
+        'quantity' => 40.0,
+        'weight_per_unit' => 25.0,
+        'total_weight' => 1000.0,
+        'status' => 'Pendiente',
+    ]);
+});
+
+test('transferToWarehouse returns 400 when quantity exceeds stock', function () {
+    $category = \App\Models\Category::first() ?? \App\Models\Category::create(['name' => 'Cat ' . uniqid()]);
+    $product = \App\Models\Product::first() ?? \App\Models\Product::create([
+        'category_id' => $category->category_id,
+        'name' => 'Producto Vitayela Test 2 ' . uniqid(),
+        'sat_code' => '12345678',
+        'sku' => 'VITA-' . rand(1000, 9999),
+        'presentation' => 'Bulto',
+        'unit' => 'KG',
+        'stock_min' => 10,
+        'stock_max' => 100,
+    ]);
+
+    $inv = VitayelaInventory::create([
+        'producto_descripcion' => 'Vitayela Base Stock Chico',
+        'cantidad' => 10.0,
+        'stock_min' => 5.0,
+        'unidad' => 'KG',
+    ]);
+
+    $payload = [
+        'product_id' => $product->product_id,
+        'cantidad_salida' => 50.0,
+        'peso_por_unidad' => 10.0,
+        'unit_type' => 'Saco',
+    ];
+
+    $response = $this->actingAs($this->user)->postJson(
+        route('production.vitayela.transferToWarehouse', $inv->vitayela_inventory_id),
+        $payload
+    );
+
+    $response->assertStatus(400);
+    $response->assertJson([
+        'success' => false,
+        'message' => 'La cantidad a enviar no puede ser mayor a la cantidad en stock.',
+    ]);
+});
+
