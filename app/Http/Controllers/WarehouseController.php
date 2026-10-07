@@ -298,4 +298,169 @@ class WarehouseController extends Controller
             return $this->utilResponse->errorResponse('Error al consultar partidas de la solicitud', 500);
         }
     }
+
+    public function pendingTransfers(Request $request)
+    {
+        try {
+            $transfers = \App\Models\ProductionWarehouseTransfer::with('product')
+                ->where('status', 'Pendiente')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->successResponse(
+                    $transfers,
+                    'Transferencias de producción pendientes recuperadas exitosamente'
+                );
+            }
+
+            return view('warehouse.production_transfers', compact('transfers'));
+        } catch (\Throwable $e) {
+            Log::error('Error al listar transferencias de producción', [
+                'action'    => 'WarehouseController@pendingTransfers',
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al recuperar transferencias', 500);
+            }
+
+            return back()->withErrors('Error al recuperar transferencias.');
+        }
+    }
+
+    public function receiveTransfer(Request $request, $id)
+    {
+        try {
+            $validated = $request->validate([
+                'location_id'       => 'required|exists:locations,location_id',
+                'supplier_id'       => 'nullable|exists:suppliers,supplier_id',
+                'concept_id'        => 'nullable|exists:concepts,concept_id',
+                'product_id'        => 'nullable|exists:products,product_id',
+                'quantity'          => 'nullable|numeric|min:0.1',
+                'weight_per_unit'   => 'nullable|numeric|min:0.1',
+                'final_weight'      => 'nullable|numeric|min:0.1',
+                'warehouse_batch'   => 'nullable|string',
+                'comments'          => 'nullable|string',
+            ]);
+
+            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($id, $validated) {
+                $transfer = \App\Models\ProductionWarehouseTransfer::where('transfer_id', $id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($transfer->status !== 'Pendiente') {
+                    throw new \InvalidArgumentException('La transferencia no está pendiente de ser recibida.');
+                }
+
+                // Resolución de proveedor
+                $supplierId = $validated['supplier_id'] ?? null;
+                if (!$supplierId) {
+                    $supplier = \App\Models\Supplier::where('name', 'Producción Interna')
+                        ->orWhere('supplier_code', 'PROD-INT')
+                        ->first();
+                    if (!$supplier) {
+                        $supplier = \App\Models\Supplier::create([
+                            'name'          => 'Producción Interna',
+                            'supplier_code' => 'PROD-INT',
+                            'contact'       => 'Planta Producción',
+                            'sector_id'     => 1,
+                        ]);
+                    }
+                    $supplierId = $supplier->supplier_id;
+                }
+
+                // Resolución de concepto
+                $conceptId = $validated['concept_id'] ?? null;
+                if (!$conceptId) {
+                    $concept = \App\Models\Concept::where('name', 'Producto Terminado')->first()
+                        ?? \App\Models\Concept::where('name', 'like', '%Terminado%')->first();
+                    $conceptId = $concept ? $concept->concept_id : 2;
+                }
+
+                $productId = $validated['product_id'] ?? $transfer->product_id;
+                if (!$productId) {
+                    $defaultProd = \App\Models\Product::where('product_id', 623)->first();
+                    $productId = $defaultProd ? $defaultProd->product_id : 1;
+                }
+
+                $sacks = $validated['quantity'] ?? $transfer->quantity;
+                $weightPerUnit = $validated['weight_per_unit'] ?? $transfer->weight_per_unit;
+                $finalWeight = $validated['final_weight'] ?? $transfer->total_weight;
+                $batch = $validated['warehouse_batch'] ?? $transfer->batch ?? 'TRANSFER-' . $transfer->transfer_id;
+
+                // 1. Registro Input
+                $input = \App\Models\Input::create([
+                    'supplier_id'          => $supplierId,
+                    'security_seal'        => 0, // Campo requerido por la base de datos
+                    'comments'             => $validated['comments'] ?? null,
+                ]);
+
+                // 2. Registro Inventory
+                $inventory = \App\Models\Inventory::create([
+                    'stock'      => $finalWeight,
+                    'batch'      => $batch,
+                    'product_id' => $productId,
+                ]);
+
+                // 3. Registro ProductInputs
+                \App\Models\ProductInputs::insert([
+                    'product_id'      => $productId,
+                    'input_id'        => $input->input_id,
+                    'quantity'        => $finalWeight,
+                    'warehouse_batch' => $batch,
+                ]);
+
+                // 4. Registro CLI
+                \App\Models\Cli::create([
+                    'inventory_id'    => $inventory->inventory_id,
+                    'concept_id'      => $conceptId,
+                    'location_id'     => $validated['location_id'],
+                    'quantity'        => $sacks,
+                    'weight_per_unit' => $weightPerUnit,
+                    'net_weight'      => $finalWeight,
+                ]);
+
+                // 5. Actualizar status de la transferencia
+                $transfer->status = 'Ingresada';
+                $transfer->received_by = auth()->id();
+                $transfer->save();
+
+                return [
+                    'final_weight' => $finalWeight,
+                    'inventory_id' => $inventory->inventory_id,
+                ];
+            });
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'flag'    => true,
+                    'message' => '¡Entrada registrada e ingresada al almacén correctamente por un total de ' . number_format($result['final_weight'], 2) . '!',
+                    'data'    => $result,
+                ], 200);
+            }
+
+            return redirect()->back()->with('success', 'Transferencia ingresada correctamente.');
+        } catch (\InvalidArgumentException $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse($e->getMessage(), 400);
+            }
+            return redirect()->back()->withErrors($e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('Error al recibir transferencia de producción', [
+                'action'    => 'WarehouseController@receiveTransfer',
+                'user_id'   => auth()->id(),
+                'id'        => $id,
+                'exception' => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return $this->utilResponse->errorResponse('Error al registrar la entrada al almacén', 500);
+            }
+
+            return redirect()->back()->withErrors('Error al registrar la entrada al almacén.');
+        }
+    }
 }

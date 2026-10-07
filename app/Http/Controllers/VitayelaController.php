@@ -167,6 +167,51 @@ class VitayelaController extends Controller
         ]);
     }
 
+    public function transferToWarehouse(Request $request, $id)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,product_id',
+            'cantidad_salida' => 'required|numeric|min:0.01',
+            'peso_por_unidad' => 'required|numeric|min:0.01',
+            'unit_type'       => 'nullable|string|max:50',
+        ]);
+
+        $inventory = VitayelaInventory::findOrFail($id);
+        
+        if ($request->cantidad_salida > $inventory->cantidad) {
+            return response()->json(['message' => 'La cantidad a enviar no puede ser mayor a la cantidad en stock.'], 400);
+        }
+
+        \DB::transaction(function () use ($request, $inventory, $id) {
+            $inventory->cantidad -= $request->cantidad_salida;
+            $inventory->save();
+
+            VitayelaInventoryMovement::create([
+                'vitayela_inventory_id' => $inventory->vitayela_inventory_id,
+                'tipo' => 'Salida',
+                'cantidad' => $request->cantidad_salida
+            ]);
+
+            \App\Models\ProductionWarehouseTransfer::create([
+                'area' => 'vitayela',
+                'production_id' => $id,
+                'product_id' => $request->product_id,
+                'product_name' => $inventory->producto_descripcion,
+                'unit_type' => $request->unit_type,
+                'quantity' => $request->cantidad_salida,
+                'weight_per_unit' => $request->peso_por_unidad,
+                'total_weight' => $request->cantidad_salida * $request->peso_por_unidad,
+                'status' => 'Pendiente',
+                'created_by' => auth()->id()
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Producto enviado a almacén exitosamente.',
+            'alert' => false
+        ]);
+    }
+
     public function getMovements($id)
     {
         $movements = VitayelaInventoryMovement::where('vitayela_inventory_id', $id)

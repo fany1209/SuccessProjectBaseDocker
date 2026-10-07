@@ -129,6 +129,9 @@
                                 <button type="button" onclick="openOutputInventory({{ $inv }})" class="text-white bg-green-500 hover:bg-green-600 rounded-sm w-8 h-8 flex items-center justify-center" title="Registrar Salida">
                                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                                 </button>
+                                <button type="button" onclick="openTransferModal({{ $inv }}, 'fertil')" class="text-white bg-teal-500 hover:bg-teal-600 rounded-sm w-8 h-8 flex items-center justify-center" title="Enviar a Almacén">
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                </button>
                                 <button type="button" onclick="openHistoryModal({{ $inv->fertil_inventory_id }}, '{{ $inv->producto_descripcion }}')" class="text-white bg-yellow-500 hover:bg-yellow-600 rounded-sm w-8 h-8 flex items-center justify-center" title="Ver Historial">
                                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 </button>
@@ -157,6 +160,7 @@
 @include('production.fertil.modals.output_modal')
 @include('production.fertil.modals.history_modal')
 @include('production.fertil.modals.request_modal')
+@include('production.fertil.modals.transfer_modal')
 
 @endsection
 

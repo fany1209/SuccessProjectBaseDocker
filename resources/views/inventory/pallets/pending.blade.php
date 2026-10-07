@@ -83,6 +83,55 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Separator / Spacing -->
+    <div class="py-8">
+        <hr class="border-t border-gray-200">
+    </div>
+
+    <!-- Production Transfers Table -->
+    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <span class="p-2 bg-emerald-100 text-emerald-600 rounded-lg shadow-sm">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+        </span>
+        Recepciones Adicionales de Producción (Fertil / Vitayela)
+    </h2>
+    <div class="bg-white overflow-hidden shadow-xl sm:rounded-xl p-6 border border-gray-100">
+        <table id="pending-transfers-table" class="display w-full text-sm text-left text-gray-600">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b">
+                <tr>
+                    <th class="py-3 px-4">Origen</th>
+                    <th class="py-3 px-4">Prod. Genérico</th>
+                    <th class="py-3 px-4">Prod. Local</th>
+                    <th class="py-3 px-4">Cantidad / Empaque</th>
+                    <th class="py-3 px-4">Peso Total (kg)</th>
+                    <th class="py-3 px-4">Fecha de Envío</th>
+                    <th class="py-3 px-4 text-center">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($transfers ?? [] as $transfer)
+                <tr class="hover:bg-gray-50 transition-colors border-b">
+                    <td class="py-3 px-4 font-medium text-gray-900 uppercase">{{ $transfer->area }}</td>
+                    <td class="py-3 px-4 text-gray-500">{{ $transfer->product->name ?? 'N/A' }}</td>
+                    <td class="py-3 px-4 text-gray-500">{{ $transfer->product_name }}</td>
+                    <td class="py-3 px-4 text-gray-500">{{ $transfer->quantity }} {{ $transfer->unit_type ?? 'unidades' }} ({{ $transfer->weight_per_unit }} c/u)</td>
+                    <td class="py-3 px-4 font-bold text-blue-700">{{ number_format($transfer->total_weight, 2) }} kg</td>
+                    <td class="py-3 px-4 text-gray-500">{{ $transfer->created_at->format('d/m/Y H:i') }}</td>
+                    <td class="py-3 px-4 text-center">
+                        <button type="button" 
+                            onclick="openAcceptTransferModal({{ $transfer->transfer_id }}, {{ $transfer->product_id ?? 'null' }}, '{{ $transfer->product_name }}', {{ $transfer->quantity }}, {{ $transfer->weight_per_unit }}, {{ $transfer->total_weight }}, '{{ $transfer->batch ?? ('TRANSFER-' . $transfer->transfer_id) }}')" 
+                            class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-1.5 px-3.5 rounded-lg text-xs shadow-sm transition-all hover:shadow-md cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Dar Entrada
+                        </button>
+                    </td>
+                </tr>
+                @empty
+                @endforelse
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <!-- Modal Registrar Entrada (makeTransaction style) -->
@@ -148,9 +197,9 @@
                                 <x-wrapper-form-1>
                                     <x-wrapper-form-2>
                                         <x-label for="modal_product_id">Product</x-label>
-                                        <x-select-1 id="modal_product_id" name="product_id" required>
+                                        <x-select-1 id="modal_product_id" name="product_id" required onchange="generateBatchString('modal_product_id', 'modal_warehouse_batch')">
                                             @foreach($products as $prod)
-                                                <option value="{{ $prod->product_id }}" {{ ($prod->product_id == ($defaultProduct->product_id ?? 623)) ? 'selected' : '' }}>
+                                                <option value="{{ $prod->product_id }}" data-batchcode="{{ $prod->batch_code ?? $prod->sku }}" {{ ($prod->product_id == ($defaultProduct->product_id ?? 623)) ? 'selected' : '' }}>
                                                     {{ $prod->name }} ({{ $prod->unit ?? 'Kg' }})
                                                 </option>
                                             @endforeach
@@ -197,7 +246,7 @@
                                 <x-wrapper-form-1>
                                     <x-wrapper-form-2>
                                         <x-label for="modal_warehouse_batch">Warehouse batch</x-label>
-                                        <x-input-1 type="text" id="modal_warehouse_batch" name="warehouse_batch" required readonly></x-input-1>
+                                        <x-input-1 type="text" id="modal_warehouse_batch" name="warehouse_batch" required></x-input-1>
                                     </x-wrapper-form-2>
                                     
                                     <x-wrapper-form-2>
@@ -238,6 +287,157 @@
     </div>
 </div>
 
+<!-- Modal Registrar Entrada (Transferencias de Producción) -->
+<div id="accept-transfer-modal" tabindex="-1" aria-hidden="true" class="fixed inset-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto flex items-center justify-center bg-gray-900/60 backdrop-blur-xs transition-opacity">
+    <div class="relative w-full max-w-4xl max-h-[90vh] flex flex-col my-auto">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-gray-100">
+            <!-- Modal header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293h3.172a1 1 0 00.707-.293l2.414-2.414a1 1 0 01.707-.293H20"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            Entrada a Almacén: <span id="modal_transfer_product_name" class="text-blue-600"></span>
+                        </h3>
+                        <p class="text-xs text-gray-500">Transacción de Entrada (Input) para registrar la transferencia en el inventario.</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAcceptTransferModal()" class="text-gray-400 hover:text-gray-700 hover:bg-gray-100 p-2 rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- Modal body -->
+            <div class="p-6 overflow-y-auto">
+                <form id="accept-transfer-form" class="flex flex-col items-center w-full gap-2">
+                    @csrf
+                    <input type="hidden" id="accept_transfer_id" name="transfer_id">
+
+                    <x-wrapper-form-1>
+                        <x-wrapper-form-2>
+                            <x-label for="trans_modal_supplier_id">Proveedor</x-label>
+                            <x-select-1 id="trans_modal_supplier_id" name="supplier_id" required>
+                                @foreach($suppliers as $sup)
+                                    <option value="{{ $sup->supplier_id }}" {{ ($sup->supplier_id == ($internalSupplier->supplier_id ?? null)) ? 'selected' : '' }}>
+                                        {{ $sup->name }} ({{ $sup->supplier_code }})
+                                    </option>
+                                @endforeach
+                            </x-select-1>
+                        </x-wrapper-form-2>
+
+                        <x-wrapper-form-2>
+                            <x-label for="trans_modal_concept_id">Concepto de Entrada</x-label>
+                            <x-select-1 id="trans_modal_concept_id" name="concept_id" required>
+                                @foreach($concepts as $con)
+                                    <option value="{{ $con->concept_id }}" {{ ($con->concept_id == ($internalConcept->concept_id ?? 2)) ? 'selected' : '' }}>
+                                        {{ $con->name }}
+                                    </option>
+                                @endforeach
+                            </x-select-1>
+                        </x-wrapper-form-2>
+                    </x-wrapper-form-1>
+
+                    <x-wrapper-form-1 class="flex-col border-2 border-gray-200 rounded-md p-2">
+                        <x-wrapper-form-1>
+                            <span class="tracking-[3px] bg-blue-500 text-white font-semibold px-2 py-1 rounded-md">Products & Location</span>
+                        </x-wrapper-form-1>
+
+                        <div class="w-full">
+                            <div class="wrapper border-2 border-dashed border-gray-200 rounded-md p-2 my-1 relative">
+                                <x-wrapper-form-1>
+                                    <x-wrapper-form-2>
+                                        <x-label for="trans_modal_product_id">Product</x-label>
+                                        <x-select-1 id="trans_modal_product_id" name="product_id" required onchange="generateBatchString('trans_modal_product_id', 'trans_modal_warehouse_batch')">
+                                            @foreach($products as $prod)
+                                                <option value="{{ $prod->product_id }}" data-batchcode="{{ $prod->batch_code ?? $prod->sku }}">
+                                                    {{ $prod->name }} ({{ $prod->unit ?? 'Kg' }})
+                                                </option>
+                                            @endforeach
+                                        </x-select-1>
+                                    </x-wrapper-form-2>
+                                </x-wrapper-form-1>
+
+                                <x-wrapper-form-1>
+                                    <x-wrapper-form-2>
+                                        <x-label for="trans_modal_quantity">Quantity / Envases</x-label>
+                                        <x-input-1 type="number" step="0.01" min="0.1" id="trans_modal_quantity" name="quantity" required oninput="recalculateTransWeights('qty')"></x-input-1>
+                                    </x-wrapper-form-2>
+
+                                    <x-wrapper-form-2>
+                                        <x-label for="trans_modal_weight_per_unit">Weight per unit</x-label>
+                                        <x-input-1 type="number" step="0.01" min="0.01" id="trans_modal_weight_per_unit" name="weight_per_unit" required oninput="recalculateTransWeights('wpu')"></x-input-1>
+                                    </x-wrapper-form-2>
+                                </x-wrapper-form-1>
+
+                                <x-wrapper-form-1 class="location-assignment-wrapper">
+                                    <x-wrapper-form-2>
+                                        <x-label for="trans_modal_warehouse_id">Warehouse (Optional)</x-label>
+                                        <x-select-1 id="trans_modal_warehouse_id" onchange="filterTransLocationsByWarehouse()">
+                                            <option value="">Select a warehouse</option>
+                                            @foreach($warehouses as $wh)
+                                                <option value="{{ $wh->warehouse_id }}">{{ $wh->name }}</option>
+                                            @endforeach
+                                        </x-select-1>
+                                    </x-wrapper-form-2>
+
+                                    <x-wrapper-form-2 class="location-id-wrapper">
+                                        <x-label for="trans_modal_location_id">Location</x-label>
+                                        <x-select-1 id="trans_modal_location_id" name="location_id" required>
+                                            <option value="">Select a location</option>
+                                            @foreach($locations as $loc)
+                                                <option value="{{ $loc->location_id }}" data-warehouse="{{ $loc->warehouse_id }}">
+                                                    {{ $loc->warehouse->name ?? 'Almacén General' }} - {{ $loc->name }}
+                                                </option>
+                                            @endforeach
+                                        </x-select-1>
+                                    </x-wrapper-form-2>
+                                </x-wrapper-form-1>
+
+                                <x-wrapper-form-1>
+                                    <x-wrapper-form-2>
+                                        <x-label for="trans_modal_warehouse_batch">Warehouse batch</x-label>
+                                        <x-input-1 type="text" id="trans_modal_warehouse_batch" name="warehouse_batch" required></x-input-1>
+                                    </x-wrapper-form-2>
+                                    
+                                    <x-wrapper-form-2>
+                                        <x-label for="trans_modal_final_weight">Total Final Weight (Kg/Lts)</x-label>
+                                        <x-input-1 type="number" step="0.01" min="0.1" id="trans_modal_final_weight" name="final_weight" required oninput="recalculateTransWeights('final')"></x-input-1>
+                                    </x-wrapper-form-2>
+                                </x-wrapper-form-1>
+                                
+                                <x-wrapper-form-1>
+                                    <x-wrapper-form-2><p class="total mt-2 text-sm font-semibold rounded-md tracking-[2px] text-white bg-gray-700 px-2 py-1" id="trans_total_weight_display">Total: 0</p></x-wrapper-form-2>
+                                </x-wrapper-form-1>
+                            </div>
+                        </div>
+                    </x-wrapper-form-1>
+
+                    <x-wrapper-form-1>
+                        <x-wrapper-form-2>
+                            <x-label for="trans_modal_comments">Comments</x-label>
+                            <x-textarea-1 id="trans_modal_comments" name="comments" rows="2" placeholder="Observaciones de la recepción..."></x-textarea-1>
+                        </x-wrapper-form-2>
+                    </x-wrapper-form-1>
+
+                </form>
+            </div>
+
+            <!-- Modal footer -->
+            <div class="flex items-center justify-end px-6 py-4 border-t border-gray-200 bg-gray-50 gap-3 w-full">
+                <x-wrapper-form-1>
+                    <x-wrapper-form-1>
+                        <x-button-1 type="button" colorBtn="red" onclick="closeAcceptTransferModal()">Close</x-button-1>
+                    </x-wrapper-form-1>
+                    <x-button-1 id="save-transfer" type="button" colorBtn="green" onclick="submitAcceptTransfer()">Finish</x-button-1>
+                </x-wrapper-form-1>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     const allLocations = @json($locations);
 
@@ -247,12 +447,20 @@
             responsive: true,
             order: [[0, 'desc']]
         });
+        
+        $('#pending-transfers-table').DataTable({
+            language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+            responsive: true,
+            order: [[5, 'desc']]
+        });
     });
 
     function openAcceptModal(palletId, palletNumber, sacks, finalWeight, colorType) {
         document.getElementById('accept_pallet_id').value = palletId;
         document.getElementById('modal_display_pallet_number').innerText = palletNumber + ' (' + colorType + ')';
-        document.getElementById('modal_warehouse_batch').value = palletNumber;
+        
+        // Auto-generar lote basado en producto
+        generateBatchString('modal_product_id', 'modal_warehouse_batch');
         document.getElementById('modal_quantity').value = sacks;
         document.getElementById('modal_weight_per_unit').value = 25;
         
@@ -297,6 +505,22 @@
     function filterLocationsByWarehouse() {
         const selectedWh = document.getElementById('modal_warehouse_id').value;
         const locSelect = document.getElementById('modal_location_id');
+        locSelect.innerHTML = '<option value="">Seleccione una ubicación</option>';
+
+        allLocations.forEach(loc => {
+            if (!selectedWh || loc.warehouse_id == selectedWh) {
+                const whName = loc.warehouse ? loc.warehouse.name : 'Almacén General';
+                const opt = document.createElement('option');
+                opt.value = loc.location_id;
+                opt.textContent = `${whName} - ${loc.name}`;
+                locSelect.appendChild(opt);
+            }
+        });
+    }
+
+    function filterTransLocationsByWarehouse() {
+        const selectedWh = document.getElementById('trans_modal_warehouse_id').value;
+        const locSelect = document.getElementById('trans_modal_location_id');
         locSelect.innerHTML = '<option value="">Seleccione una ubicación</option>';
 
         allLocations.forEach(loc => {
@@ -385,13 +609,14 @@
             license_number: null,
             unit_plates: null,
             trailer_plates: null,
-            comments: document.querySelector('textarea[name="comments"]') ? document.querySelector('textarea[name="comments"]').value : null
+            comments: document.querySelector('#accept-inventory-form textarea[name="comments"]') ? document.querySelector('#accept-inventory-form textarea[name="comments"]').value : null
         };
 
         fetch(`/inventory/pallets/${palletId}/accept`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
             },
             body: JSON.stringify(payload)
@@ -399,7 +624,9 @@
         .then(async response => {
             const data = await response.json();
             if (!response.ok) {
-                throw new Error(data.message || 'Error al procesar la entrada.');
+                let err = new Error(data.message || 'Error al procesar la entrada.');
+                err.errors = data.errors;
+                throw err;
             }
             return data;
         })
@@ -416,14 +643,191 @@
         })
         .catch(error => {
             console.error('Error:', error);
+            
+            let errorMsg = error.message;
+            if (error.errors) {
+                let msgs = [];
+                for(let field in error.errors) {
+                    msgs.push(error.errors[field].join(' '));
+                }
+                errorMsg = msgs.join('\n');
+            }
+
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: error.message || 'Hubo un error al registrar la entrada de la tarima.'
+                text: errorMsg || 'Hubo un error al registrar la entrada de la tarima.'
             }).then(() => {
                 document.getElementById('accept-inventory-modal').classList.remove('hidden');
             });
         });
+    }
+
+    function recalculateTransWeights(source) {
+        const qtyInput = document.getElementById('trans_modal_quantity');
+        const wpuInput = document.getElementById('trans_modal_weight_per_unit');
+        const finalWeightInput = document.getElementById('trans_modal_final_weight');
+        const totalDisplay = document.getElementById('trans_total_weight_display');
+
+        let qty = parseFloat(qtyInput.value) || 0;
+        let wpu = parseFloat(wpuInput.value) || 0;
+        let final = parseFloat(finalWeightInput.value) || 0;
+
+        if (source === 'qty' || source === 'wpu') {
+            final = qty * wpu;
+            finalWeightInput.value = final > 0 ? final.toFixed(2) : '';
+        } else if (source === 'final') {
+            if (qty > 0) {
+                wpu = final / qty;
+                wpuInput.value = wpu.toFixed(2);
+            }
+        }
+
+        totalDisplay.innerText = `Total: ${final.toFixed(2)} Kg/Lts`;
+    }
+
+    function openAcceptTransferModal(transferId, productId, productName, quantity, weightPerUnit, finalWeight, batch) {
+        document.getElementById('accept_transfer_id').value = transferId;
+        document.getElementById('modal_transfer_product_name').innerText = productName;
+        
+        if (productId) {
+            document.getElementById('trans_modal_product_id').value = productId;
+        } else {
+            // Trigger auto-batch si no viene un productId claro
+            document.getElementById('trans_modal_product_id').selectedIndex = 0;
+        }
+
+        document.getElementById('trans_modal_quantity').value = quantity;
+        document.getElementById('trans_modal_weight_per_unit').value = weightPerUnit;
+        document.getElementById('trans_modal_final_weight').value = parseFloat(finalWeight).toFixed(2);
+        
+        // Auto-generar lote basado en producto
+        generateBatchString('trans_modal_product_id', 'trans_modal_warehouse_batch');
+        
+        recalculateTransWeights('qty');
+        
+        document.getElementById('trans_modal_warehouse_id').value = '';
+        filterTransLocationsByWarehouse();
+
+        document.getElementById('accept-transfer-modal').classList.remove('hidden');
+    }
+
+    function closeAcceptTransferModal() {
+        document.getElementById('accept-transfer-modal').classList.add('hidden');
+    }
+
+    function submitAcceptTransfer() {
+        const transferId = document.getElementById('accept_transfer_id').value;
+        const locationId = document.getElementById('trans_modal_location_id').value;
+        const supplierId = document.getElementById('trans_modal_supplier_id').value;
+        const conceptId = document.getElementById('trans_modal_concept_id').value;
+
+        const productId = document.getElementById('trans_modal_product_id').value;
+        const quantity = document.getElementById('trans_modal_quantity').value;
+        const weightPerUnit = document.getElementById('trans_modal_weight_per_unit').value;
+        const finalWeight = document.getElementById('trans_modal_final_weight').value;
+        const batch = document.getElementById('trans_modal_warehouse_batch').value;
+
+        if (!locationId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Ubicación Requerida',
+                text: 'Por favor seleccione la ubicación (Rack/Posición) donde se almacenará el producto.'
+            });
+            return;
+        }
+
+        closeAcceptTransferModal();
+
+        Swal.fire({
+            title: 'Registrando Entrada...',
+            text: `Ingresando producto al almacén.`,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const payload = {
+            location_id: locationId,
+            supplier_id: supplierId,
+            concept_id: conceptId,
+            product_id: productId,
+            quantity: quantity,
+            weight_per_unit: weightPerUnit,
+            final_weight: finalWeight,
+            warehouse_batch: batch,
+            comments: document.querySelector('#accept-transfer-form textarea[name="comments"]') ? document.querySelector('#accept-transfer-form textarea[name="comments"]').value : null
+        };
+
+        fetch(`/warehouse/production-transfers/${transferId}/receive`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(async response => {
+            const data = await response.json();
+            if (!response.ok) {
+                let err = new Error(data.message || 'Error al procesar la entrada.');
+                err.errors = data.errors;
+                throw err;
+            }
+            return data;
+        })
+        .then(data => {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Entrada Exitosa!',
+                text: data.message || 'Producto recibido e ingresado al almacén correctamente.',
+                timer: 2200,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            
+            // Format validation errors nicely
+            let errorMsg = error.message;
+            if (error.errors) {
+                let msgs = [];
+                for(let field in error.errors) {
+                    msgs.push(error.errors[field].join(' '));
+                }
+                errorMsg = msgs.join('\n');
+            }
+
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMsg || 'Hubo un error al registrar la entrada del producto.'
+            }).then(() => {
+                document.getElementById('accept-transfer-modal').classList.remove('hidden');
+            });
+        });
+    }
+    function generateBatchString(selectId, inputId) {
+        const prodSelect = document.getElementById(selectId);
+        if(!prodSelect || prodSelect.selectedIndex < 0) return;
+        const option = prodSelect.options[prodSelect.selectedIndex];
+        
+        let batchCode = option.getAttribute('data-batchcode') || '';
+        // Eliminar posibles valores nulos
+        if (batchCode === 'null') batchCode = '';
+
+        const date = new Date();
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = String(date.getFullYear()).slice(-2);
+        const dateCode = day + month + year;
+
+        document.getElementById(inputId).value = `${batchCode}${dateCode}`;
     }
 </script>
 @endsection
