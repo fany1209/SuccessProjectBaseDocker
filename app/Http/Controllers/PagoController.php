@@ -2,20 +2,39 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-
+use App\Http\Controllers\Controller;
+use App\Http\Repositories\Pago\PagoRepository;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
+use Throwable;
 
 class PagoController extends Controller
 {
-  
-    public function index()
-{
-    $facturas = DB::table('facturas')
-        ->select('factura_id', 'folio_factura', 'empresa', 'total')
-        ->orderByDesc('factura_id')
-        ->get();
+    protected UtilResponse $utilResponse;
+    protected PagoRepository $pagoRepo;
 
-    return view('finance.pagos.index', compact('facturas'));
-}
+    public function __construct(UtilResponse $utilResponse, PagoRepository $pagoRepo)
+    {
+        $this->utilResponse = $utilResponse;
+        $this->pagoRepo = $pagoRepo;
+    }
+
+    public function index(): View|JsonResponse
+    {
+        try {
+            $facturas = $this->pagoRepo->getFacturasForPagos();
+
+            return view('finance.pagos.index', compact('facturas'));
+        } catch (Throwable $e) {
+            Log::error('Error al cargar la programación de pagos', [
+                'action'  => 'PagoController@index',
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al cargar la programación de pagos.', 500);
+        }
+    }
 }

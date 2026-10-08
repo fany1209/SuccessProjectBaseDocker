@@ -12,7 +12,7 @@ class PortalUser extends Authenticatable
     protected $table = 'portal_users';
 
     protected $fillable = [
-        'nombre_contacto', 'empresa', 'email', 'password', 'is_active', 'referencia_id'
+        'customer_id', 'nombre_contacto', 'empresa', 'email', 'password', 'is_active', 'referencia_id'
     ];
 
     protected $hidden = [

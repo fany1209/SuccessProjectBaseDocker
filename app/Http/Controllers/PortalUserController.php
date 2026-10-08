@@ -3,266 +3,259 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Repositories\PortalUser\PortalUserRepository;
+use App\Http\Requests\PortalUser\PortalUserStoreRequest;
+use App\Http\Requests\PortalUser\PortalUserUpdateRequest;
+use App\Http\Requests\PortalUser\PortalUserUploadDocsRequest;
+use App\Http\Resources\PortalUser\PortalUserResource;
+use App\Http\Resources\PortalUser\PortalUserSaleResource;
+use App\Traits\UtilResponse;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
+use Throwable;
 
 class PortalUserController extends Controller
 {
+    protected UtilResponse $utilResponse;
+    protected PortalUserRepository $portalUserRepo;
 
-    public function index()
+    public function __construct(UtilResponse $utilResponse, PortalUserRepository $portalUserRepo)
     {
-        $clientesSistemas = DB::table('customers')
-            ->select('customer_id', 'name', 'customer_code')
-            ->orderByRaw('TRIM(LOWER(name)) ASC')
-            ->get();
-
-        return view('portal-users', compact('clientesSistemas')); 
+        $this->utilResponse = $utilResponse;
+        $this->portalUserRepo = $portalUserRepo;
     }
 
-    public function getPortalUsers(Request $request)
+    public function index(): View
     {
-        $query = DB::table('portal_users')
-            ->join('customers', 'customers.customer_id', '=', 'portal_users.customer_id')
-            ->select(
-                'portal_users.id as portal_id',
-                'portal_users.nombre_contacto',
-                'portal_users.empresa',
-                'portal_users.email',
-                'portal_users.is_active',
-                'customers.customer_code',
-                'customers.name as customer_name'
-            );
+        $clientesSistemas = $this->portalUserRepo->getSystemCustomers();
 
-        if ($request->has('name') && $request->name != '') {
-            $query->where('portal_users.empresa', 'like', '%' . $request->name . '%');
-        }
-
-        $users = $query->orderBy('portal_users.created_at', 'desc')->get();
-
-        return response()->json(['users' => $users]);
+        return view('portal-users', compact('clientesSistemas'));
     }
-   
-    public function store(Request $request)
-    {
-        $request->validate([
-            'customer_id'     => 'required|integer', 
-            'nombre_contacto' => 'required|string|max:150',
-            'empresa'         => 'required|string|max:200',
-            'email'           => 'required|email|unique:portal_users,email', 
-            'password'        => 'required|string|min:6|confirmed', 
-        ]);
 
+    public function getPortalUsers(Request $request): JsonResponse
+    {
         try {
-            DB::table('portal_users')->insert([
-                'customer_id'     => $request->customer_id,
-                'nombre_contacto' => $request->nombre_contacto,
-                'empresa'         => $request->empresa,
-                'email'           => $request->email,
-                'password'        => Hash::make($request->password), 
-                'is_active'       => $request->has('is_active') ? 1 : 0, 
-                'created_at'      => now(),
-                'updated_at'      => now(),
+            $users = $this->portalUserRepo->getPortalUsers($request->query('name'));
+            $resolved = PortalUserResource::collection($users)->resolve();
+
+            return response()->json(['users' => $resolved]);
+        } catch (Throwable $e) {
+            Log::error('Error al obtener usuarios del portal', [
+                'action'  => 'PortalUserController@getPortalUsers',
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
             ]);
 
+            return response()->json(['users' => []], 500);
+        }
+    }
+
+    public function store(PortalUserStoreRequest $request): RedirectResponse|JsonResponse
+    {
+        try {
+            $user = $this->portalUserRepo->store($request->validated());
+
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'flag'    => true,
+                    'code'    => 201,
+                    'message' => '¡El usuario para el portal de clientes se ha creado con éxito!',
+                    'data'    => new PortalUserResource($user),
+                ], 201);
+            }
+
             return back()->with('success', '¡El usuario para el portal de clientes se ha creado con éxito!');
+        } catch (Throwable $e) {
+            Log::error('Error al registrar usuario del portal', [
+                'action'  => 'PortalUserController@store',
+                'payload' => $request->safe()->except(['password', 'password_confirmation']),
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
 
-        } catch (\Throwable $e) {
-            return back()->withInput()->withErrors(['error' => 'Hubo un problema al guardar: ' . $e->getMessage()]);
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'flag'    => false,
+                    'code'    => 500,
+                    'message' => 'Hubo un problema al guardar el usuario.',
+                    'error'   => 'Error interno al guardar usuario.',
+                ], 500);
+            }
+
+            return back()->withInput()->withErrors(['error' => 'Hubo un problema al guardar el usuario.']);
         }
     }
 
-    public function edit($id)
+    public function edit($id): JsonResponse
     {
-        $user = DB::table('portal_users')->where('id', $id)->first();
-        
-        if (!$user) {
+        try {
+            $user = $this->portalUserRepo->findById((int) $id);
+
+            return response()->json(['user' => new PortalUserResource($user)]);
+        } catch (ModelNotFoundException $e) {
             return response()->json(['error' => 'Usuario no encontrado'], 404);
-        }
+        } catch (Throwable $e) {
+            Log::error('Error al consultar usuario del portal', [
+                'action'  => 'PortalUserController@edit',
+                'id'      => $id,
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
 
-        return response()->json(['user' => $user]);
+            return response()->json(['error' => 'Error al consultar el usuario.'], 500);
+        }
     }
 
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'customer_id'     => 'required|integer',
-            'nombre_contacto' => 'required|string|max:150',
-            'empresa'         => 'required|string|max:200',
-            'email'           => 'required|email|unique:portal_users,email,' . $id,
-            'password'        => 'nullable|string|min:6|confirmed',
-        ]);
-
-        $updateData = [
-            'customer_id'     => $request->customer_id,
-            'nombre_contacto' => $request->nombre_contacto,
-            'empresa'         => $request->empresa,
-            'email'           => $request->email,
-            'is_active'       => $request->has('is_active') ? 1 : 0,
-            'updated_at'      => now(),
-        ];
-
-        if ($request->filled('password')) {
-            $updateData['password'] = Hash::make($request->password);
-        }
-
-        DB::table('portal_users')->where('id', $id)->update($updateData);
-
-        return response()->json(['success' => true, 'message' => '¡Usuario actualizado con éxito!']);
-    }
-
-    public function destroy($id)
+    public function update(PortalUserUpdateRequest $request, $id): JsonResponse
     {
         try {
-            DB::table('portal_users')->where('id', $id)->delete();
-            
-            return response()->json(['success' => true, 'message' => 'Usuario eliminado con éxito.']);
-        } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+            $user = $this->portalUserRepo->update((int) $id, $request->validated());
+
+            return response()->json([
+                'success' => true,
+                'message' => '¡Usuario actualizado con éxito!',
+                'data'    => new PortalUserResource($user),
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'error'   => 'Usuario no encontrado',
+            ], 404);
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar usuario del portal', [
+                'action'  => 'PortalUserController@update',
+                'id'      => $id,
+                'payload' => $request->safe()->except(['password', 'password_confirmation']),
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error'   => 'Hubo un problema al actualizar el usuario.',
+            ], 500);
         }
     }
 
-    public function uploadDocs(Request $request, $saleId)
+    public function destroy($id): JsonResponse
     {
-        $request->validate([
-            'pdf_file' => 'nullable|file|mimes:pdf|max:10240',
-            'xml_file' => 'nullable|file|mimes:xml,txt|max:5120',
-            'coa_file' => 'nullable|file|mimes:pdf|max:10240',
-        ]);
+        try {
+            $this->portalUserRepo->delete((int) $id);
 
-        if ($request->hasFile('pdf_file')) {
-            $oldDoc = DB::table('portal_documents')
-                ->where('sale_id', $saleId)
-                ->where('file_type', 'pdf')
-                ->first();
-            if ($oldDoc) {
-                Storage::disk('public')->delete($oldDoc->file_path);
-            }
+            return response()->json([
+                'success' => true,
+                'message' => 'Usuario eliminado con éxito.',
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'error'   => 'Usuario no encontrado',
+            ], 404);
+        } catch (Throwable $e) {
+            Log::error('Error al eliminar usuario del portal', [
+                'action'  => 'PortalUserController@destroy',
+                'id'      => $id,
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
 
-            $pdfPath = $request->file('pdf_file')->store('portal_docs', 'public');
-            
-            DB::table('portal_documents')->updateOrInsert(
-                ['sale_id' => $saleId, 'file_type' => 'pdf'],
-                [
-                    'file_name'  => $request->file('pdf_file')->getClientOriginalName(),
-                    'file_path'  => $pdfPath,
-                    'updated_at' => now(),
-                    'created_at' => now()
-                ]
-            );
+            return response()->json([
+                'success' => false,
+                'error'   => 'Hubo un problema al eliminar el usuario.',
+            ], 500);
         }
-
-        if ($request->hasFile('xml_file')) {
-            $oldDoc = DB::table('portal_documents')
-                ->where('sale_id', $saleId)
-                ->where('file_type', 'xml')
-                ->first();
-            if ($oldDoc) {
-                Storage::disk('public')->delete($oldDoc->file_path);
-            }
-
-            $xmlPath = $request->file('xml_file')->store('portal_docs', 'public');
-            
-            DB::table('portal_documents')->updateOrInsert(
-                ['sale_id' => $saleId, 'file_type' => 'xml'],
-                [
-                    'file_name'  => $request->file('xml_file')->getClientOriginalName(),
-                    'file_path'  => $xmlPath,
-                    'updated_at' => now(),
-                    'created_at' => now()
-                ]
-            );
-        }
-
-        if ($request->hasFile('coa_file')) {
-            $oldDoc = DB::table('portal_documents')
-                ->where('sale_id', $saleId)
-                ->where('file_type', 'coa')
-                ->first();
-            if ($oldDoc) {
-                Storage::disk('public')->delete($oldDoc->file_path);
-            }
-
-            $coaPath = $request->file('coa_file')->store('portal_docs', 'public');
-            
-            DB::table('portal_documents')->updateOrInsert(
-                ['sale_id' => $saleId, 'file_type' => 'coa'],
-                [
-                    'file_name'  => $request->file('coa_file')->getClientOriginalName(),
-                    'file_path'  => $coaPath,
-                    'updated_at' => now(),
-                    'created_at' => now()
-                ]
-            );
-        }
-
-        return response()->json(['success' => true, 'message' => '¡Documentos actualizados correctamente!']);
     }
 
-    public function getClientSales($portalUserId)
+    public function uploadDocs(PortalUserUploadDocsRequest $request, $saleId): JsonResponse
     {
-        $user = DB::table('portal_users')->where('id', $portalUserId)->first();
+        try {
+            $this->portalUserRepo->uploadDocs(
+                (int) $saleId,
+                $request->file('pdf_file'),
+                $request->file('xml_file'),
+                $request->file('coa_file')
+            );
 
-        if (!$user) {
-            return response()->json(['sales' => []]);
+            return response()->json([
+                'success' => true,
+                'message' => '¡Documentos actualizados correctamente!',
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Error al subir documentos de venta en portal', [
+                'action'  => 'PortalUserController@uploadDocs',
+                'sale_id' => $saleId,
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error'   => 'Error interno al procesar los documentos.',
+            ], 500);
         }
-
-        $sales = DB::table('sales')
-            ->where('customer_id', $user->customer_id)
-            ->select('sale_id', 'folio', 'date')
-            ->orderBy('date', 'desc')
-            ->get()
-            ->map(function($sale) {
-                $docs = DB::table('portal_documents')->where('sale_id', $sale->sale_id)->get();
-                
-                $pdfDoc = $docs->where('file_type', 'pdf')->first();
-                $xmlDoc = $docs->where('file_type', 'xml')->first();
-                $coaDoc = $docs->where('file_type', 'coa')->first();
-
-                $sale->has_pdf = $pdfDoc ? true : false;
-                $sale->pdf_path = $pdfDoc ? asset('storage/' . $pdfDoc->file_path) : null;
-                $sale->pdf_name = $pdfDoc ? $pdfDoc->file_name : null;
-
-                $sale->has_xml = $xmlDoc ? true : false;
-                $sale->xml_path = $xmlDoc ? asset('storage/' . $xmlDoc->file_path) : null;
-                $sale->xml_name = $xmlDoc ? $xmlDoc->file_name : null;
-
-                $sale->has_coa = $coaDoc ? true : false;
-                $sale->coa_path = $coaDoc ? asset('storage/' . $coaDoc->file_path) : null;
-                $sale->coa_name = $coaDoc ? $coaDoc->file_name : null;
-                return $sale;
-            });
-
-        return response()->json(['sales' => $sales]);
     }
 
-    public function deleteDoc($saleId, $type)
+    public function getClientSales($portalUserId): JsonResponse
     {
-        if (!in_array($type, ['pdf', 'xml', 'coa'])) {
-            return response()->json(['success' => false, 'error' => 'Tipo de archivo no válido.'], 400);
+        try {
+            $sales = $this->portalUserRepo->getClientSales((int) $portalUserId);
+            $resolved = PortalUserSaleResource::collection($sales)->resolve();
+
+            return response()->json(['sales' => $resolved]);
+        } catch (Throwable $e) {
+            Log::error('Error al consultar ventas del cliente en portal', [
+                'action'         => 'PortalUserController@getClientSales',
+                'portal_user_id' => $portalUserId,
+                'user_id'        => auth()->id(),
+                'error'          => $e->getMessage(),
+            ]);
+
+            return response()->json(['sales' => []], 500);
+        }
+    }
+
+    public function deleteDoc($saleId, $type): JsonResponse
+    {
+        if (!in_array($type, ['pdf', 'xml', 'coa'], true)) {
+            return response()->json([
+                'success' => false,
+                'error'   => 'Tipo de archivo no válido.',
+            ], 400);
         }
 
         try {
-            $doc = DB::table('portal_documents')
-                ->where('sale_id', $saleId)
-                ->where('file_type', $type)
-                ->first();
+            $deleted = $this->portalUserRepo->deleteDoc((int) $saleId, $type);
 
-            if ($doc) {
-                Storage::disk('public')->delete($doc->file_path);
-
-                DB::table('portal_documents')
-                    ->where('sale_id', $saleId)
-                    ->where('file_type', $type)
-                    ->delete();
-
-                return response()->json(['success' => true, 'message' => '¡Archivo eliminado correctamente!']);
+            if ($deleted) {
+                return response()->json([
+                    'success' => true,
+                    'message' => '¡Archivo eliminado correctamente!',
+                ]);
             }
 
-            return response()->json(['success' => false, 'error' => 'Archivo no encontrado.'], 404);
-        } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'error'   => 'Archivo no encontrado.',
+            ], 404);
+        } catch (Throwable $e) {
+            Log::error('Error al eliminar documento de venta en portal', [
+                'action'  => 'PortalUserController@deleteDoc',
+                'sale_id' => $saleId,
+                'type'    => $type,
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error'   => 'Hubo un problema al eliminar el archivo.',
+            ], 500);
         }
     }
 }

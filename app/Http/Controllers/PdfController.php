@@ -1,205 +1,157 @@
 <?php
-/*
-pdf
-19/02/2026
-stefany 
-*/
+
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Http\Repositories\Pdf\PdfRepository;
+use App\Traits\UtilResponse;
 use Barryvdh\DomPDF\Facade\Pdf;
-use App\Models\Input;
-use App\Models\Output;
-use App\Models\Control;
-use App\Models\Sale;
-use App\Models\Quote;
-use App\Models\PurchaseRequisition;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
+use Throwable;
 
 class PdfController extends Controller
 {
-    public function downloadPDF($movType, $movId)
+    protected UtilResponse $utilResponse;
+    protected PdfRepository $pdfRepo;
+
+    public function __construct(UtilResponse $utilResponse, PdfRepository $pdfRepo)
     {
-        if ($movType == 'inputs') {
-            $movement = Input::find($movId);
-            $name = "Recepcion de Producto - " . $movement->created_at->format('d-m-Y');
-        } else {
-            $movement = Output::find($movId);
-            $name = "Salida de Producto - " . $movement->created_at->format('d-m-Y');
-        }
-
-        if (request()->query('include_comment') === '0') {
-            $movement->comments = null;
-        }
-
-        $data = [
-            'type' => $movType,
-            'title' => $movType == 'inputs' ? "RECEPCIÓN DE PRODUCTO" : "SALIDA DE PRODUCTO",
-            'movement' => $movement
-        ];
-        $pdf = pdf::loadView('formats.pdf', $data); //INVESTIGAR METODO PARA AGREGAR PAGINACION DINAMICA
-
-        return $pdf->stream($name . '.pdf');
+        $this->utilResponse = $utilResponse;
+        $this->pdfRepo = $pdfRepo;
     }
 
-    public function makeTemperaturePDF($week_a, $week_b, $year, $warehouse_id)
+    public function downloadPDF(Request $request, string $movType, int|string $movId): Response|JsonResponse
     {
-        // 1. Sanitización y validación estricta de tipos enteros (prevención de Inyección SQL)
-        $week_a       = filter_var($week_a, FILTER_VALIDATE_INT);
-        $week_b       = filter_var($week_b, FILTER_VALIDATE_INT);
-        $year         = filter_var($year, FILTER_VALIDATE_INT);
-        $warehouse_id = filter_var($warehouse_id, FILTER_VALIDATE_INT);
+        try {
+            $includeComment = $request->query('include_comment') !== '0';
+            $config = $this->pdfRepo->getMovementPdfData($movType, (int) $movId, $includeComment);
 
-        if ($week_a === false || $week_b === false || $year === false || $warehouse_id === false) {
-            abort(400, 'Los parámetros del reporte deben ser números enteros válidos.');
+            $pdf = Pdf::loadView($config['view'], $config['data']);
+
+            return $pdf->stream($config['fileName']);
+        } catch (ModelNotFoundException $e) {
+            return $this->utilResponse->errorResponse('Movimiento no encontrado.', 404);
+        } catch (InvalidArgumentException $e) {
+            return $this->utilResponse->errorResponse($e->getMessage(), 400);
+        } catch (Throwable $e) {
+            Log::error('Error al generar PDF de movimiento', [
+                'action'  => 'PdfController@downloadPDF',
+                'user_id' => auth()->id(),
+                'type'    => $movType,
+                'id'      => $movId,
+                'error'   => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al generar el documento PDF.', 500);
         }
-
-        if ($week_a < 1 || $week_a > 54 || $week_b < 1 || $week_b > 54 || $week_a > $week_b) {
-            abort(400, 'El rango de semanas especificado es inválido.');
-        }
-
-        // 2. Consulta con bindings parametrizados PDO (elimina vector de inyección SQL)
-        $rows = Control::select('temperature', 'humidity', 'created_at', DB::raw('WEEK(created_at,1) as week'))
-            ->where('warehouse_id', '=', $warehouse_id)
-            ->whereYear('created_at', $year)
-            ->whereBetween(DB::raw('WEEK(created_at,1)'), [$week_a, $week_b])
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'temperature' => $item->temperature,
-                    'humidity' => $item->humidity,
-                    'created_at' => $item->created_at,
-                    'week' => $item->week,
-                ];
-            });
-
-        $res = [];
-
-        foreach ($rows->groupBy('week') as $week => $week_data) {
-            $res[$week] = $week_data->groupBy(function ($item) {
-                return Carbon::parse($item['created_at'])->format('Y-m-d');
-            })->map(function ($day_data) {
-                $week_day = Carbon::parse($day_data->first()['created_at'])->dayOfWeek;
-
-                // Verificar si falta algún registro en el día
-                $missingRecords = [];
-                $expectedTimes = ['09', '12', '17'];
-                foreach ($expectedTimes as $time) {
-                    $foundRecord = $day_data->filter(function ($record) use ($time) {
-                        return Carbon::parse($record['created_at'])->format('H') == $time;
-                    })->isNotEmpty();
-                    if (!$foundRecord) {
-                        $missingRecords[] = $time;
-                    }
-                }
-
-                // Calcular promedios
-                $avg_temperature = number_format($day_data->avg('temperature'), 1);
-                $avg_humidity = number_format($day_data->avg('humidity'), 1);
-
-                return [
-                    'week_day' => $week_day,
-                    'average_temperature' => $avg_temperature,
-                    'average_humidity' => $avg_humidity,
-                    'missing_records' => $missingRecords,
-                    'data' => $day_data->toArray()
-                ];
-            })->toArray();
-        }
-
-        $hours = ["09:00", "12:00", "17:30"];
-
-        $total_pages = intval(ceil(count($res) / 4));
-
-        $data = [
-            'week_a' => $week_a,
-            'week_b' => $week_b,
-            'year' => $year,
-            'hours' => $hours,
-            'res' => $res,
-            'page_number' => 1,
-            'total_pages' => $total_pages,
-            'count' => 0
-        ];
-
-        $pdf = Pdf::loadView('formats.temperature', $data)->setPaper('letter', 'landscape')
-            ->setOption([]);
-
-        return $pdf->stream('Temperature Report.pdf');
     }
 
-    public function makeDeliveryNotePDF($sale_id)
-    {
-        $sale = Sale::findOrFail($sale_id);
+    public function makeTemperaturePDF(
+        int|string $week_a,
+        int|string $week_b,
+        int|string $year,
+        int|string $warehouse_id
+    ): Response|JsonResponse {
+        try {
+            $weekA = filter_var($week_a, FILTER_VALIDATE_INT);
+            $weekB = filter_var($week_b, FILTER_VALIDATE_INT);
+            $yearInt = filter_var($year, FILTER_VALIDATE_INT);
+            $whId = filter_var($warehouse_id, FILTER_VALIDATE_INT);
 
-        $subtotal = 0;
-        $iva = 0;
-        foreach ($sale->products as $item) {
-            $import = $item->pivot->quantity * $item->pivot->cost;
-            if ($item->iva)
-                $iva += $import * 0.16;
-            $subtotal += $import;
+            if ($weekA === false || $weekB === false || $yearInt === false || $whId === false) {
+                return $this->utilResponse->errorResponse('Los parámetros del reporte deben ser números enteros válidos.', 400);
+            }
+
+            $config = $this->pdfRepo->getTemperaturePdfData((int) $weekA, (int) $weekB, (int) $yearInt, (int) $whId);
+
+            $pdf = Pdf::loadView($config['view'], $config['data'])
+                ->setPaper($config['paper'][0], $config['paper'][1]);
+
+            return $pdf->stream($config['fileName']);
+        } catch (InvalidArgumentException $e) {
+            return $this->utilResponse->errorResponse($e->getMessage(), 400);
+        } catch (Throwable $e) {
+            Log::error('Error al generar reporte de temperatura en PDF', [
+                'action'  => 'PdfController@makeTemperaturePDF',
+                'user_id' => auth()->id(),
+                'params'  => compact('week_a', 'week_b', 'year', 'warehouse_id'),
+                'error'   => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al generar el reporte de temperatura.', 500);
         }
-
-        $total = $iva + $subtotal;
-
-        $type = $sale->sector->sector_id;
-
-        $data = [
-            'sale' => $sale,
-            'type' => $type,
-            'subtotal' => $subtotal,
-            'iva' => $iva,
-            'total' => $total
-        ];
-
-        $pdf = Pdf::loadView('formats.delivery-note', $data)->setPaper('letter')
-            ->setOption([]);
-
-        return $pdf->stream('Delivery Note.pdf');
     }
 
-    public function makeQuotePDF($quote_id)
+    public function makeDeliveryNotePDF(int|string $sale_id): Response|JsonResponse
     {
-        $quote = Quote::findOrFail($quote_id);
-        $subtotal = 0;
-        $iva = 0;
+        try {
+            $config = $this->pdfRepo->getDeliveryNotePdfData((int) $sale_id);
 
-        foreach ($quote->products as $item) {
-            $import = $item->pivot->quantity * $item->pivot->cost;
-            if ($item->iva)
-                $iva += $import * 0.16;
-            $subtotal += $import;
+            $pdf = Pdf::loadView($config['view'], $config['data'])
+                ->setPaper($config['paper'][0], $config['paper'][1]);
+
+            return $pdf->stream($config['fileName']);
+        } catch (ModelNotFoundException $e) {
+            return $this->utilResponse->errorResponse('Venta no encontrada.', 404);
+        } catch (Throwable $e) {
+            Log::error('Error al generar Delivery Note PDF', [
+                'action'  => 'PdfController@makeDeliveryNotePDF',
+                'user_id' => auth()->id(),
+                'sale_id' => $sale_id,
+                'error'   => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al generar la nota de entrega.', 500);
         }
-
-        $total = $iva + $subtotal;
-
-        $data = [
-            'quote' => $quote,
-            'subtotal' => $subtotal,
-            'iva' => $iva,
-            'total' => $total
-        ];
-        
-        $pdf = pdf::loadView('formats.quote', $data);
-
-        return $pdf->stream('Cotización' . '.pdf');
     }
-    
-    public function makeRequisitionPDF($requisition_id)
+
+    public function makeQuotePDF(int|string $quote_id): Response|JsonResponse
     {
-        $requisition = PurchaseRequisition::with(['comparative', 'products'])->findOrFail($requisition_id);
+        try {
+            $config = $this->pdfRepo->getQuotePdfData((int) $quote_id);
 
-        $data = [
-            'requisition' => $requisition
-        ];
+            $pdf = Pdf::loadView($config['view'], $config['data']);
 
-        $pdf = PDF::setOptions([
-            'isRemoteEnabled' => true,
-            'chroot' => public_path(), 
-        ])->loadView('formats.requisition', $data);
+            return $pdf->stream($config['fileName']);
+        } catch (ModelNotFoundException $e) {
+            return $this->utilResponse->errorResponse('Cotización no encontrada.', 404);
+        } catch (Throwable $e) {
+            Log::error('Error al generar PDF de cotización', [
+                'action'   => 'PdfController@makeQuotePDF',
+                'user_id'  => auth()->id(),
+                'quote_id' => $quote_id,
+                'error'    => $e->getMessage(),
+            ]);
 
-        return $pdf->stream('Requisición.pdf');
+            return $this->utilResponse->errorResponse('Error al generar la cotización.', 500);
+        }
     }
 
+    public function makeRequisitionPDF(int|string $requisition_id): Response|JsonResponse
+    {
+        try {
+            $config = $this->pdfRepo->getRequisitionPdfData((int) $requisition_id);
+
+            $pdf = Pdf::setOptions($config['options'])
+                ->loadView($config['view'], $config['data']);
+
+            return $pdf->stream($config['fileName']);
+        } catch (ModelNotFoundException $e) {
+            return $this->utilResponse->errorResponse('Requisición no encontrada.', 404);
+        } catch (Throwable $e) {
+            Log::error('Error al generar PDF de requisición', [
+                'action'         => 'PdfController@makeRequisitionPDF',
+                'user_id'        => auth()->id(),
+                'requisition_id' => $requisition_id,
+                'error'          => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al generar el formato de requisición.', 500);
+        }
+    }
 }

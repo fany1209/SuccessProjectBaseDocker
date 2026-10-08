@@ -1,138 +1,186 @@
 <?php
-/*
-profile
-18/08/25
-stefany
-Actualizado por: Jacob
-Fecha de actualización: 17-10-2025
-*/
+
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Http\Repositories\Profile\ProfileRepository;
+use App\Http\Requests\Profile\ProfileLogoutSessionsRequest;
+use App\Http\Requests\Profile\ProfileUpdateInfoRequest;
+use App\Http\Requests\Profile\ProfileUpdatePasswordRequest;
+use App\Traits\UtilResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
-use Detection\MobileDetect;
-use App\Helpers\DeviceAgent;
-use Carbon\Carbon;
-use App\Models\User;
+use Illuminate\View\View;
+use Throwable;
 
 class ProfileController extends Controller
 {
-public function showProfile()
-{
-    $user = Auth::user();
-    $sessions = DB::table('sessions')
-        ->where('user_id', $user->id)
-        ->orderBy('last_activity', 'desc')
-        ->get()
-        ->map(function ($session) {
-            // Usar DeviceAgent, fallback al user agent actual si es null
-            $agent = new DeviceAgent($session->user_agent ?? request()->header('User-Agent'));
-            return [
-                'id' => $session->id,
-                'ip_address' => $session->ip_address,
-                'is_current_device' => $session->id === session()->getId(),
-                'last_active' => Carbon::createFromTimestamp($session->last_activity)->diffForHumans(),
-                'agent' => [
-                    'platform' => $agent->platform(),      // Windows / Mac / Android / iOS / Linux
-                    'browser' => $agent->browser(),        // Siempre 'Unknown'
-                    'is_desktop' => $agent->isDesktop(),   // true/false
-                ],
-            ];
-        });
+    protected UtilResponse $utilResponse;
+    protected ProfileRepository $profileRepo;
 
-    return view('profile.show', compact('user', 'sessions'));
-}
+    public function __construct(UtilResponse $utilResponse, ProfileRepository $profileRepo)
+    {
+        $this->utilResponse = $utilResponse;
+        $this->profileRepo = $profileRepo;
+    }
 
-
-    public function updateProfileInfo(Request $request)
+    public function showProfile(): View
     {
         $user = Auth::user();
+        $sessions = $this->profileRepo->getUserSessions((int) $user->id, (string) Session::getId());
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => "required|email|max:255|unique:users,email,{$user->id}",
-            'photo' => 'nullable|file|image|mimes:jpeg,jpg,png,webp|max:2048'
-        ]);
+        return view('profile.show', compact('user', 'sessions'));
+    }
 
-        $user->name = $request->name;
-        $user->email = $request->email;
+    public function updateProfileInfo(ProfileUpdateInfoRequest $request): RedirectResponse|JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $updatedUser = $this->profileRepo->updateInfo($user, $request->validated(), $request->file('photo'));
 
-        if ($request->hasFile('photo')) {
-            if ($user->profile_photo_path) {
-                Storage::disk('public')->delete($user->profile_photo_path);
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Profile updated.',
+                    'data'    => $updatedUser,
+                ]);
             }
-            $user->profile_photo_path = $request->file('photo')->store('profile-photos', 'public');
+
+            return back()->with('success', 'Profile updated.');
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar información de perfil', [
+                'action'  => 'ProfileController@updateProfileInfo',
+                'user_id' => Auth::id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al actualizar el perfil.',
+                ], 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error al actualizar el perfil.');
         }
-
-        $user->save();
-
-        return back()->with('success', 'Profile updated.');
     }
 
-    public function updatePassword(Request $request)
+    public function updatePassword(ProfileUpdatePasswordRequest $request): RedirectResponse|JsonResponse
     {
-        $request->validate([
-            'current_password' => 'required',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
+        try {
+            $user = Auth::user();
 
-        $user = Auth::user();
+            if (!$this->profileRepo->verifyPassword($user, $request->input('current_password'))) {
+                if ($request->ajax() || $request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Current password is incorrect.',
+                    ], 422);
+                }
 
-        if (!Hash::check($request->current_password, $user->password)) {
-            return back()->withErrors(['current_password' => 'Current password is incorrect.']);
+                return back()->withErrors(['current_password' => 'Current password is incorrect.']);
+            }
+
+            $this->profileRepo->updatePassword($user, $request->input('password'));
+
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Password updated.',
+                ]);
+            }
+
+            return back()->with('success', 'Password updated.');
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar contraseña de usuario', [
+                'action'  => 'ProfileController@updatePassword',
+                'user_id' => Auth::id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al actualizar la contraseña.',
+                ], 500);
+            }
+
+            return back()->with('error', 'Ocurrió un error al actualizar la contraseña.');
         }
-
-        $user->password = Hash::make($request->password);
-        $user->save();
-
-        return back()->with('success', 'Password updated.');
     }
 
-    public function logoutOtherSessions(Request $request)
-{
-    $user = Auth::user();
-
-    // Verificar la contraseña
-    if (!Hash::check($request->password, $user->password)) {
-        return response()->json([
-            'message' => 'The password you entered is incorrect.'
-        ], 422);
-    }
-
-    // Eliminar todas las sesiones excepto la actual
-    $currentSessionId = Session::getId();
-
-    DB::table('sessions')
-        ->where('user_id', $user->id)
-        ->where('id', '!=', $currentSessionId)
-        ->delete();
-
-    return response()->json(['message' => 'Logged out from other sessions.']);
-}
-
-    public function removePhoto()
+    public function logoutOtherSessions(ProfileLogoutSessionsRequest $request): JsonResponse
     {
-        $user = Auth::user();
+        try {
+            $user = Auth::user();
 
-        if ($user->profile_photo_path) {
-            Storage::disk('public')->delete($user->profile_photo_path);
-            $user->profile_photo_path = null;
-            $user->save();
+            if (!$this->profileRepo->verifyPassword($user, $request->input('password'))) {
+                return response()->json([
+                    'message' => 'The password you entered is incorrect.',
+                ], 422);
+            }
+
+            $this->profileRepo->logoutOtherSessions((int) $user->id, (string) Session::getId());
+
+            return response()->json(['message' => 'Logged out from other sessions.']);
+        } catch (Throwable $e) {
+            Log::error('Error al cerrar otras sesiones de usuario', [
+                'action'  => 'ProfileController@logoutOtherSessions',
+                'user_id' => Auth::id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            return response()->json(['message' => 'Error al cerrar las otras sesiones.'], 500);
         }
-
-        return response()->json(['message' => 'Profile photo removed.']);
     }
 
-    public function deleteUser(Request $request)
+    public function removePhoto(): JsonResponse
     {
-        $user = Auth::user();
-        Auth::logout();
-        $user->delete();
+        try {
+            $user = Auth::user();
+            $this->profileRepo->removePhoto($user);
 
-        return redirect('/')->with('success', 'Account deleted.');
+            return response()->json(['message' => 'Profile photo removed.']);
+        } catch (Throwable $e) {
+            Log::error('Error al eliminar foto de perfil', [
+                'action'  => 'ProfileController@removePhoto',
+                'user_id' => Auth::id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            return response()->json(['message' => 'Error al eliminar la foto.'], 500);
+        }
+    }
+
+    public function deleteUser(Request $request): RedirectResponse|JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            if (method_exists(Auth::guard(), 'logout')) {
+                Auth::guard()->logout();
+            }
+            $this->profileRepo->deleteUser($user);
+
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Account deleted.',
+                ]);
+            }
+
+            return redirect('/')->with('success', 'Account deleted.');
+        } catch (Throwable $e) {
+            Log::error('Error al eliminar cuenta de usuario', [
+                'action'  => 'ProfileController@deleteUser',
+                'user_id' => Auth::id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            return redirect('/')->with('error', 'Error al eliminar la cuenta.');
+        }
     }
 }

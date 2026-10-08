@@ -744,9 +744,6 @@ Route::prefix('laboratory/equipments')->group(function () {
         Route::get('/download-pdf/{movType}/{movId}', [PdfController::class, 'downloadPDF'])
             ->name('makePDF');
 
-        Route::get('/make-pdf', [PDFController::class, 'make'])
-            ->name('makePDF');
-
         Route::get('/download-temperature-pdf/{week_a}/{week_b}/{year}/{warehouse_id}', [PdfController::class, 'makeTemperaturePDF'])
             ->whereNumber(['week_a', 'week_b', 'year', 'warehouse_id'])
             ->name('temperature-pdf');
@@ -761,11 +758,10 @@ Route::prefix('laboratory/equipments')->group(function () {
 
         Route::get('/reports-excel-inventory', [XlsController::class, 'reports'])
             ->name('reports');
+
+        Route::get('/download-quote/{quote_id}', [PdfController::class, 'makeQuotePDF'])
+            ->name('quote');
     });
-    /*
-    Route::get('/download-quote/{quote_id}', [PdfController::class, 'makeQuotePDF'])
-        ->name('quote');
-    */
 
     // Maintenance
     Route::get('/maintenance', [MaintenanceController::class, 'index'])->name('maintenance.index');
