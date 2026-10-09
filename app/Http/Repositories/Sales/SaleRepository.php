@@ -1036,6 +1036,13 @@ class SaleRepository
             ->leftJoin('prospects', 'prospects.prospect_id', '=', 'sales.prospect_id')
             ->leftJoin('sales_status', 'sales_status.sales_status_id', '=', 'sales.sales_status_id')
             ->leftJoin('sale_detail', 'sale_detail.sale_id', '=', 'sales.sale_id')
+            ->leftJoin('products', 'products.product_id', '=', 'sale_detail.product_id')
+            ->leftJoin(
+                DB::raw('(SELECT sale_id, COALESCE(SUM(CASE WHEN has_tax = 1 THEN quantity * cost * 1.16 ELSE quantity * cost END), 0) as total_amount FROM sale_detail GROUP BY sale_id) as sale_totals'),
+                'sale_totals.sale_id',
+                '=',
+                'sales.sale_id'
+            )
             ->select(
                 'sales.sale_id',
                 'sales.folio',
@@ -1048,24 +1055,17 @@ class SaleRepository
                 'sales.purchase_order',
                 'sales_status.name as status_name',
                 'sales.is_customer',
-                DB::raw('COUNT(sale_detail.sale_detail_id) as total_products'),
-                DB::raw('COALESCE(SUM(CASE WHEN sale_detail.has_tax = 1 THEN sale_detail.quantity * sale_detail.cost * 1.16 ELSE sale_detail.quantity * sale_detail.cost END), 0) as total_amount')
+                'sale_detail.sale_detail_id',
+                'sale_detail.public_product_name',
+                'products.name as original_product_name',
+                DB::raw('COALESCE(sale_detail.quantity, 0) as quantity'),
+                DB::raw('COALESCE(sale_detail.cost, 0) as unit_price'),
+                DB::raw('COALESCE(sale_detail.quantity * sale_detail.cost, 0) as subtotal'),
+                'sale_detail.has_tax',
+                DB::raw('COALESCE(sale_totals.total_amount, 0) as total_sale')
             )
-            ->groupBy(
-                'sales.sale_id',
-                'sales.folio',
-                'sales.date',
-                'sales.seller',
-                'sectors.name',
-                'customers.name',
-                'prospects.name',
-                'sales.sale_type',
-                'sales.invoice',
-                'sales.purchase_order',
-                'sales_status.name',
-                'sales.is_customer'
-            )
-            ->orderBy('sales.folio', 'desc');
+            ->orderBy('sales.folio', 'desc')
+            ->orderBy('sale_detail.sale_detail_id', 'asc');
 
         if (isset($clients) && $clients !== '') {
             if ((string) $clients === '1') {
@@ -1104,7 +1104,9 @@ class SaleRepository
                     ->orWhere('sales.seller', 'like', '%' . $searchStr . '%')
                     ->orWhere('sales.folio', 'like', '%' . $searchStr . '%')
                     ->orWhere('sales.invoice', 'like', '%' . $searchStr . '%')
-                    ->orWhere('sales.purchase_order', 'like', '%' . $searchStr . '%');
+                    ->orWhere('sales.purchase_order', 'like', '%' . $searchStr . '%')
+                    ->orWhere('sale_detail.public_product_name', 'like', '%' . $searchStr . '%')
+                    ->orWhere('products.name', 'like', '%' . $searchStr . '%');
             });
         }
 
@@ -1145,8 +1147,11 @@ class SaleRepository
             'Tipo de Venta',
             'Factura',
             'Orden de Compra',
-            'Productos',
-            'Total',
+            'Producto',
+            'Cantidad',
+            'Precio Unitario',
+            'Subtotal',
+            'Total Venta',
             'Estatus',
         ];
 
@@ -1200,7 +1205,13 @@ class SaleRepository
         $row = 3;
         foreach ($sales as $sale) {
             $formattedDate = $sale->date ? date('d/m/Y', strtotime($sale->date)) : '—';
-            $totalAmount = round((float) $sale->total_amount, 2);
+            $unitPrice = round((float) $sale->unit_price, 2);
+            $subtotal = round((float) $sale->subtotal, 2);
+            $totalSale = round((float) $sale->total_sale, 2);
+
+            $productName = !empty(trim((string) $sale->public_product_name))
+                ? trim((string) $sale->public_product_name)
+                : (!empty(trim((string) $sale->original_product_name)) ? trim((string) $sale->original_product_name) : '—');
 
             $sheet->setCellValue('A' . $row, $sale->folio ?: '—');
             $sheet->setCellValue('B' . $row, $formattedDate);
@@ -1210,11 +1221,14 @@ class SaleRepository
             $sheet->setCellValue('F' . $row, $sale->sale_type ?: '—');
             $sheet->setCellValue('G' . $row, $sale->invoice ?: '—');
             $sheet->setCellValue('H' . $row, $sale->purchase_order ?: '—');
-            $sheet->setCellValue('I' . $row, (int) $sale->total_products);
-            $sheet->setCellValue('J' . $row, $totalAmount);
+            $sheet->setCellValue('I' . $row, $productName);
+            $sheet->setCellValue('J' . $row, (float) $sale->quantity);
+            $sheet->setCellValue('K' . $row, $unitPrice);
+            $sheet->setCellValue('L' . $row, $subtotal);
+            $sheet->setCellValue('M' . $row, $totalSale);
 
             // Estatus styling
-            $estatusCell = 'K' . $row;
+            $estatusCell = 'N' . $row;
             $statusName = $sale->status_name ?: 'EN PROCESO';
             $statusUpper = strtoupper($statusName);
             $sheet->setCellValue($estatusCell, $statusUpper);
@@ -1230,7 +1244,9 @@ class SaleRepository
             }
 
             // Currency formatting
-            $sheet->getStyle('J' . $row)->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_CURRENCY_USD);
+            $sheet->getStyle('K' . $row)->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_CURRENCY_USD);
+            $sheet->getStyle('L' . $row)->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_CURRENCY_USD);
+            $sheet->getStyle('M' . $row)->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_CURRENCY_USD);
 
             // Borders
             $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->applyFromArray([
@@ -1244,7 +1260,11 @@ class SaleRepository
 
             // Alignment
             $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
-            $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('A' . $row . ':H' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('I' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+            $sheet->getStyle('J' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('K' . $row . ':M' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle('N' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
             $row++;
         }

@@ -658,10 +658,11 @@ test('exportExcel forbids access to unauthenticated user or user without permiss
 });
 
 test('exportExcel repository creates spreadsheet with design matching cuentasporpagar', function () {
-    $sale = ($this->createSale)(['seller' => 'Vendedor Excel Test']);
+    $uniqueSeller = 'Vendedor Excel Test ' . uniqid();
+    $sale = ($this->createSale)(['seller' => $uniqueSeller]);
 
     $repo = app(\App\Http\Repositories\Sales\SaleRepository::class);
-    $spreadsheet = $repo->getSpreadsheet(['seller' => 'Vendedor Excel Test'], $this->user);
+    $spreadsheet = $repo->getSpreadsheet(['seller' => $uniqueSeller], $this->user);
 
     $sheet = $spreadsheet->getActiveSheet();
     expect($sheet->getTitle())->toBe('Ventas');
@@ -680,15 +681,64 @@ test('exportExcel repository creates spreadsheet with design matching cuentaspor
     expect($sheet->getCell('F2')->getValue())->toBe('Tipo de Venta');
     expect($sheet->getCell('G2')->getValue())->toBe('Factura');
     expect($sheet->getCell('H2')->getValue())->toBe('Orden de Compra');
-    expect($sheet->getCell('I2')->getValue())->toBe('Productos');
-    expect($sheet->getCell('J2')->getValue())->toBe('Total');
-    expect($sheet->getCell('K2')->getValue())->toBe('Estatus');
+    expect($sheet->getCell('I2')->getValue())->toBe('Producto');
+    expect($sheet->getCell('J2')->getValue())->toBe('Cantidad');
+    expect($sheet->getCell('K2')->getValue())->toBe('Precio Unitario');
+    expect($sheet->getCell('L2')->getValue())->toBe('Subtotal');
+    expect($sheet->getCell('M2')->getValue())->toBe('Total Venta');
+    expect($sheet->getCell('N2')->getValue())->toBe('Estatus');
 
     $headerFill = $sheet->getStyle('A2')->getFill()->getStartColor()->getARGB();
     expect($headerFill)->toBe('FFA9D08E');
 
     // Row 3 (data row)
-    expect($sheet->getCell('C3')->getValue())->toBe('Vendedor Excel Test');
+    expect($sheet->getCell('C3')->getValue())->toBe($uniqueSeller);
+    expect($sheet->getCell('I3')->getValue())->toBe($this->product->name);
+    expect((float) $sheet->getCell('J3')->getValue())->toBe(10.0);
+    expect((float) $sheet->getCell('K3')->getValue())->toBe(250.0);
+    expect((float) $sheet->getCell('L3')->getValue())->toBe(2500.0);
+});
+
+test('exportExcel displays all products and their values when a sale has multiple products', function () {
+    $multiSeller = 'Vendedor MultiProd Test ' . uniqid();
+    $sale = ($this->createSale)(['seller' => $multiSeller]);
+
+    $secondProduct = Product::create([
+        'name'         => 'Segundo Producto ' . uniqid(),
+        'category_id'  => $this->category->category_id,
+        'sat_code'     => '10101502',
+        'sku'          => substr('SKU2-' . uniqid(), 0, 20),
+        'presentation' => 'Caja 10kg',
+        'unit'         => 'kg',
+    ]);
+
+    SaleDetail::create([
+        'sale_id'             => $sale->sale_id,
+        'product_id'          => $secondProduct->product_id,
+        'public_product_name' => 'Segundo Producto Público',
+        'quantity'            => 5,
+        'cost'                => 100.00,
+        'has_tax'             => 0,
+        'invoice_val'         => 0,
+    ]);
+
+    $repo = app(\App\Http\Repositories\Sales\SaleRepository::class);
+    $spreadsheet = $repo->getSpreadsheet(['seller' => $multiSeller], $this->user);
+    $sheet = $spreadsheet->getActiveSheet();
+
+    // Verify first product row
+    expect($sheet->getCell('A3')->getValue())->toBe($sale->folio);
+    expect($sheet->getCell('I3')->getValue())->toBe($this->product->name);
+    expect((float) $sheet->getCell('J3')->getValue())->toBe(10.0);
+    expect((float) $sheet->getCell('K3')->getValue())->toBe(250.0);
+    expect((float) $sheet->getCell('L3')->getValue())->toBe(2500.0);
+
+    // Verify second product row for same sale
+    expect($sheet->getCell('A4')->getValue())->toBe($sale->folio);
+    expect($sheet->getCell('I4')->getValue())->toBe('Segundo Producto Público');
+    expect((float) $sheet->getCell('J4')->getValue())->toBe(5.0);
+    expect((float) $sheet->getCell('K4')->getValue())->toBe(100.0);
+    expect((float) $sheet->getCell('L4')->getValue())->toBe(500.0);
 });
 
 
