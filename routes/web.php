@@ -13,6 +13,7 @@ use App\Http\Controllers\ImageController;
 use App\Http\Controllers\OutputController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductInfController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\ProspectController;
@@ -74,6 +75,14 @@ use App\Http\Controllers\MaintenancePlanController;
 use App\Http\Controllers\MaintenanceAreaController;
 use App\Http\Controllers\ActivityLogController;
 
+Route::get('/cls', function () {
+    Artisan::call('config:clear');
+    Artisan::call('cache:clear');
+    Artisan::call('view:clear');
+    Artisan::call('config:cache');
+    return "¡Caché completamente eliminada en producción!";
+});
+
 Route::get('/', function () {
     return view('home');
 })->name('home');
@@ -123,6 +132,9 @@ Route::middleware(RedirectIfClientUnauthenticated::class)->get('/portal/venta/{i
 Route::middleware(RedirectIfClientUnauthenticated::class)->get('/portal/dashboard', [PortalAuthController::class, 'dashboard'])->name('portal.dashboard');
 Route::middleware([RedirectIfClientUnauthenticated::class, 'throttle:pdf-reports'])->get('/portal/descargar-pdf/{id}', [PortalAuthController::class, 'descargarPdf'])->name('portal.descargar-pdf');
 Route::middleware(RedirectIfClientUnauthenticated::class)->post('/portal/change-password', [PortalPasswordResetController::class, 'changePassword'])->name('portal.password.change');
+
+// Rutas Públicas de Escaneo de Códigos QR Permanentes
+Route::get('/rack/{uuid}', [ProductInfController::class, 'showPublic'])->name('product-inf.rack');
 
 Route::middleware([
     'auth:sanctum',
@@ -192,6 +204,16 @@ Route::middleware([
 
     //Cli
     Route::resource('cli',CliController::class)->middleware('can:warehouse.show');
+
+    // Product Inf (Generación y Gestión de Códigos QR para Productos)
+    Route::prefix('product-inf')->name('product-inf.')->group(function () {
+        Route::get('/', [ProductInfController::class, 'index'])->name('index');
+        Route::get('/location-products', [ProductInfController::class, 'locationProducts'])->name('location-products');
+        Route::post('/store', [ProductInfController::class, 'store'])->name('store');
+        Route::get('/{uuid}/detail', [ProductInfController::class, 'show'])->name('detail');
+        Route::get('/{uuid}/download-svg', [ProductInfController::class, 'downloadSvg'])->name('download-svg');
+        Route::get('/{uuid}', [ProductInfController::class, 'showPublic'])->name('show');
+    });
 
     //Logistic
     Route::resource('logistic',LogisticController::class)->middleware('can:warehouse.show');

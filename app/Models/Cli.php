@@ -14,8 +14,8 @@ class Cli extends Model
     protected $primaryKey = 'cli_id';
 
     protected $fillable = [
-        'bag_number', 'protein', 'quantity', 'weight_per_unit', 'net_weight', 'sq_certificate',
-        'inventory_id', 'location_id', 'concept_id'
+        'uuid', 'bag_number', 'protein', 'quantity', 'weight_per_unit', 'net_weight', 'sq_certificate',
+        'inventory_id', 'location_id', 'concept_id', 'detailed_description'
     ];
 
     public function inventory()
@@ -31,5 +31,10 @@ class Cli extends Model
     public function concept()
     {
         return $this->belongsTo('App\Models\Concept', 'concept_id');
+    }
+
+    public function productQr()
+    {
+        return $this->hasOne(ProductQr::class, 'cli_id', 'cli_id');
     }
 }

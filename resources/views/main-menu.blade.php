@@ -37,6 +37,11 @@
                     WAREHOUSE
                 </x-application.buttons.menu-btn>
             @endcan
+            @if(auth()->check() && (auth()->user()->hasRole(['Admin', 'Warehouse']) || auth()->user()->can('product_inf.show')))
+                <x-application.buttons.menu-btn module="product-inf" link="{{ route('product-inf.index') }}" image="{{ asset('images/main-menu/product-inf.png') }}">
+                    PRODUCT INF
+                </x-application.buttons.menu-btn>
+            @endif
             @can('warehouse.show')
                 <x-application.buttons.menu-btn module="logistic" link="{{ route('logistic.index') }}" image="{{ asset('images/main-menu/logistica.png') }}">
                     LOGISTIC

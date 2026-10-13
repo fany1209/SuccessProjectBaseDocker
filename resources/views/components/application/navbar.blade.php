@@ -55,6 +55,12 @@
                         </x-nav-link>
                     @endcan
 
+                    @if(auth()->check() && (auth()->user()->hasRole(['Admin', 'Warehouse']) || auth()->user()->can('product_inf.show')))
+                        <x-nav-link href="{{ route('product-inf.index') }}" :active="request()->routeIs('product-inf.*')">
+                            {{ __('Product Inf') }}
+                        </x-nav-link>
+                    @endif
+
                     @can('inventory.show')
                         <x-nav-link href="{{ route('inventory.index') }}" :active="request()->routeIs('inventory.index') && request('tab') !== 'sales'">
                             {{ __('Inventory') }}
@@ -333,6 +339,12 @@
                     {{ __('Warehouse') }}
                 </x-responsive-nav-link>
             @endcan
+
+            @if(auth()->check() && (auth()->user()->hasRole(['Admin', 'Warehouse']) || auth()->user()->can('product_inf.show')))
+                <x-responsive-nav-link href="{{ route('product-inf.index') }}" :active="request()->routeIs('product-inf.*')">
+                    {{ __('Product Inf') }}
+                </x-responsive-nav-link>
+            @endif
 
             @can('inventory.show')
                 <x-responsive-nav-link href="{{ route('inventory.index') }}" :active="request()->routeIs('inventory.index') && request('tab') !== 'sales'">
