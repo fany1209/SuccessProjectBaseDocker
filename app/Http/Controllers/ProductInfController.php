@@ -24,9 +24,6 @@ class ProductInfController extends Controller
         $this->productInfRepository = $productInfRepository;
     }
 
-    /**
-     * Muestra la bandeja principal del módulo Product Inf.
-     */
     public function index(Request $request): View|JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $user = $request->user();
@@ -68,9 +65,6 @@ class ProductInfController extends Controller
         }
     }
 
-    /**
-     * Retorna los productos de una posición específica del mapa de almacén.
-     */
     public function locationProducts(Request $request): JsonResponse
     {
         try {
@@ -104,9 +98,6 @@ class ProductInfController extends Controller
         }
     }
 
-    /**
-     * Almacena o asocia un nuevo código QR permanente con su descripción detallada.
-     */
     public function store(ProductInfRequest $request): JsonResponse
     {
         try {
@@ -132,9 +123,6 @@ class ProductInfController extends Controller
         }
     }
 
-    /**
-     * Consulta interna del detalle de un QR específico vía AJAX.
-     */
     public function show(string $uuid): JsonResponse
     {
         try {
@@ -160,9 +148,6 @@ class ProductInfController extends Controller
         }
     }
 
-    /**
-     * Vista pública/móvil al escanear el código QR (/rack/{uuid} o /product-inf/{uuid}).
-     */
     public function showPublic(string $uuid): View
     {
         try {
@@ -212,9 +197,6 @@ class ProductInfController extends Controller
         }
     }
 
-    /**
-     * Descarga del archivo vectorial SVG del código QR.
-     */
     public function downloadSvg(string $uuid): Response
     {
         $cleanUuid = strip_tags(trim($uuid));
@@ -230,5 +212,36 @@ class ProductInfController extends Controller
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             'Cache-Control'       => 'no-cache, private',
         ]);
+    }
+
+    public function destroy(Request $request, string $uuid): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user || (!method_exists($user, 'hasRole') || (!$user->hasRole(['Admin', 'Warehouse']) && !$user->can('product_inf.show')))) {
+            return $this->utilResponse->errorResponse('No tienes permisos para eliminar códigos QR.', 403);
+        }
+
+        try {
+            $cleanUuid = strip_tags(trim($uuid));
+            $deleted = $this->productInfRepository->deleteByUuid($cleanUuid);
+
+            if (!$deleted) {
+                return $this->utilResponse->errorResponse('El código QR que intentas eliminar no fue encontrado.', 404);
+            }
+
+            return $this->utilResponse->successResponse(
+                ['uuid' => $cleanUuid],
+                'El código QR y su URL asociada han sido eliminados correctamente.'
+            );
+        } catch (\Throwable $e) {
+            Log::error('Error al eliminar código QR en Product Inf', [
+                'action'    => 'ProductInfController@destroy',
+                'user_id'   => auth()->id(),
+                'uuid'      => $uuid,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error interno al eliminar el código QR.', 500);
+        }
     }
 }

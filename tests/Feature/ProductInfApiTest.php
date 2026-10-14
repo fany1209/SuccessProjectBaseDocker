@@ -202,3 +202,52 @@ test('9. si se registra una venta o salida y cambia el peso en cli, el QR reflej
     $this->assertEquals(150.0, $qr->live_net_weight);
 });
 
+test('10. elimina un código QR, revoca su URL y limpia cli correctamente', function () {
+    // 1. Generar código QR
+    $storeResponse = $this->actingAs($this->user)
+        ->postJson(route('product-inf.store'), [
+            'cli_id'      => $this->cli->cli_id,
+            'description' => 'QR para prueba de eliminación.',
+        ]);
+
+    $uuid = $storeResponse->json('data.uuid');
+
+    // 2. Ejecutar eliminación
+    $deleteResponse = $this->actingAs($this->user)
+        ->deleteJson(route('product-inf.destroy', ['uuid' => $uuid]));
+
+    $deleteResponse->assertStatus(200)
+        ->assertJson([
+            'success' => true,
+            'flag'    => true,
+        ]);
+
+    // 3. Verificar que se eliminó de la tabla product_qrs
+    $this->assertFalse(ProductQr::where('uuid', $uuid)->exists());
+
+    // 4. Verificar que se limpió el uuid y descripción en cli
+    $this->cli->refresh();
+    $this->assertNull($this->cli->uuid);
+    $this->assertNull($this->cli->detailed_description);
+
+    // 5. Verificar que la URL pública ahora muestra la vista 404 / expirada
+    $publicResponse = $this->get(route('product-inf.rack', ['uuid' => $uuid]));
+    $publicResponse->assertStatus(200);
+    $publicResponse->assertSee('Código QR No Válido o Expirado');
+});
+
+test('11. retorna 403 al intentar eliminar un código QR sin permisos autorizados', function () {
+    $uuid = (string) Illuminate\Support\Str::uuid();
+    ProductQr::create([
+        'uuid'        => $uuid,
+        'product_id'  => $this->product->product_id,
+        'description' => 'QR prueba permisos eliminación.',
+        'created_by'  => $this->user->id,
+    ]);
+
+    $deleteResponse = $this->actingAs($this->unauthorizedUser)
+        ->deleteJson(route('product-inf.destroy', ['uuid' => $uuid]));
+
+    $deleteResponse->assertStatus(403);
+});
+

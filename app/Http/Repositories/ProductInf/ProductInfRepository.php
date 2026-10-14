@@ -21,18 +21,12 @@ class ProductInfRepository
         $this->cliModel = $cliModel;
     }
 
-    /**
-     * Resuelve rutas públicas desacopladas (cumplimiento de regla public_html).
-     */
     protected function getPublicHtmlPath(string $subpath = ''): string
     {
         $base = is_dir(base_path('../public_html')) ? base_path('../public_html') : base_path('public');
         return $subpath ? $base . DIRECTORY_SEPARATOR . ltrim($subpath, '/\\') : $base;
     }
 
-    /**
-     * Obtiene el listado paginado de códigos QR generados con filtros opcionales.
-     */
     public function getAll(?string $search = null, int $perPage = 15): LengthAwarePaginator
     {
         $query = $this->model->newQuery()
@@ -57,9 +51,6 @@ class ProductInfRepository
         return $query->paginate($perPage);
     }
 
-    /**
-     * Busca un registro de QR por su UUID identificador permanente.
-     */
     public function findByUuid(string $uuid): ?ProductQr
     {
         return $this->model->newQuery()
@@ -68,9 +59,6 @@ class ProductInfRepository
             ->first();
     }
 
-    /**
-     * Consulta los productos contenidos en una posición/rack del mapa de almacén.
-     */
     public function getLocationProducts(string $locationName): Collection
     {
         $items = DB::table('inventory')
@@ -118,9 +106,6 @@ class ProductInfRepository
         });
     }
 
-    /**
-     * Obtiene los almacenes y locaciones ocupadas para pintar el mapa interactivo.
-     */
     public function getWarehouseMapData(): array
     {
         $warehouses = DB::table('warehouses')
@@ -139,9 +124,6 @@ class ProductInfRepository
         ];
     }
 
-    /**
-     * Registra o actualiza el código QR para un producto con bloqueo pesimista y transacción ACID.
-     */
     public function createOrUpdateQr(array $data, int $userId): ProductQr
     {
         return DB::transaction(function () use ($data, $userId) {
@@ -223,6 +205,46 @@ class ProductInfRepository
             }
 
             return $qrRecord->load(['product', 'location.warehouse', 'concept', 'inventory', 'cli', 'creator']);
+        });
+    }
+
+    public function deleteByUuid(string $uuid): bool
+    {
+        return DB::transaction(function () use ($uuid) {
+            $qrRecord = $this->model->newQuery()
+                ->lockForUpdate()
+                ->where('uuid', $uuid)
+                ->first();
+
+            if (!$qrRecord) {
+                return false;
+            }
+
+            // Desvincular de cli si existía asociación
+            if ($qrRecord->cli_id) {
+                $cli = $this->cliModel->newQuery()
+                    ->lockForUpdate()
+                    ->find($qrRecord->cli_id);
+
+                if ($cli) {
+                    $cli->uuid = null;
+                    $cli->detailed_description = null;
+                    $cli->save();
+                }
+            } else {
+                $cliByUuid = $this->cliModel->newQuery()
+                    ->lockForUpdate()
+                    ->where('uuid', $uuid)
+                    ->first();
+
+                if ($cliByUuid) {
+                    $cliByUuid->uuid = null;
+                    $cliByUuid->detailed_description = null;
+                    $cliByUuid->save();
+                }
+            }
+
+            return (bool) $qrRecord->delete();
         });
     }
 }

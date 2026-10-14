@@ -10,7 +10,7 @@
                 <i class="ri-qr-code-line text-base"></i>
                 <span>Módulo de Control y Trazabilidad</span>
             </div>
-            <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Product Inf</h1>
+            <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Product QR</h1>
             <p class="text-sm text-gray-600 mt-1">Generación y administración de Códigos QR permanentes con trazabilidad en tiempo real.</p>
         </div>
 
@@ -144,6 +144,9 @@
                             <a href="{{ route('product-inf.download-svg', $item->uuid) }}" class="inline-flex items-center p-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-md transition" title="Descargar SVG">
                                 <i class="ri-download-2-line"></i>
                             </a>
+                            <button type="button" class="btn-delete-qr inline-flex items-center p-1.5 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 rounded-md transition" data-uuid="{{ $item->uuid }}" data-product="{{ $item->product ? $item->product->name : 'N/A' }}" data-batch="{{ $item->batch ?: 'S/L' }}" title="Eliminar QR y URL">
+                                <i class="ri-delete-bin-line"></i>
+                            </button>
                         </td>
                     </tr>
                     @endforeach
@@ -721,6 +724,57 @@ $(document).ready(function(){
         $('#btn-download-svg-action').attr('href', svgUrl);
 
         openModal('qrResultModal');
+    });
+
+    // Eliminar código QR y URL
+    $(document).on('click', '.btn-delete-qr', function(){
+        const uuid = $(this).data('uuid');
+        const product = $(this).data('product');
+        const batch = $(this).data('batch');
+        const row = $(this).closest('tr');
+
+        Swal.fire({
+            title: '¿Eliminar código QR?',
+            html: `¿Estás seguro de que deseas eliminar este código QR y revocar su URL permanente?<br><br><strong>Producto:</strong> ${escapeHtml(product)}<br><strong>Lote:</strong> ${escapeHtml(batch)}<br><span class="text-xs text-gray-500 font-mono">UUID: ${escapeHtml(uuid)}</span><br><br><span class="text-xs text-red-600 font-semibold">⚠️ Cualquier escaneo físico posterior mostrará que el código ha sido retirado o expirado.</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: "{{ url('product-inf') }}/" + uuid,
+                    type: "DELETE",
+                    dataType: "json",
+                    success: function(res) {
+                        if (res.success) {
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: 'Código QR y URL eliminados',
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+                            row.fadeOut(300, function() {
+                                $(this).remove();
+                            });
+                        } else {
+                            Swal.fire('Error', res.message || 'No fue posible eliminar el código QR.', 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        let errorMsg = 'Error al intentar eliminar el código QR.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMsg = xhr.responseJSON.message;
+                        }
+                        Swal.fire('Error', errorMsg, 'error');
+                    }
+                });
+            }
+        });
     });
 
 });

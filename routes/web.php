@@ -212,6 +212,7 @@ Route::middleware([
         Route::post('/store', [ProductInfController::class, 'store'])->name('store');
         Route::get('/{uuid}/detail', [ProductInfController::class, 'show'])->name('detail');
         Route::get('/{uuid}/download-svg', [ProductInfController::class, 'downloadSvg'])->name('download-svg');
+        Route::delete('/{uuid}', [ProductInfController::class, 'destroy'])->name('destroy');
         Route::get('/{uuid}', [ProductInfController::class, 'showPublic'])->name('show');
     });
 
