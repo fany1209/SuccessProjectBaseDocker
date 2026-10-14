@@ -113,6 +113,18 @@ Fecha de actualización: 15-01-2026
                             <x-label for="location">Location</x-label>
                             <x-select-1 name="location_id[]" class="location_id">
                                 <option value="">Select a location</option>
+                                @foreach ($warehouses as $warehouse)
+                                    @php
+                                        $whLocations = $locations->where('warehouse_id', $warehouse->warehouse_id);
+                                    @endphp
+                                    @if ($whLocations->count() > 0)
+                                        <optgroup label="{{ $warehouse->name }}">
+                                            @foreach ($whLocations as $loc)
+                                                <option value="{{ $loc->location_id }}">{{ $loc->name }}</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endif
+                                @endforeach
                             </x-select-1>
                         </x-wrapper-form-2>
                     </x-wrapper-form-1>
@@ -125,8 +137,18 @@ Fecha de actualización: 15-01-2026
                         <x-wrapper-form-2><p class="total"></p></x-wrapper-form-2>
                     </x-wrapper-form-1>
 
-                    <x-wrapper-form-1 class="bag_numbers_wrapper hidden w-full flex-col mt-2">
-                        <x-label># de Barcina y Proteína para cada BigBag</x-label>
+                    <x-wrapper-form-1 class="packing-list-wrapper w-full" style="display: none;">
+                        <x-wrapper-form-2>
+                            <x-label for="packing_list"><i class="ri-file-list-3-line mr-1 text-emerald-600"></i>Packing List</x-label>
+                            <x-input-1 type="number" step="1" min="1" name="packing_list[]" class="packing_list" placeholder="Número de Packing List"></x-input-1>
+                        </x-wrapper-form-2>
+                        <x-wrapper-form-2 class="flex items-end pb-2">
+                            <p class="text-xs text-gray-500 italic">Número de Packing List para identificar este lote de BigBags.</p>
+                        </x-wrapper-form-2>
+                    </x-wrapper-form-1>
+
+                    <x-wrapper-form-1 class="bag_numbers_wrapper w-full flex-col mt-2" style="display: none;">
+                        <x-label class="text-emerald-800 font-bold"># de Barcina, Proteína y Peso para cada BigBag</x-label>
                         <div class="bag_numbers_container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-1 w-full">
                         </div>
                     </x-wrapper-form-1>
@@ -256,7 +278,7 @@ Fecha de actualización: 15-01-2026
         <x-wrapper-form-1 class="location-assignment-wrapper">
             <x-wrapper-form-2>
                 <x-label for="warehouse">Warehouse (Optional)</x-label>
-                <x-select-1 name="warehouse[]" class="warehouse" disabled>
+                <x-select-1 name="warehouse[]" class="warehouse">
                     <option value="">Select a warehouse</option>
                     @foreach ($warehouses as $warehouse)
                         <option value="{{ $warehouse->warehouse_id }}">{{ $warehouse->name }}</option>
@@ -266,8 +288,20 @@ Fecha de actualización: 15-01-2026
 
             <x-wrapper-form-2 class="location-id-wrapper">
                 <x-label for="location">Location</x-label>
-                <x-select-1 name="location_id[]" class="location_id" disabled>
+                <x-select-1 name="location_id[]" class="location_id">
                     <option value="">Select a location</option>
+                    @foreach ($warehouses as $warehouse)
+                        @php
+                            $whLocations = $locations->where('warehouse_id', $warehouse->warehouse_id);
+                        @endphp
+                        @if ($whLocations->count() > 0)
+                            <optgroup label="{{ $warehouse->name }}">
+                                @foreach ($whLocations as $loc)
+                                    <option value="{{ $loc->location_id }}">{{ $loc->name }}</option>
+                                @endforeach
+                            </optgroup>
+                        @endif
+                    @endforeach
                 </x-select-1>
             </x-wrapper-form-2>
         </x-wrapper-form-1>
@@ -279,9 +313,19 @@ Fecha de actualización: 15-01-2026
             </x-wrapper-form-2>
             <x-wrapper-form-2><p class="total"></p></x-wrapper-form-2>
         </x-wrapper-form-1>
+
+        <x-wrapper-form-1 class="packing-list-wrapper w-full" style="display: none;">
+            <x-wrapper-form-2>
+                <x-label for="packing_list"><i class="ri-file-list-3-line mr-1 text-emerald-600"></i>Packing List</x-label>
+                <x-input-1 type="number" step="1" min="1" name="packing_list[]" class="packing_list" placeholder="Número de Packing List"></x-input-1>
+            </x-wrapper-form-2>
+            <x-wrapper-form-2 class="flex items-end pb-2">
+                <p class="text-xs text-gray-500 italic">Número de Packing List para identificar este lote de BigBags.</p>
+            </x-wrapper-form-2>
+        </x-wrapper-form-1>
         
-        <x-wrapper-form-1 class="bag_numbers_wrapper hidden w-full flex-col mt-2">
-            <x-label># de Barcina y Proteína para cada BigBag</x-label>
+        <x-wrapper-form-1 class="bag_numbers_wrapper w-full flex-col mt-2" style="display: none;">
+            <x-label class="text-emerald-800 font-bold"># de Barcina, Proteína y Peso para cada BigBag</x-label>
             <div class="bag_numbers_container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-1 w-full">
             </div>
         </x-wrapper-form-1>
@@ -315,8 +359,8 @@ Fecha de actualización: 15-01-2026
             </x-wrapper-form-2>
         </x-wrapper-form-1>
         
-        <x-wrapper-form-1 class="bag_numbers_wrapper hidden w-full flex-col mt-2">
-            <x-label># de Barcina y Proteína para cada BigBag</x-label>
+        <x-wrapper-form-1 class="bag_numbers_wrapper w-full flex-col mt-2" style="display: none;">
+            <x-label class="text-emerald-800 font-bold"># de Barcina, Proteína y Peso para cada BigBag</x-label>
             <div class="bag_numbers_container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-1 w-full">
             </div>
         </x-wrapper-form-1>
@@ -340,6 +384,54 @@ $(function(){
     const product_locations = @json($product_locations ?? []);
     const products_inventory = @json($products_all ?? []); // Using products_all as products list
     let row_index = 1;
+
+    function buildLocationOptions(selectedWarehouseId = null, selectedLocationId = null) {
+        try {
+            let optionsHtml = '<option value="">Select a location</option>';
+            const whId = (selectedWarehouseId !== null && selectedWarehouseId !== '' && !isNaN(parseInt(selectedWarehouseId))) 
+                ? parseInt(selectedWarehouseId) 
+                : null;
+
+            const locList = Array.isArray(locations) ? locations : Object.values(locations || {});
+            const whList = Array.isArray(warehouses) ? warehouses : Object.values(warehouses || {});
+
+            if (whId) {
+                locList.forEach(location => {
+                    if (location && location.warehouse_id == whId) {
+                        const isSelected = (selectedLocationId && selectedLocationId == location.location_id) ? 'selected' : '';
+                        optionsHtml += `<option value="${location.location_id}" ${isSelected}>${location.name}</option>`;
+                    }
+                });
+            } else {
+                const whMap = {};
+                whList.forEach(w => {
+                    if (w && w.warehouse_id) whMap[w.warehouse_id] = w.name;
+                });
+
+                const grouped = {};
+                locList.forEach(loc => {
+                    if (!loc) return;
+                    const wId = loc.warehouse_id || 'other';
+                    if (!grouped[wId]) grouped[wId] = [];
+                    grouped[wId].push(loc);
+                });
+
+                for (const wId in grouped) {
+                    const groupName = whMap[wId] || `Almacén #${wId}`;
+                    optionsHtml += `<optgroup label="${groupName}">`;
+                    grouped[wId].forEach(loc => {
+                        const isSelected = (selectedLocationId && selectedLocationId == loc.location_id) ? 'selected' : '';
+                        optionsHtml += `<option value="${loc.location_id}" ${isSelected}>${loc.name}</option>`;
+                    });
+                    optionsHtml += `</optgroup>`;
+                }
+            }
+            return optionsHtml;
+        } catch (err) {
+            console.error("Error in buildLocationOptions:", err);
+            return '<option value="">Select a location</option>';
+        }
+    }
 
     function getMovement($modal){
         const cb = $modal.find('#type');
@@ -388,7 +480,9 @@ $(function(){
             $modal.find('#vendedor').prop('disabled', true).attr('disabled','disabled').prop('required', false).val('');
             $modal.find('.transport-info-wrapper').removeClass('hidden').css('display','block');
             let template = $modal.find('#product_input_template').clone().removeAttr('id').removeClass('hidden').show();
+            template.find('.location_id').html(buildLocationOptions());
             $modal.find('#products').empty().append(template);
+            renderBagNumbers(template);
 
         } else if (movement === 'InternalOutput') {
             $customerWrapper.addClass('hidden').css('display','none');
@@ -441,27 +535,106 @@ $(function(){
 
     initTypeUI();
 
+    function recalculateBagWeights(wrapper) {
+        let movement = getMovement(wrapper.closest('#make-transaction'));
+        if (movement === 'Input') {
+            let totalWeight = 0;
+            let filledCount = 0;
+            let bagInputs = wrapper.find('.bag_weight_input');
+            
+            bagInputs.each(function() {
+                let val = parseFloat($(this).val());
+                if (!isNaN(val) && val > 0) {
+                    totalWeight += val;
+                    filledCount++;
+                }
+            });
+            
+            let quantity = parseFloat(wrapper.find('.quantity').val()) || 0;
+            
+            if (filledCount > 0) {
+                let formatted = totalWeight.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                wrapper.find('.total')
+                    .addClass('mt-2 text-sm font-semibold rounded-md tracking-[2px] text-white bg-gray-700 px-2 py-1')
+                    .text(`Total: ${formatted} kg`);
+                
+                if (quantity > 0) {
+                    let avg = (totalWeight / quantity).toFixed(3);
+                    wrapper.find('.weight_per_unit').val(avg);
+                }
+            } else {
+                let weight_unit = parseFloat(wrapper.find('.weight_per_unit').val()) || 0;
+                if (quantity > 0 && weight_unit > 0) {
+                    let formatted = (quantity * weight_unit).toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+                    wrapper.find('.total')
+                        .addClass('mt-2 text-sm font-semibold rounded-md tracking-[2px] text-white bg-gray-700 px-2 py-1')
+                        .text(`Total: ${formatted} kg`);
+                } else {
+                    wrapper.find('.total').text('Total: 0 kg');
+                }
+            }
+        }
+    }
+
     function renderBagNumbers(wrapper) {
-        let product_id = wrapper.find('.product_id').val();
-        let quantity = parseFloat(wrapper.find('.quantity').val()) || 0;
-        let container = wrapper.find('.bag_numbers_container');
-        let bag_wrapper = wrapper.find('.bag_numbers_wrapper');
-        let locIdWrapper = wrapper.find('.location-id-wrapper');
-        
-        if (product_id !== '') {
+        try {
+            let product_id = wrapper.find('.product_id').val();
+            let quantity = parseFloat(wrapper.find('.quantity').val()) || 0;
+            let container = wrapper.find('.bag_numbers_container');
+            let bag_wrapper = wrapper.find('.bag_numbers_wrapper');
+            let locIdWrapper = wrapper.find('.location-id-wrapper');
+            let packingWrapper = wrapper.find('.packing-list-wrapper');
+            let movement = getMovement(wrapper.closest('#make-transaction'));
+            
             let idNum = parseInt(product_id);
-            let product = products_inventory.find(i => i.product_id == idNum);
-            if (product && product.name.includes('BGBG')) {
-                bag_wrapper.removeClass('hidden');
+            let product = null;
+            if (!isNaN(idNum) && idNum > 0) {
+                product = products_inventory.find(i => i.product_id == idNum);
+            }
+            if (!product && product_id) {
+                let searchStr = String(product_id).trim().toLowerCase();
+                product = products_inventory.find(i => i.name && i.name.toLowerCase() === searchStr);
+            }
+
+            let prodName = (product && product.name ? product.name : '') || wrapper.find('.product-name').text() || '';
+            let prodUnit = (product && product.unit ? product.unit : '') || wrapper.find('.unit').text() || '';
+            let isBigBag = prodName.toUpperCase().includes('BGBG') || 
+                           prodName.toUpperCase().includes('BIGBAG') || 
+                           prodUnit.toUpperCase().includes('BIGBAG');
+            
+            if (isBigBag) {
+                bag_wrapper.show().css('display', 'flex').removeClass('hidden');
+                if (movement === 'Input') {
+                    packingWrapper.show().css('display', 'flex').removeClass('hidden');
+                    packingWrapper.find('.packing_list').prop('disabled', false);
+                    locIdWrapper.hide().css('display', 'none').addClass('hidden');
+                    locIdWrapper.find('.location_id').prop('disabled', true);
+                } else {
+                    packingWrapper.hide().css('display', 'none').addClass('hidden');
+                    packingWrapper.find('.packing_list').prop('disabled', true);
+                    locIdWrapper.show().css('display', 'block').removeClass('hidden');
+                    locIdWrapper.find('.location_id').prop('disabled', false);
+                }
+
+                // Preserve existing user inputs
+                let existingBags = [];
+                container.find('.bag-card-row').each(function() {
+                    existingBags.push({
+                        bag_number: $(this).find('.bag_number_input').val() || '',
+                        protein: $(this).find('.protein_input').val() || '',
+                        weight: $(this).find('.bag_weight_input').val() || $(this).find('.bag_weight_output').val() || '',
+                        location_id: $(this).find('.bag_location_input').val() || ''
+                    });
+                });
+
                 container.empty();
                 let numInputs = Math.floor(quantity);
-                let movement = getMovement(wrapper.closest('#make-transaction'));
-                
-                if (movement === 'Input') {
-                    locIdWrapper.addClass('hidden').css('display', 'none');
-                } else {
-                    locIdWrapper.removeClass('hidden').css('display', 'block');
-                }
                 
                 let availableBags = [];
                 if (movement === 'Output' || movement === 'InternalOutput') {
@@ -472,10 +645,16 @@ $(function(){
                     }
                 }
 
+                let defaultUnitWeight = wrapper.find('.weight_per_unit').val() || '';
+
                 for (let i = 0; i < numInputs; i++) {
+                    let saved = existingBags[i] || {};
+                    let savedBagNum = saved.bag_number || '';
+                    let savedProtein = saved.protein || '';
+                    let savedWeight = saved.weight || defaultUnitWeight;
+
                     if ((movement === 'Output' || movement === 'InternalOutput') && availableBags.length > 0) {
                         let options = '<option value="">Select a Barcina</option>';
-                        // filter out duplicates just in case
                         let uniqueBags = [];
                         let seen = new Set();
                         availableBags.forEach(bag => {
@@ -486,62 +665,91 @@ $(function(){
                         });
 
                         uniqueBags.forEach(bag => {
-                            options += `<option value="${bag.bag_number}" data-protein="${bag.protein || ''}" data-weight="${bag.weight_per_unit || ''}">${bag.bag_number}</option>`;
+                            let isSelected = (savedBagNum && savedBagNum == bag.bag_number) ? 'selected' : '';
+                            options += `<option value="${bag.bag_number}" data-protein="${bag.protein || ''}" data-weight="${bag.weight_per_unit || ''}" ${isSelected}>${bag.bag_number}</option>`;
                         });
                         container.append(`
-                            <div class="flex flex-col gap-1 w-full bg-gray-50 p-2 rounded-lg border border-gray-200">
-                                <select class="bag_number_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" required>
+                            <div class="bag-card-row flex flex-col gap-1.5 w-full bg-white p-2.5 rounded-lg border border-gray-200 shadow-sm">
+                                <div class="flex items-center justify-between text-xs font-bold text-gray-700">
+                                    <span><i class="ri-inbox-line mr-1"></i>Barcina #${i+1}</span>
+                                </div>
+                                <select class="bag_number_input w-full rounded-md border border-gray-300 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 px-2 py-1.5" required>
                                     ${options}
                                 </select>
-                                <input type="number" step="any" class="protein_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Proteína %" required>
-                                <input type="number" step="any" class="bag_weight_output w-full bg-gray-100 rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none px-2 py-2" placeholder="Peso Interno (kg)" readonly>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[10px] font-bold text-gray-500 uppercase">Proteína %</label>
+                                        <input type="number" step="any" class="protein_input w-full rounded-md border border-gray-300 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 px-2 py-1" placeholder="Proteína %" value="${savedProtein}" required>
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold text-gray-500 uppercase">Peso Almacén (kg)</label>
+                                        <input type="number" step="any" class="bag_weight_output w-full bg-gray-100 rounded-md border border-gray-300 text-gray-700 text-sm focus:outline-none px-2 py-1" placeholder="Peso (kg)" value="${savedWeight}" readonly>
+                                    </div>
+                                </div>
                             </div>
                         `);
                     } else {
-                        let locOptions = wrapper.find('.location_id').html();
+                        let currentWarehouse = wrapper.find('.warehouse').val();
+                        let locOptions = buildLocationOptions(currentWarehouse, saved.location_id);
                         let locSelectHTML = movement === 'Input' 
-                            ? `<select class="bag_location_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" required>${locOptions}</select>`
+                            ? `<select class="bag_location_input w-full rounded-md border border-gray-300 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 px-2 py-1.5" required>${locOptions}</select>`
                             : '';
-                        container.append(`
-                            <div class="flex flex-col gap-1 w-full bg-gray-50 p-2 rounded-lg border border-gray-200">
-                                <input type="text" class="bag_number_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Barcina #${i+1}" required>
-                                <input type="number" step="any" class="protein_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Proteína %" required>
-                                <input type="number" step="any" class="bag_weight_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Peso Real (kg)" required>
-                                ${locSelectHTML}
+                        
+                        let $card = $(`
+                            <div class="bag-card-row flex flex-col gap-1.5 w-full bg-white p-2.5 rounded-lg border border-gray-200 shadow-sm hover:border-emerald-300 transition-colors">
+                                <div class="flex items-center justify-between text-xs font-bold text-emerald-800">
+                                    <span><i class="ri-inbox-line mr-1"></i>Barcina #${i+1}</span>
+                                </div>
+                                <input type="text" class="bag_number_input w-full rounded-md border border-gray-300 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 px-2.5 py-1.5" placeholder="Barcina #${i+1}" value="${savedBagNum}" required>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[10px] font-bold text-gray-500 uppercase">Proteína %</label>
+                                        <input type="number" step="any" min="0" class="protein_input w-full rounded-md border border-gray-300 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 px-2 py-1" placeholder="Proteína %" value="${savedProtein}" required>
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold text-emerald-700 uppercase">Peso Total (kg)</label>
+                                        <input type="number" step="any" min="0" class="bag_weight_input w-full rounded-md border border-emerald-300 text-emerald-900 bg-emerald-50/40 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 px-2 py-1" placeholder="Peso (kg)" value="${savedWeight}" required>
+                                    </div>
+                                </div>
+                                <div class="loc-wrapper-slot">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase">Ubicación</label>
+                                    ${locSelectHTML}
+                                </div>
                             </div>
                         `);
+
+                        if (saved.location_id) {
+                            $card.find('.bag_location_input').val(saved.location_id);
+                        }
+
+                        container.append($card);
                     }
                 }
+                recalculateBagWeights(wrapper);
             } else {
-                locIdWrapper.removeClass('hidden').css('display', 'block');
-                bag_wrapper.addClass('hidden');
+                bag_wrapper.hide().css('display', 'none').addClass('hidden');
                 container.empty();
+                packingWrapper.hide().css('display', 'none').addClass('hidden');
+                packingWrapper.find('.packing_list').prop('disabled', true);
+                locIdWrapper.show().css('display', 'block').removeClass('hidden');
+                locIdWrapper.find('.location_id').prop('disabled', false);
             }
-        } else {
-            locIdWrapper.removeClass('hidden').css('display', 'block');
-            bag_wrapper.addClass('hidden');
-            container.empty();
+        } catch (err) {
+            console.error('Error in renderBagNumbers:', err);
         }
     }
 
     father.on('change', '.warehouse', function(){
         const $wrapper = $(this).closest('.wrapper');
-        const $locSelect = $wrapper.find('.location_id');
-        const warehouse = parseInt($(this).val());
+        const warehouseVal = $(this).val();
         
-        $locSelect.empty().append('<option value="">Select a location</option>');
-        let optionsHtml = '<option value="">Select a location</option>';
-        locations.forEach(location => {
-            if(location.warehouse_id == warehouse){
-                $locSelect.append(`<option value="${location.location_id}">${location.name}</option>`);
-                optionsHtml += `<option value="${location.location_id}">${location.name}</option>`;
-            }
-        });
+        const currentMainLoc = $wrapper.find('.location_id').val();
+        $wrapper.find('.location_id').html(buildLocationOptions(warehouseVal, currentMainLoc));
 
-        const $bagLocSelects = $wrapper.find('.bag_location_input');
-        if ($bagLocSelects.length > 0) {
-            $bagLocSelects.empty().append(optionsHtml);
-        }
+        $wrapper.find('.bag_location_input').each(function(){
+            const currentBagLoc = $(this).val();
+            $(this).html(buildLocationOptions(warehouseVal, currentBagLoc));
+        });
     });
 
     father.on('change', '.location_id, .bag_location_input', function(){
@@ -552,6 +760,17 @@ $(function(){
         });
         wrapper.find('.concept_id').prop('required', hasLocation);
         wrapper.find('.weight_per_unit').prop('required', hasLocation);
+
+        const locId = parseInt($(this).val());
+        if (locId) {
+            const locObj = locations.find(l => l.location_id == locId);
+            if (locObj && locObj.warehouse_id) {
+                const $whSelect = wrapper.find('.warehouse');
+                if (!$whSelect.val()) {
+                    $whSelect.val(locObj.warehouse_id);
+                }
+            }
+        }
     });
 
     father.on('change', '.bag_number_input', function() {
@@ -592,14 +811,36 @@ $(function(){
         }, 50);
     });
 
-    father.on('input','.weight_per_unit, .quantity',function(){
+    father.on('input', '.weight_per_unit', function(){
         const wrapper = $(this).closest('.wrapper');
-        let weight_unit = wrapper.find('.weight_per_unit').val() || 0;
-        let quantity = wrapper.find('.quantity').val() || 0;
-        if(getMovement(father) === 'Input') {
-            wrapper.find('.total').addClass('mt-2 text-sm font-semibold rounded-md tracking-[2px] text-white bg-gray-700 px-2 py-1').text(`Total: ${quantity*weight_unit}`);
+        let weight_unit = parseFloat($(this).val()) || 0;
+        let movement = getMovement(father);
+        if (movement === 'Input') {
+            let $bagWeights = wrapper.find('.bag_weight_input');
+            if ($bagWeights.length > 0 && weight_unit > 0) {
+                $bagWeights.each(function() {
+                    if (!$(this).val() || $(this).data('auto-filled')) {
+                        $(this).val(weight_unit).data('auto-filled', true);
+                    }
+                });
+            }
+            recalculateBagWeights(wrapper);
         }
+    });
+
+    father.on('change', '.bag_weight_input', function(){
+        $(this).removeData('auto-filled');
+    });
+
+    father.on('input', '.bag_weight_input', function(){
+        const wrapper = $(this).closest('.wrapper');
+        recalculateBagWeights(wrapper);
+    });
+
+    father.on('input change', '.quantity', function(){
+        const wrapper = $(this).closest('.wrapper');
         renderBagNumbers(wrapper);
+        recalculateBagWeights(wrapper);
     });
 
     // REACTIVE
@@ -669,7 +910,7 @@ $(function(){
         renderBagNumbers(wrapper);
     });
 
-    father.on('change','.product_id',function(){
+    father.on('input change','.product_id',function(){
         let movement = getMovement(father);
 
         const wrapper = $(this).closest('.wrapper');
@@ -693,6 +934,8 @@ $(function(){
                 success: function(response){
                     wrapper.find('.product-name').text(response.product.name);
                     wrapper.find('.unit').text(`Unit: ${response.product.unit}`);
+
+                    renderBagNumbers(wrapper);
 
                     if(movement === 'Output' || movement === 'InternalOutput'){
                         if(batch){
@@ -736,6 +979,7 @@ $(function(){
                     wrapper.find('.stock').text('');
                     wrapper.find('.warehouse_batch').val('');
                     wrapper.find('.label_batch').val('');
+                    renderBagNumbers(wrapper);
                 }
             });
         } else {
@@ -744,6 +988,7 @@ $(function(){
             wrapper.find('.stock').text('');
             wrapper.find('.warehouse_batch').val('');
             wrapper.find('.label_batch').val('');
+            renderBagNumbers(wrapper);
         }
     });
 
@@ -760,6 +1005,9 @@ $(function(){
 
         setMovement(father, 'Input');
         applyMovement(father, 'Input');
+
+        father.find('.packing_list').val('');
+        father.find('.packing-list-wrapper').addClass('hidden').css('display', 'none');
 
         father.find('#vendedor').val('').prop('disabled', true);
         father.find('#seller-wrapper-wrapper').addClass('hidden').css('display','none');
@@ -780,7 +1028,12 @@ $(function(){
             ? father.find('#product_output_template').clone().removeAttr('id').removeClass('hidden').show()
             : father.find('#product_input_template').clone().removeAttr('id').removeClass('hidden').show();
 
+        if (movement === 'Input') {
+            template.find('.location_id').html(buildLocationOptions());
+        }
+
         father.find('#products').append(template);
+        renderBagNumbers(template);
     });
 
     // SUBMIT
@@ -794,7 +1047,11 @@ $(function(){
         data.delete('protein'); 
         data.delete('bag_location_id'); 
         data.delete('bag_weight'); 
+        data.delete('packing_list');
         $('#make-transaction #products .wrapper').each(function(index) {
+            let plVal = $(this).find('.packing_list').val() || '';
+            data.append('packing_list[' + index + ']', plVal);
+
             $(this).find('.bag_number_input').each(function() {
                 data.append('bag_number[' + index + '][]', $(this).val());
             });

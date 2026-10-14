@@ -2,6 +2,7 @@
 
 namespace App\Http\Repositories\Warehouse;
 
+use App\Models\Cli;
 use App\Models\Concept;
 use App\Models\Control;
 use App\Models\Inventory;
@@ -283,6 +284,138 @@ class WarehouseRepository
                 'product_name' => $item->product_name,
                 'quantity'     => $item->quantity,
             ];
+        });
+    }
+
+    /**
+     * Obtiene el resumen detallado de BigBags agrupado por producto y totales consolidados.
+     *
+     * @param int|null $warehouseId
+     * @return array<string, mixed>
+     */
+    public function getBigBagsSummary(?int $warehouseId = null): array
+    {
+        $query = DB::table('cli')
+            ->join('inventory', 'cli.inventory_id', '=', 'inventory.inventory_id')
+            ->join('products', 'products.product_id', '=', 'inventory.product_id')
+            ->leftJoin('locations', 'locations.location_id', '=', 'cli.location_id')
+            ->leftJoin('warehouses', 'warehouses.warehouse_id', '=', 'locations.warehouse_id')
+            ->where(function ($q) {
+                $q->whereNotNull('cli.bag_number')
+                  ->orWhere('products.name', 'like', '%BGBG%')
+                  ->orWhere('products.unit', 'BigBags');
+            })
+            ->where('cli.quantity', '>', 0);
+
+        if ($warehouseId) {
+            $query->where('warehouses.warehouse_id', $warehouseId);
+        }
+
+        $raw = $query->select(
+            'cli.cli_id',
+            'cli.location_id',
+            'cli.bag_number',
+            'cli.protein',
+            'cli.packing_list',
+            'cli.weight_per_unit',
+            'cli.net_weight',
+            'cli.quantity',
+            'cli.created_at',
+            'inventory.batch',
+            'products.product_id',
+            'products.name as product_name',
+            'products.unit',
+            'locations.name as location_name',
+            'warehouses.warehouse_id',
+            'warehouses.name as warehouse_name'
+        )
+        ->orderBy('products.name')
+        ->orderBy('cli.bag_number')
+        ->get();
+
+        $products = $raw->groupBy('product_id')->map(function ($items) {
+            $first = $items->first();
+            $totalWeight = $items->sum(function ($i) {
+                return (float) ($i->net_weight ?: $i->weight_per_unit);
+            });
+            $count = $items->count();
+
+            return [
+                'product_id'   => $first->product_id,
+                'product_name' => $first->product_name,
+                'unit'         => $first->unit,
+                'total_bags'   => $count,
+                'total_weight' => round($totalWeight, 3),
+                'avg_weight'   => $count > 0 ? round($totalWeight / $count, 3) : 0,
+                'bags'         => $items->map(function ($b) {
+                    return [
+                        'cli_id'         => $b->cli_id,
+                        'location_id'    => $b->location_id,
+                        'bag_number'     => $b->bag_number,
+                        'protein'        => $b->protein,
+                        'packing_list'   => $b->packing_list,
+                        'weight'         => round((float) ($b->net_weight ?: $b->weight_per_unit), 3),
+                        'batch'          => $b->batch,
+                        'warehouse_id'   => $b->warehouse_id,
+                        'warehouse_name' => $b->warehouse_name ?? 'Sin asignar',
+                        'location_name'  => $b->location_name ?? 'Sin asignar',
+                        'date'           => $b->created_at ? date('d-m-Y H:i', strtotime($b->created_at)) : null,
+                    ];
+                })->values(),
+            ];
+        })->values();
+
+        $grandTotalWeight = $raw->sum(function ($i) {
+            return (float) ($i->net_weight ?: $i->weight_per_unit);
+        });
+
+        return [
+            'grand_total_bags'   => $raw->count(),
+            'grand_total_weight' => round($grandTotalWeight, 3),
+            'products_count'     => $products->count(),
+            'products'           => $products,
+        ];
+    }
+
+    /**
+     * Actualiza la información de un BigBag individual aplicando bloqueo pesimista y ACID.
+     *
+     * @param int $cliId
+     * @param array<string, mixed> $data
+     * @return Cli|null
+     */
+    public function updateBigBag(int $cliId, array $data): ?Cli
+    {
+        return DB::transaction(function () use ($cliId, $data) {
+            $cli = Cli::lockForUpdate()->find($cliId);
+            if (!$cli) {
+                return null;
+            }
+
+            $weight = (float) $data['weight'];
+            $qty = (float) ($cli->quantity > 0 ? $cli->quantity : 1);
+
+            $updatePayload = [
+                'weight_per_unit' => $weight,
+                'net_weight'      => $qty * $weight,
+            ];
+
+            if (array_key_exists('bag_number', $data)) {
+                $updatePayload['bag_number'] = $data['bag_number'];
+            }
+            if (array_key_exists('protein', $data)) {
+                $updatePayload['protein'] = $data['protein'];
+            }
+            if (array_key_exists('packing_list', $data)) {
+                $updatePayload['packing_list'] = $data['packing_list'];
+            }
+            if (!empty($data['location_id'])) {
+                $updatePayload['location_id'] = (int) $data['location_id'];
+            }
+
+            $cli->update($updatePayload);
+
+            return $cli->fresh();
         });
     }
 }

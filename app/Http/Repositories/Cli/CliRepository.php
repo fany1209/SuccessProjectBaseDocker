@@ -57,21 +57,36 @@ class CliRepository
             $weights = $data['weight_per_unit'];
             $bagNumbers = $data['bag_number'] ?? [];
             $proteins = $data['protein'] ?? [];
+            $bagWeights = $data['bag_weight'] ?? [];
+            $packingLists = $data['packing_list'] ?? [];
 
             $createdRecords = [];
 
             foreach ($concepts as $index => $concept) {
+                $packingList = !empty($packingLists[$index]) ? trim((string) $packingLists[$index]) : null;
+
                 if (isset($bagNumbers[$index]) && is_array($bagNumbers[$index]) && count($bagNumbers[$index]) > 0) {
                     foreach ($bagNumbers[$index] as $bIdx => $bagNum) {
+                        $rawBagWeight = $bagWeights[$index][$bIdx] ?? null;
+                        $realWeight = (!is_null($rawBagWeight) && $rawBagWeight !== '' && is_numeric($rawBagWeight))
+                            ? (float) $rawBagWeight
+                            : (float) $weights[$index];
+
+                        $rawProtein = $proteins[$index][$bIdx] ?? null;
+                        $proteinVal = (!is_null($rawProtein) && $rawProtein !== '' && is_numeric($rawProtein))
+                            ? (float) $rawProtein
+                            : null;
+
                         $createdRecords[] = $this->cli->create([
                             'location_id'     => $locationId,
                             'inventory_id'    => $inventories[$index],
                             'concept_id'      => $concept,
                             'quantity'        => 1,
-                            'weight_per_unit' => $weights[$index],
-                            'net_weight'      => 1 * $weights[$index],
+                            'weight_per_unit' => $realWeight,
+                            'net_weight'      => 1 * $realWeight,
                             'bag_number'      => $bagNum,
-                            'protein'         => $proteins[$index][$bIdx] ?? null,
+                            'protein'         => $proteinVal,
+                            'packing_list'    => $packingList,
                         ]);
                     }
                 } else {
@@ -84,6 +99,7 @@ class CliRepository
                         'quantity'        => $qty,
                         'weight_per_unit' => $weight,
                         'net_weight'      => $qty * $weight,
+                        'packing_list'    => $packingList,
                     ]);
                 }
             }

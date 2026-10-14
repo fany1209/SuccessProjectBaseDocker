@@ -196,6 +196,8 @@ Route::middleware([
     Route::post('/temperature', [WarehouseController::class, 'temperature'])->middleware('can:warehouse.show')->name('warehouse.temperature');
     Route::get('/warehouse/production-transfers', [WarehouseController::class, 'pendingTransfers'])->middleware('can:warehouse.show')->name('warehouse.pendingTransfers');
     Route::post('/warehouse/production-transfers/{id}/receive', [WarehouseController::class, 'receiveTransfer'])->middleware('can:warehouse.show')->name('warehouse.receiveTransfer');
+    Route::get('/warehouse/bigbags-summary', [WarehouseController::class, 'getBigBagsSummary'])->middleware('can:warehouse.show')->name('warehouse.bigbagsSummary');
+    Route::put('/warehouse/bigbags/{id}', [WarehouseController::class, 'updateBigBag'])->middleware('can:warehouse.show')->name('warehouse.bigbags.update');
     
     // Production Requests
     Route::get('/warehouse/production-requests', [WarehouseController::class, 'productionRequests'])->middleware('can:warehouse.show')->name('warehouse.productionRequests');

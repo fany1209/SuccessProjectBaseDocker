@@ -6,17 +6,11 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class InventoryTransactionRequest extends FormRequest
 {
-    /**
-     * Determina si el usuario está autorizado a realizar esta petición.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Sanitización defensiva anti Stored-XSS y normalización de cantidades.
-     */
     protected function prepareForValidation(): void
     {
         $sanitized = [];
@@ -54,11 +48,6 @@ class InventoryTransactionRequest extends FormRequest
         }
     }
 
-    /**
-     * Reglas de validación para transacciones de inventario (Entrada, Salida, Salida Interna).
-     *
-     * @return array<string, mixed>
-     */
     public function rules(): array
     {
         return [
@@ -90,17 +79,14 @@ class InventoryTransactionRequest extends FormRequest
             'protein'              => ['nullable', 'array'],
             'bag_weight'           => ['nullable', 'array'],
             'bag_location_id'      => ['nullable', 'array'],
+            'packing_list'         => ['nullable', 'array'],
+            'packing_list.*'       => ['nullable'],
             'output_location_id'   => ['nullable', 'array'],
             'label_batch'          => ['nullable', 'array'],
             'req_id'               => ['nullable', 'integer'],
         ];
     }
 
-    /**
-     * Mensajes claros y legibles en español.
-     *
-     * @return array<string, string>
-     */
     public function messages(): array
     {
         return [

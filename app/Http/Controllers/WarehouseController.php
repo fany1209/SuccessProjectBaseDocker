@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Repositories\Warehouse\WarehouseRepository;
+use App\Http\Requests\Warehouse\UpdateBigBagRequest;
 use App\Http\Requests\Warehouse\WarehouseTemperatureRequest;
 use App\Http\Resources\Warehouse\ControlResource;
 use App\Http\Resources\Warehouse\ProductionMaterialRequestResource;
@@ -461,6 +462,67 @@ class WarehouseController extends Controller
             }
 
             return redirect()->back()->withErrors('Error al registrar la entrada al almacén.');
+        }
+    }
+
+    /**
+     * Retorna el resumen detallado y consolidado de BigBags por producto y almacén.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getBigBagsSummary(Request $request): JsonResponse
+    {
+        try {
+            $warehouseId = $request->filled('warehouse_id') ? (int) $request->input('warehouse_id') : null;
+            $summary = $this->warehouseRepository->getBigBagsSummary($warehouseId);
+
+            return $this->utilResponse->successResponse(
+                $summary,
+                'Resumen de BigBags obtenido exitosamente.'
+            );
+        } catch (\Throwable $e) {
+            Log::error('Error al consultar resumen de BigBags', [
+                'action'    => 'WarehouseController@getBigBagsSummary',
+                'user_id'   => auth()->id(),
+                'payload'   => $request->all(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Error al consultar el resumen de BigBags.', 500);
+        }
+    }
+
+    /**
+     * Actualiza la información individual de un BigBag en almacén.
+     *
+     * @param UpdateBigBagRequest $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function updateBigBag(UpdateBigBagRequest $request, int $id): JsonResponse
+    {
+        try {
+            $updated = $this->warehouseRepository->updateBigBag($id, $request->validated());
+
+            if (!$updated) {
+                return $this->utilResponse->errorResponse('BigBag no encontrado en el sistema.', 404);
+            }
+
+            return $this->utilResponse->successResponse(
+                $updated,
+                'Información del BigBag actualizada exitosamente.'
+            );
+        } catch (\Throwable $e) {
+            Log::error('Error al actualizar información de BigBag', [
+                'action'    => 'WarehouseController@updateBigBag',
+                'cli_id'    => $id,
+                'user_id'   => auth()->id(),
+                'payload'   => $request->validated(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $this->utilResponse->errorResponse('Ocurrió un error al actualizar el BigBag.', 500);
         }
     }
 }

@@ -1,11 +1,3 @@
-{{--
-Warehouse
-Add Cli
-Fecha de creación: 28-10-2025
-Creado por: Jacob
-Actualizado por: fany
-Fecha de actualización: 09/03/2026
---}}
 <x-modal id="add-cli">
     <form class="flex flex-col items-center w-full gap-2" id="add-cli-form">
         @csrf
@@ -89,8 +81,17 @@ Fecha de actualización: 09/03/2026
                     <x-wrapper-form-1>
                         <x-wrapper-form-2><p class="total"></p></x-wrapper-form-2>
                     </x-wrapper-form-1>
+                    <x-wrapper-form-1 class="packing-list-wrapper hidden w-full">
+                        <x-wrapper-form-2>
+                            <x-label for="packing_list"><i class="ri-file-list-3-line mr-1 text-emerald-600"></i>Packing List</x-label>
+                            <x-input-1 type="number" step="1" min="1" name="packing_list[]" class="packing_list" placeholder="Número de Packing List"></x-input-1>
+                        </x-wrapper-form-2>
+                        <x-wrapper-form-2 class="flex items-end pb-2">
+                            <p class="text-xs text-gray-500 italic">Número de Packing List para identificar este lote de BigBags.</p>
+                        </x-wrapper-form-2>
+                    </x-wrapper-form-1>
                     <x-wrapper-form-1 class="bag_numbers_wrapper hidden w-full flex-col mt-2">
-                        <x-label># de Barcina y Proteína para cada BigBag</x-label>
+                        <x-label># de Barcina, Proteína y Peso para cada BigBag</x-label>
                         <div class="bag_numbers_container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-1 w-full">
                         </div>
                     </x-wrapper-form-1>
@@ -154,8 +155,17 @@ Fecha de actualización: 09/03/2026
     <x-wrapper-form-1>
         <x-wrapper-form-2><p class="total"></p></x-wrapper-form-2>
     </x-wrapper-form-1>
+    <x-wrapper-form-1 class="packing-list-wrapper hidden w-full">
+        <x-wrapper-form-2>
+            <x-label for="packing_list"><i class="ri-file-list-3-line mr-1 text-emerald-600"></i>Packing List</x-label>
+            <x-input-1 type="number" step="1" min="1" name="packing_list[]" class="packing_list" placeholder="Número de Packing List"></x-input-1>
+        </x-wrapper-form-2>
+        <x-wrapper-form-2 class="flex items-end pb-2">
+            <p class="text-xs text-gray-500 italic">Número de Packing List para identificar este lote de BigBags.</p>
+        </x-wrapper-form-2>
+    </x-wrapper-form-1>
     <x-wrapper-form-1 class="bag_numbers_wrapper hidden w-full flex-col mt-2">
-        <x-label># de Barcina y Proteína para cada BigBag</x-label>
+        <x-label># de Barcina, Proteína y Peso para cada BigBag</x-label>
         <div class="bag_numbers_container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-1 w-full">
         </div>
     </x-wrapper-form-1>
@@ -170,35 +180,124 @@ $(function(){
     let row_index = 1;
     const father = $('#add-cli');
 
-    function renderBagNumbers(wrapper) {
-        let product_id = wrapper.find('.product_id').val();
+    function recalculateBagWeights(wrapper) {
+        let totalWeight = 0;
+        let filledCount = 0;
+        wrapper.find('.bag_weight_input').each(function() {
+            let val = parseFloat($(this).val());
+            if (!isNaN(val) && val > 0) {
+                totalWeight += val;
+                filledCount++;
+            }
+        });
+
         let quantity = parseFloat(wrapper.find('.quantity').val()) || 0;
-        let container = wrapper.find('.bag_numbers_container');
-        let bag_wrapper = wrapper.find('.bag_numbers_wrapper');
-        
-        if (product_id !== '') {
-            let product = products_inventory.find(i => i.product_id == product_id);
-            // Check if product name includes BGBG
-            if (product && product.name.includes('BGBG')) {
-                bag_wrapper.removeClass('hidden');
+        if (filledCount > 0) {
+            let formatted = totalWeight.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            wrapper.find('.total')
+                .addClass('mt-2 text-sm font-semibold rounded-md tracking-[2px] text-white bg-gray-700 px-2 py-1')
+                .text(`Total: ${formatted} kg`);
+
+            if (quantity > 0) {
+                let avg = (totalWeight / quantity).toFixed(3);
+                wrapper.find('.weight_per_unit').val(avg);
+            }
+        } else {
+            let weight_unit = parseFloat(wrapper.find('.weight_per_unit').val()) || 0;
+            if (quantity > 0 && weight_unit > 0) {
+                let formatted = (quantity * weight_unit).toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                wrapper.find('.total')
+                    .addClass('mt-2 text-sm font-semibold rounded-md tracking-[2px] text-white bg-gray-700 px-2 py-1')
+                    .text(`Total: ${formatted} kg`);
+            } else {
+                wrapper.find('.total').text('Total: 0 kg');
+            }
+        }
+    }
+
+    function renderBagNumbers(wrapper) {
+        try {
+            let product_id = wrapper.find('.product_id').val();
+            let quantity = parseFloat(wrapper.find('.quantity').val()) || 0;
+            let container = wrapper.find('.bag_numbers_container');
+            let bag_wrapper = wrapper.find('.bag_numbers_wrapper');
+            let packingWrapper = wrapper.find('.packing-list-wrapper');
+            
+            let idNum = parseInt(product_id);
+            let product = null;
+            if (!isNaN(idNum) && idNum > 0) {
+                product = products_inventory.find(i => i.product_id == idNum);
+            }
+            if (!product && product_id) {
+                let searchStr = String(product_id).trim().toLowerCase();
+                product = products_inventory.find(i => i.name && i.name.toLowerCase() === searchStr);
+            }
+
+            let prodName = (product && product.name ? product.name : '') || wrapper.find('.product-name').text() || '';
+            let prodUnit = (product && product.unit ? product.unit : '') || wrapper.find('.unit').text() || '';
+            let isBigBag = prodName.toUpperCase().includes('BGBG') || 
+                           prodName.toUpperCase().includes('BIGBAG') || 
+                           prodUnit.toUpperCase().includes('BIGBAG');
+            
+            if (isBigBag) {
+                bag_wrapper.show().css('display', 'flex').removeClass('hidden');
+                packingWrapper.show().css('display', 'flex').removeClass('hidden');
+                packingWrapper.find('.packing_list').prop('disabled', false);
+
+                // Preserve existing user inputs
+                let existingBags = [];
+                container.find('.bag-card-row').each(function() {
+                    existingBags.push({
+                        bag_number: $(this).find('.bag_number_input').val() || '',
+                        protein: $(this).find('.protein_input').val() || '',
+                        weight: $(this).find('.bag_weight_input').val() || ''
+                    });
+                });
+
                 container.empty();
-                // Number of inputs based on quantity
                 let numInputs = Math.floor(quantity);
+                let defaultUnitWeight = wrapper.find('.weight_per_unit').val() || '';
+
                 for (let i = 0; i < numInputs; i++) {
+                    let saved = existingBags[i] || {};
+                    let savedBagNum = saved.bag_number || '';
+                    let savedProtein = saved.protein || '';
+                    let savedWeight = saved.weight || defaultUnitWeight;
+
                     container.append(`
-                        <div class="flex flex-col gap-1 w-full bg-gray-50 p-2 rounded-lg border border-gray-200">
-                            <input type="text" class="bag_number_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Barcina #${i+1}" required>
-                            <input type="number" step="any" class="protein_input w-full rounded-lg border border-gray-300 text-gray-700 focus:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2" placeholder="Proteína %" required>
+                        <div class="bag-card-row flex flex-col gap-1.5 w-full bg-white p-2.5 rounded-lg border border-gray-200 shadow-sm hover:border-emerald-300 transition-colors">
+                            <div class="flex items-center justify-between text-xs font-bold text-emerald-800">
+                                <span><i class="ri-inbox-line mr-1"></i>Barcina #${i+1}</span>
+                            </div>
+                            <input type="text" class="bag_number_input w-full rounded-md border border-gray-300 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 px-2.5 py-1.5" placeholder="Barcina #${i+1}" value="${savedBagNum}" required>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase">Proteína %</label>
+                                    <input type="number" step="any" min="0" class="protein_input w-full rounded-md border border-gray-300 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 px-2 py-1" placeholder="Proteína %" value="${savedProtein}" required>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-emerald-700 uppercase">Peso Total (kg)</label>
+                                    <input type="number" step="any" min="0" class="bag_weight_input w-full rounded-md border border-emerald-300 text-emerald-900 bg-emerald-50/40 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 px-2 py-1" placeholder="Peso (kg)" value="${savedWeight}" required>
+                                </div>
+                            </div>
                         </div>
                     `);
                 }
+                recalculateBagWeights(wrapper);
             } else {
-                bag_wrapper.addClass('hidden');
+                bag_wrapper.hide().css('display', 'none').addClass('hidden');
                 container.empty();
+                packingWrapper.hide().css('display', 'none').addClass('hidden');
+                packingWrapper.find('.packing_list').prop('disabled', true);
             }
-        } else {
-            bag_wrapper.addClass('hidden');
-            container.empty();
+        } catch (err) {
+            console.error('Error in renderBagNumbers:', err);
         }
     }
 
@@ -213,17 +312,31 @@ $(function(){
 
         father.on('input','.weight_per_unit',function(){
             const wrapper = $(this).closest('.wrapper');
-            let weight_unit = $(this).val();
-            let quantity = wrapper.find('.quantity').val();
-            wrapper.find('.total').addClass('mt-2 text-sm font-semibold rounded-md tracking-[2px] text-white bg-gray-700 px-2 py-1').text(`Total: ${quantity*weight_unit}`);
+            let weight_unit = parseFloat($(this).val()) || 0;
+            let $bagWeights = wrapper.find('.bag_weight_input');
+            if ($bagWeights.length > 0 && weight_unit > 0) {
+                $bagWeights.each(function() {
+                    if (!$(this).val() || $(this).data('auto-filled')) {
+                        $(this).val(weight_unit).data('auto-filled', true);
+                    }
+                });
+            }
+            recalculateBagWeights(wrapper);
+        });
+
+        father.on('change', '.bag_weight_input', function(){
+            $(this).removeData('auto-filled');
+        });
+
+        father.on('input', '.bag_weight_input', function(){
+            const wrapper = $(this).closest('.wrapper');
+            recalculateBagWeights(wrapper);
         });
 
         father.on('input','.quantity',function(){
             const wrapper = $(this).closest('.wrapper');
-            let quantity = $(this).val();
-            let weight_unit = wrapper.find('.weight_per_unit').val();
-            wrapper.find('.total').addClass('mt-2 text-sm font-semibold rounded-md tracking-[2px] text-white bg-gray-700 px-2 py-1').text(`Total: ${quantity*weight_unit}`);
             renderBagNumbers(wrapper);
+            recalculateBagWeights(wrapper);
         });
         
         father.on('change','.inventory_id',function(){
@@ -317,12 +430,20 @@ $(function(){
             var data = new FormData(form);
             data.delete('bag_number'); // Ensure no stray bag_numbers
             data.delete('protein');
+            data.delete('bag_weight');
+            data.delete('packing_list');
             $('#products .wrapper').each(function(index) {
+                let plVal = $(this).find('.packing_list').val() || '';
+                data.append('packing_list[' + index + ']', plVal);
+
                 $(this).find('.bag_number_input').each(function() {
                     data.append('bag_number[' + index + '][]', $(this).val());
                 });
                 $(this).find('.protein_input').each(function() {
                     data.append('protein[' + index + '][]', $(this).val());
+                });
+                $(this).find('.bag_weight_input').each(function() {
+                    data.append('bag_weight[' + index + '][]', $(this).val());
                 });
             });
             $('#save-operation').prop('disabled',true);

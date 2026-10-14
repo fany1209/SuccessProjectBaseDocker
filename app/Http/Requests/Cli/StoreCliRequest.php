@@ -29,6 +29,11 @@ class StoreCliRequest extends FormRequest
             'protein'           => 'nullable|array',
             'protein.*'         => 'nullable|array',
             'protein.*.*'       => 'required|numeric|min:0',
+            'bag_weight'        => 'nullable|array',
+            'bag_weight.*'      => 'nullable|array',
+            'bag_weight.*.*'    => 'nullable|numeric|min:0',
+            'packing_list'      => 'nullable|array',
+            'packing_list.*'    => 'nullable',
         ];
     }
 

@@ -455,14 +455,28 @@ class InventoryRepository
                         }
                     }
 
+                    $packingList = !empty($data['packing_list'][$index]) ? trim((string) $data['packing_list'][$index]) : null;
+                    $row['packing_list'] = $packingList;
+
                     if (($locId || $hasBagLocation) && !empty($data['concept_id'][$index])) {
                         $conceptId = $data['concept_id'][$index];
                         $weight = $data['weight_per_unit'][$index] ?? 0;
 
                         if (isset($data['bag_number'][$index]) && is_array($data['bag_number'][$index]) && count($data['bag_number'][$index]) > 0) {
                             foreach ($data['bag_number'][$index] as $b_idx => $bag_num) {
-                                $bagLocId = $data['bag_location_id'][$index][$b_idx] ?? $locId;
-                                $realWeight = $data['bag_weight'][$index][$b_idx] ?? $weight;
+                                $rawBagWeight = $data['bag_weight'][$index][$b_idx] ?? null;
+                                $realWeight = (!is_null($rawBagWeight) && $rawBagWeight !== '' && is_numeric($rawBagWeight))
+                                    ? (float) $rawBagWeight
+                                    : (float) $weight;
+
+                                $rawProtein = $data['protein'][$index][$b_idx] ?? null;
+                                $proteinVal = (!is_null($rawProtein) && $rawProtein !== '' && is_numeric($rawProtein))
+                                    ? (float) $rawProtein
+                                    : null;
+
+                                $bagLocId = !empty($data['bag_location_id'][$index][$b_idx]) 
+                                    ? $data['bag_location_id'][$index][$b_idx] 
+                                    : $locId;
 
                                 if ($bagLocId) {
                                     Cli::create([
@@ -473,7 +487,8 @@ class InventoryRepository
                                         'weight_per_unit' => $realWeight,
                                         'net_weight'      => 1 * $realWeight,
                                         'bag_number'      => $bag_num,
-                                        'protein'         => $data['protein'][$index][$b_idx] ?? null,
+                                        'protein'         => $proteinVal,
+                                        'packing_list'    => $packingList,
                                     ]);
                                 }
                             }
@@ -486,6 +501,7 @@ class InventoryRepository
                                     'quantity'        => $qty,
                                     'weight_per_unit' => $weight,
                                     'net_weight'      => $qty * $weight,
+                                    'packing_list'    => $packingList,
                                 ]);
                             }
                         }
