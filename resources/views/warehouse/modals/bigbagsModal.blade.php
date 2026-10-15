@@ -11,9 +11,15 @@
                     <p class="text-xs text-gray-500">Consulta de total de BigBags por producto, pesos individuales y peso consolidado.</p>
                 </div>
             </div>
-            <button type="button" class="close-modal text-gray-400 hover:text-gray-700 text-2xl font-bold p-1 leading-none rounded-lg hover:bg-gray-100 transition-colors">
-                &times;
-            </button>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('export-protein') }}" target="_blank" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm hover:shadow cursor-pointer" title="Descargar Reporte de Proteína en Excel">
+                    <i class="ri-file-excel-2-line text-base"></i>
+                    <span>Reporte Proteína</span>
+                </a>
+                <button type="button" class="close-modal text-gray-400 hover:text-gray-700 text-2xl font-bold p-1 leading-none rounded-lg hover:bg-gray-100 transition-colors">
+                    &times;
+                </button>
+            </div>
         </div>
 
         <!-- KPI Cards Summary -->
