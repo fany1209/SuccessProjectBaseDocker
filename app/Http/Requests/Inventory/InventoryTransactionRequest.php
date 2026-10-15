@@ -2,7 +2,10 @@
 
 namespace App\Http\Requests\Inventory;
 
+use App\Models\Inventory;
+use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class InventoryTransactionRequest extends FormRequest
 {
@@ -109,5 +112,87 @@ class InventoryTransactionRequest extends FormRequest
             'warehouse_batch.*.required'    => 'Cada producto debe tener un lote especificado.',
             'comments.max'                  => 'Los comentarios no pueden exceder 300 caracteres.',
         ];
+    }
+
+    /**
+     * Valida reglas de negocio para lotes:
+     * - Se permite la duplicación de lote solo para productos tipo BigBag.
+     * - Para productos regulares no BigBag, el lote no puede repetirse en el formulario ni existir previamente.
+     * - Un lote de BigBag no puede pertenecer a un producto diferente en inventario.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function ($validator) {
+            if ($this->input('type') !== 'Input') {
+                return;
+            }
+
+            $productIds = $this->input('product_id', []);
+            $batches = $this->input('warehouse_batch', []);
+            $bagNumbers = $this->input('bag_number', []);
+
+            if (!is_array($batches) || empty($batches)) {
+                return;
+            }
+
+            $uniqueProductIds = array_unique(array_filter($productIds));
+            $products = Product::whereIn('product_id', $uniqueProductIds)
+                ->get()
+                ->keyBy('product_id');
+
+            $seenBatches = [];
+
+            foreach ($batches as $index => $batch) {
+                $batch = trim((string) $batch);
+                if ($batch === '') {
+                    continue;
+                }
+
+                $productId = $productIds[$index] ?? null;
+                $product = $productId ? ($products[$productId] ?? null) : null;
+
+                $isBigBag = false;
+                if ($product && method_exists($product, 'isBigBag') && $product->isBigBag()) {
+                    $isBigBag = true;
+                }
+                if (!$isBigBag && isset($bagNumbers[$index]) && is_array($bagNumbers[$index]) && count($bagNumbers[$index]) > 0) {
+                    $isBigBag = true;
+                }
+
+                if (isset($seenBatches[$batch])) {
+                    if (!$isBigBag || !$seenBatches[$batch]['is_bigbag']) {
+                        $validator->errors()->add(
+                            "warehouse_batch.{$index}",
+                            "El lote '{$batch}' está duplicado en la entrada. Solo los productos BigBag pueden registrarse con el mismo lote en múltiples almacenes o partidas."
+                        );
+                    } elseif ($seenBatches[$batch]['product_id'] != $productId) {
+                        $validator->errors()->add(
+                            "warehouse_batch.{$index}",
+                            "El lote '{$batch}' no puede ser compartido entre productos diferentes."
+                        );
+                    }
+                } else {
+                    $seenBatches[$batch] = [
+                        'is_bigbag'   => $isBigBag,
+                        'product_id'  => $productId,
+                    ];
+
+                    $existingInventory = Inventory::where('batch', $batch)->first();
+                    if ($existingInventory) {
+                        if (!$isBigBag) {
+                            $validator->errors()->add(
+                                "warehouse_batch.{$index}",
+                                "El lote '{$batch}' ya existe en el inventario. Solo se permite reutilizar lotes para productos BigBag."
+                            );
+                        } elseif ($existingInventory->product_id != $productId) {
+                            $validator->errors()->add(
+                                "warehouse_batch.{$index}",
+                                "El lote '{$batch}' ya existe en el inventario pero pertenece a otro producto."
+                            );
+                        }
+                    }
+                }
+            }
+        });
     }
 }

@@ -1,11 +1,3 @@
-{{--
-Inventario
-Make Transaction
-Fecha de creación: 08-10-2025
-Creado por: Jacob
-Actualizado por: Stefany
-Fecha de actualización: 15-01-2026
---}}
 <x-modal id="make-transaction">
     <form class="flex flex-col items-center w-full gap-2" id="make-transaction-form">
         <datalist id="add_tx_products_all">
@@ -1102,11 +1094,17 @@ $(function(){
             },
             error:function(xhr){
                 let message = 'Ocurrió un error inesperado.';
-                if (xhr.responseJSON && xhr.responseJSON.error) {
-                    if (typeof xhr.responseJSON.error === 'object') {
-                        message = Object.values(xhr.responseJSON.error).flat().join('\\n');
-                    } else {
-                        message = xhr.responseJSON.error;
+                if (xhr.responseJSON) {
+                    if (xhr.responseJSON.errors && typeof xhr.responseJSON.errors === 'object') {
+                        message = Object.values(xhr.responseJSON.errors).flat().join('\n');
+                    } else if (xhr.responseJSON.error) {
+                        if (typeof xhr.responseJSON.error === 'object') {
+                            message = Object.values(xhr.responseJSON.error).flat().join('\n');
+                        } else {
+                            message = xhr.responseJSON.error;
+                        }
+                    } else if (xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
                     }
                 }
                 Swal.fire({

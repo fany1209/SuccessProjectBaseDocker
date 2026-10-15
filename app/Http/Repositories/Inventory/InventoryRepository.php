@@ -38,33 +38,16 @@ class InventoryRepository
         $this->inventory = $inventory;
     }
 
-    /**
-     * Obtiene todos los registros de inventario con su producto asociado.
-     *
-     * @return Collection<int, Inventory>
-     */
     public function all(): Collection
     {
         return $this->inventory->with('product')->orderByDesc('inventory_id')->get();
     }
 
-    /**
-     * Busca un inventario por ID cargando relaciones.
-     *
-     * @param int|string $id
-     * @return Inventory|null
-     */
     public function find($id): ?Inventory
     {
         return $this->inventory->with(['product', 'clis'])->find($id);
     }
 
-    /**
-     * Registra un inventario de forma transaccional.
-     *
-     * @param array<string, mixed> $data
-     * @return Inventory
-     */
     public function create(array $data): Inventory
     {
         return DB::transaction(function () use ($data) {
@@ -72,13 +55,6 @@ class InventoryRepository
         });
     }
 
-    /**
-     * Actualiza un inventario con bloqueo pesimista.
-     *
-     * @param int|string $id
-     * @param array<string, mixed> $data
-     * @return Inventory|null
-     */
     public function update($id, array $data): ?Inventory
     {
         return DB::transaction(function () use ($id, $data) {
@@ -91,12 +67,6 @@ class InventoryRepository
         });
     }
 
-    /**
-     * Elimina un inventario con bloqueo pesimista.
-     *
-     * @param int|string $id
-     * @return bool
-     */
     public function delete($id): bool
     {
         return DB::transaction(function () use ($id) {
@@ -108,11 +78,6 @@ class InventoryRepository
         });
     }
 
-    /**
-     * Obtiene todos los catálogos y conjuntos de datos requeridos para la vista index de inventario.
-     *
-     * @return array<string, mixed>
-     */
     public function getIndexData(): array
     {
         $available_locations = DB::table('inventory')
@@ -183,12 +148,6 @@ class InventoryRepository
         );
     }
 
-    /**
-     * Consulta el stock disponible, en cuarentena, productos altos y bajos.
-     *
-     * @param string|null $search
-     * @return array<string, mixed>
-     */
     public function getAvailableStock(?string $search = null): array
     {
         $query = DB::table('products')
@@ -255,12 +214,6 @@ class InventoryRepository
         ];
     }
 
-    /**
-     * Mueve un producto a cuarentena y descuenta el stock con control transaccional y bloqueo pesimista.
-     *
-     * @param array<string, mixed> $data
-     * @return Quarantine
-     */
     public function addQuarantine(array $data): Quarantine
     {
         return DB::transaction(function () use ($data) {
@@ -278,12 +231,6 @@ class InventoryRepository
         });
     }
 
-    /**
-     * Libera cantidad de cuarentena y repone el stock en inventario de forma segura.
-     *
-     * @param array<string, mixed> $data
-     * @return bool
-     */
     public function updateQuarantine(array $data): bool
     {
         return DB::transaction(function () use ($data) {
@@ -304,14 +251,6 @@ class InventoryRepository
         });
     }
 
-    /**
-     * Ejecuta una transacción compleja de inventario (Entrada, Salida, Salida Interna) con ACID y locks pesimistas.
-     *
-     * @param array<string, mixed> $data
-     * @param object|null $user
-     * @return array<string, mixed>
-     * @throws ValidationException
-     */
     public function makeTransaction(array $data, ?object $user = null): array
     {
         return DB::transaction(function () use ($data, $user) {
@@ -437,11 +376,42 @@ class InventoryRepository
                     }
                 } else {
                     $row['warehouse_batch'] = $data['warehouse_batch'][$index];
-                    $inventory = $this->inventory->create([
-                        'product_id' => $productId,
-                        'stock'      => $qty,
-                        'batch'      => $row['warehouse_batch'],
-                    ]);
+
+                    $product = Product::find($productId);
+                    $isBigBag = false;
+                    if ($product && method_exists($product, 'isBigBag') && $product->isBigBag()) {
+                        $isBigBag = true;
+                    }
+                    if (!$isBigBag && isset($data['bag_number'][$index]) && is_array($data['bag_number'][$index]) && count($data['bag_number'][$index]) > 0) {
+                        $isBigBag = true;
+                    }
+
+                    $existingInventory = $this->inventory
+                        ->where('batch', $row['warehouse_batch'])
+                        ->where('product_id', $productId)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($existingInventory && $isBigBag) {
+                        $existingInventory->stock = (float) $existingInventory->stock + (float) $qty;
+                        $existingInventory->save();
+                        $inventory = $existingInventory;
+                    } else {
+                        $conflict = $this->inventory
+                            ->where('batch', $row['warehouse_batch'])
+                            ->where('product_id', '!=', $productId)
+                            ->first();
+
+                        if ($conflict) {
+                            throw new \DomainException("El lote '{$row['warehouse_batch']}' ya está registrado para otro producto en el inventario.");
+                        }
+
+                        $inventory = $this->inventory->create([
+                            'product_id' => $productId,
+                            'stock'      => $qty,
+                            'batch'      => $row['warehouse_batch'],
+                        ]);
+                    }
 
                     $locId = $data['location_id'][$index] ?? null;
 
@@ -532,14 +502,6 @@ class InventoryRepository
         });
     }
 
-    /**
-     * Actualiza la fecha de un registro de entrada o salida.
-     *
-     * @param string $type
-     * @param int $id
-     * @param string $newDate
-     * @return bool
-     */
     public function updateDate(string $type, int $id, string $newDate): bool
     {
         return DB::transaction(function () use ($type, $id, $newDate) {
