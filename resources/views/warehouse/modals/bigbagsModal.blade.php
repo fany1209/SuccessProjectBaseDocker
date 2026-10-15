@@ -199,7 +199,7 @@
                             @if($whLocs->count() > 0)
                                 <optgroup label="{{ $wh->name }}">
                                     @foreach($whLocs as $loc)
-                                        <option value="{{ $loc->location_id }}">{{ $loc->name }}</option>
+                                        <option value="{{ $loc->location_id }}">{{ str_contains(strtolower($loc->name), strtolower($wh->name)) ? $loc->name : $wh->name . ' - ' . $loc->name }}</option>
                                     @endforeach
                                 </optgroup>
                             @endif

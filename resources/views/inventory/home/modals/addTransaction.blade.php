@@ -388,10 +388,15 @@ $(function(){
             const whList = Array.isArray(warehouses) ? warehouses : Object.values(warehouses || {});
 
             if (whId) {
+                const whObj = whList.find(w => w && w.warehouse_id == whId);
+                const whName = whObj ? whObj.name : `Almacén #${whId}`;
                 locList.forEach(location => {
                     if (location && location.warehouse_id == whId) {
                         const isSelected = (selectedLocationId && selectedLocationId == location.location_id) ? 'selected' : '';
-                        optionsHtml += `<option value="${location.location_id}" ${isSelected}>${location.name}</option>`;
+                        const displayName = location.name && location.name.toLowerCase().includes(whName.toLowerCase())
+                            ? location.name 
+                            : `${whName} - ${location.name}`;
+                        optionsHtml += `<option value="${location.location_id}" ${isSelected}>${displayName}</option>`;
                     }
                 });
             } else {
@@ -408,14 +413,36 @@ $(function(){
                     grouped[wId].push(loc);
                 });
 
+                whList.forEach(w => {
+                    const wId = w.warehouse_id;
+                    const locs = grouped[wId] || [];
+                    if (locs.length > 0) {
+                        const groupName = w.name || `Almacén #${wId}`;
+                        optionsHtml += `<optgroup label="${groupName}">`;
+                        locs.forEach(loc => {
+                            const isSelected = (selectedLocationId && selectedLocationId == loc.location_id) ? 'selected' : '';
+                            const displayName = loc.name && loc.name.toLowerCase().includes(groupName.toLowerCase())
+                                ? loc.name 
+                                : `${groupName} - ${loc.name}`;
+                            optionsHtml += `<option value="${loc.location_id}" ${isSelected}>${displayName}</option>`;
+                        });
+                        optionsHtml += `</optgroup>`;
+                    }
+                });
+
                 for (const wId in grouped) {
-                    const groupName = whMap[wId] || `Almacén #${wId}`;
-                    optionsHtml += `<optgroup label="${groupName}">`;
-                    grouped[wId].forEach(loc => {
-                        const isSelected = (selectedLocationId && selectedLocationId == loc.location_id) ? 'selected' : '';
-                        optionsHtml += `<option value="${loc.location_id}" ${isSelected}>${loc.name}</option>`;
-                    });
-                    optionsHtml += `</optgroup>`;
+                    if (!whList.some(w => w.warehouse_id == wId)) {
+                        const groupName = whMap[wId] || `Almacén #${wId}`;
+                        optionsHtml += `<optgroup label="${groupName}">`;
+                        grouped[wId].forEach(loc => {
+                            const isSelected = (selectedLocationId && selectedLocationId == loc.location_id) ? 'selected' : '';
+                            const displayName = loc.name && loc.name.toLowerCase().includes(groupName.toLowerCase())
+                                ? loc.name 
+                                : `${groupName} - ${loc.name}`;
+                            optionsHtml += `<option value="${loc.location_id}" ${isSelected}>${displayName}</option>`;
+                        });
+                        optionsHtml += `</optgroup>`;
+                    }
                 }
             }
             return optionsHtml;
@@ -423,6 +450,10 @@ $(function(){
             console.error("Error in buildLocationOptions:", err);
             return '<option value="">Select a location</option>';
         }
+    }
+
+    function buildBigBagLocationOptions(selectedLocationId = null) {
+        return buildLocationOptions(null, selectedLocationId);
     }
 
     function getMovement($modal){
@@ -552,11 +583,6 @@ $(function(){
                 wrapper.find('.total')
                     .addClass('mt-2 text-sm font-semibold rounded-md tracking-[2px] text-white bg-gray-700 px-2 py-1')
                     .text(`Total: ${formatted} kg`);
-                
-                if (quantity > 0) {
-                    let avg = (totalWeight / quantity).toFixed(3);
-                    wrapper.find('.weight_per_unit').val(avg);
-                }
             } else {
                 let weight_unit = parseFloat(wrapper.find('.weight_per_unit').val()) || 0;
                 if (quantity > 0 && weight_unit > 0) {
@@ -637,13 +663,17 @@ $(function(){
                     }
                 }
 
-                let defaultUnitWeight = wrapper.find('.weight_per_unit').val() || '';
+                let defaultUnitWeight = (parseFloat(wrapper.find('.weight_per_unit').val()) > 10) 
+                    ? wrapper.find('.weight_per_unit').val() 
+                    : '';
 
                 for (let i = 0; i < numInputs; i++) {
                     let saved = existingBags[i] || {};
                     let savedBagNum = saved.bag_number || '';
                     let savedProtein = saved.protein || '';
-                    let savedWeight = saved.weight || defaultUnitWeight;
+                    let savedWeight = (saved.weight !== undefined && saved.weight !== '') 
+                        ? saved.weight 
+                        : defaultUnitWeight;
 
                     if ((movement === 'Output' || movement === 'InternalOutput') && availableBags.length > 0) {
                         let options = '<option value="">Select a Barcina</option>';
@@ -682,7 +712,13 @@ $(function(){
                         `);
                     } else {
                         let currentWarehouse = wrapper.find('.warehouse').val();
-                        let locOptions = buildLocationOptions(currentWarehouse, saved.location_id);
+                        let initialLocId = saved.location_id;
+                        if (!initialLocId && currentWarehouse) {
+                            let locList = Array.isArray(locations) ? locations : Object.values(locations || {});
+                            let firstLoc = locList.find(l => l && l.warehouse_id == currentWarehouse);
+                            if (firstLoc) initialLocId = firstLoc.location_id;
+                        }
+                        let locOptions = buildBigBagLocationOptions(initialLocId);
                         let locSelectHTML = movement === 'Input' 
                             ? `<select class="bag_location_input w-full rounded-md border border-gray-300 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 px-2 py-1.5" required>${locOptions}</select>`
                             : '';
@@ -710,8 +746,8 @@ $(function(){
                             </div>
                         `);
 
-                        if (saved.location_id) {
-                            $card.find('.bag_location_input').val(saved.location_id);
+                        if (initialLocId) {
+                            $card.find('.bag_location_input').val(initialLocId);
                         }
 
                         container.append($card);
@@ -738,10 +774,17 @@ $(function(){
         const currentMainLoc = $wrapper.find('.location_id').val();
         $wrapper.find('.location_id').html(buildLocationOptions(warehouseVal, currentMainLoc));
 
-        $wrapper.find('.bag_location_input').each(function(){
-            const currentBagLoc = $(this).val();
-            $(this).html(buildLocationOptions(warehouseVal, currentBagLoc));
-        });
+        if (warehouseVal) {
+            const locList = Array.isArray(locations) ? locations : Object.values(locations || {});
+            const firstWhLoc = locList.find(l => l && l.warehouse_id == warehouseVal);
+            if (firstWhLoc) {
+                $wrapper.find('.bag_location_input').each(function(){
+                    if (!$(this).val()) {
+                        $(this).val(firstWhLoc.location_id);
+                    }
+                });
+            }
+        }
     });
 
     father.on('change', '.location_id, .bag_location_input', function(){
@@ -753,13 +796,15 @@ $(function(){
         wrapper.find('.concept_id').prop('required', hasLocation);
         wrapper.find('.weight_per_unit').prop('required', hasLocation);
 
-        const locId = parseInt($(this).val());
-        if (locId) {
-            const locObj = locations.find(l => l.location_id == locId);
-            if (locObj && locObj.warehouse_id) {
-                const $whSelect = wrapper.find('.warehouse');
-                if (!$whSelect.val()) {
-                    $whSelect.val(locObj.warehouse_id);
+        if ($(this).hasClass('location_id')) {
+            const locId = parseInt($(this).val());
+            if (locId) {
+                const locObj = locations.find(l => l.location_id == locId);
+                if (locObj && locObj.warehouse_id) {
+                    const $whSelect = wrapper.find('.warehouse');
+                    if (!$whSelect.val()) {
+                        $whSelect.val(locObj.warehouse_id);
+                    }
                 }
             }
         }
@@ -809,7 +854,9 @@ $(function(){
         let movement = getMovement(father);
         if (movement === 'Input') {
             let $bagWeights = wrapper.find('.bag_weight_input');
-            if ($bagWeights.length > 0 && weight_unit > 0) {
+            // Only auto-fill individual bag weights if weight_unit is a substantial real weight (> 10 kg),
+            // and NOT when the user enters '1' to represent unit count
+            if ($bagWeights.length > 0 && weight_unit > 10) {
                 $bagWeights.each(function() {
                     if (!$(this).val() || $(this).data('auto-filled')) {
                         $(this).val(weight_unit).data('auto-filled', true);
