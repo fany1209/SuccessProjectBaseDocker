@@ -185,15 +185,20 @@
         <div style="width: 100%;">
             @php
                 $flag = false;
+                $hasBigBags = false;
+                if ($type === 'inputs') {
+                    foreach ($movement->products as $p) {
+                        if (method_exists($p, 'isBigBag') && $p->isBigBag()) {
+                            $hasBigBags = true;
+                            break;
+                        }
+                    }
+                }
             @endphp
             @foreach ($movement->products as $product)
                 @if ($product->pivot->label_batch)
                     @php
                         $flag = true;
-                    @endphp
-                @else
-                    @php
-                        $flag = false;
                     @endphp
                 @endif
             @endforeach
@@ -206,7 +211,7 @@
                             </p>
                         </th>
 
-                        <th class="table-headers" style="width: 15%;">
+                        <th class="table-headers" style="width: {{ $hasBigBags ? '14%' : '15%' }};">
                             <p class="text-sm-black">
                                 SKU
                             </p>
@@ -218,35 +223,47 @@
                             </p>
                         </th>
 
-                        <th class="table-headers" style="width: 19%;">
+                        <th class="table-headers" style="width: {{ $hasBigBags ? '18%' : '19%' }};">
                             <p class="text-sm-black">
                                 N° de lote
                             </p>
                         </th>
 
                         @if ($flag)
-                            <th class="table-headers" style="width: 19%;">
+                            <th class="table-headers" style="width: {{ $hasBigBags ? '15%' : '19%' }};">
                                 <p class="text-sm-black">
                                     Lote de salida
                                 </p>
                             </th>
                         @endif
 
-                        <th class="table-headers" style="width: 13%;">
+                        <th class="table-headers" style="width: {{ $hasBigBags ? '11%' : '13%' }};">
                             <p class="text-sm-black">
                                 Cantidad
                             </p>
                         </th>
 
-                        <th class="table-headers" style="width: 5%;">
+                        <th class="table-headers" style="width: {{ $hasBigBags ? '7%' : '5%' }};">
                             <p class="text-sm-black">
                                 UM
                             </p>
                         </th>
+
+                        @if ($hasBigBags)
+                            <th class="table-headers" style="width: 16%;">
+                                <p class="text-sm-black">
+                                    Kilos Totales
+                                </p>
+                            </th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($movement->products as $product)
+                        @php
+                            $isBgbg = ($type === 'inputs') && method_exists($product, 'isBigBag') && $product->isBigBag();
+                            $bgbgKg = $isBgbg ? ($product->bigbag_total_kg ?? ($product->pivot->total_weight ?? null)) : null;
+                        @endphp
                         <tr>
                             <td class="cells-1">
                                 <p class="text-sm-black">
@@ -291,9 +308,47 @@
                                     {{ $product->unit }}
                                 </p>
                             </td>
+
+                            @if ($hasBigBags)
+                                <td class="cells-1">
+                                    <p class="text-sm-black" style="{{ $isBgbg ? 'font-weight: bold;' : '' }}">
+                                        @if ($isBgbg && !is_null($bgbgKg) && (float) $bgbgKg > 0)
+                                            {{ number_format((float) $bgbgKg, 2) }} kg
+                                        @else
+                                            -
+                                        @endif
+                                    </p>
+                                </td>
+                            @endif
                         </tr>
                     @endforeach
                 </tbody>
+                @if ($hasBigBags)
+                    @php
+                        $totalBigBagPzas = $movement->products->filter(fn($p) => method_exists($p, 'isBigBag') && $p->isBigBag())->sum(fn($p) => $p->pivot->quantity);
+                        $totalBigBagKg = $movement->products->filter(fn($p) => method_exists($p, 'isBigBag') && $p->isBigBag())->sum(fn($p) => (float) ($p->bigbag_total_kg ?? ($p->pivot->total_weight ?? 0)));
+                    @endphp
+                    <tfoot>
+                        <tr style="background-color: #f3f4f6;">
+                            <td colspan="{{ $flag ? 5 : 4 }}" class="cells-1" style="text-align: right; font-weight: bold; padding-right: 8px;">
+                                <p class="text-sm-black" style="font-weight: bold;">Total BigBags:</p>
+                            </td>
+                            <td class="cells-1">
+                                <p class="text-sm-black" style="font-weight: bold;">
+                                    {{ $totalBigBagPzas }}
+                                </p>
+                            </td>
+                            <td class="cells-1">
+                                <p class="text-sm-black">Pzas</p>
+                            </td>
+                            <td class="cells-1">
+                                <p class="text-sm-black" style="font-weight: bold;">
+                                    {{ number_format((float) $totalBigBagKg, 2) }} kg
+                                </p>
+                            </td>
+                        </tr>
+                    </tfoot>
+                @endif
             </table>
         </div>
     </div>

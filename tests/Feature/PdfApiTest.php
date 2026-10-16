@@ -240,3 +240,114 @@ it('handles exception in downloadPDF and returns 500 error response', function (
         'message' => 'Error al generar el documento PDF.',
     ]);
 });
+
+it('downloadPDF includes total kilograms for BigBag products in input movements', function () {
+    $category = \App\Models\Category::first() ?? \App\Models\Category::create(['name' => 'Cat PDF ' . uniqid()]);
+    $bigBag = Product::create([
+        'name'        => 'Levadura Seca BGBG ' . uniqid(),
+        'unit'        => 'BigBags',
+        'sat_code'    => '10121500',
+        'sku'         => 'SKU-' . rand(1000, 9999),
+        'category_id' => $category->category_id,
+        'stock_min'   => 1,
+        'stock_max'   => 100,
+    ]);
+
+    $supplier = Supplier::first() ?? Supplier::create([
+        'name'          => 'Proveedor BigBags ' . uniqid(),
+        'supplier_code' => 'SUP-BB-' . rand(100, 999),
+    ]);
+
+    $input = Input::create([
+        'operator'             => 'Operador BigBag',
+        'supplier_id'          => $supplier->supplier_id,
+        'comments'             => 'Entrada 26 BigBags',
+        'security_seal'        => 0,
+    ]);
+
+    DB::table('product_inputs')->insert([
+        'input_id'        => $input->input_id,
+        'product_id'      => $bigBag->product_id,
+        'quantity'        => 26.0,
+        'total_weight'    => 26350.75,
+        'warehouse_batch' => 'LOTE-BB-26',
+        'packing_list'    => 'PL-26',
+    ]);
+
+    $repo = app(PdfRepository::class);
+    $pdfData = $repo->getMovementPdfData('inputs', $input->input_id);
+
+    $productInPdf = $pdfData['data']['movement']->products->first();
+    expect($productInPdf->isBigBag())->toBeTrue();
+    expect((float) $productInPdf->bigbag_total_kg)->toEqual(26350.75);
+
+    $response = $this->actingAs($this->user)
+        ->get(route('makePDF', ['movType' => 'inputs', 'movId' => $input->input_id]));
+
+    $response->assertOk();
+    expect($response->headers->get('content-type'))->toContain('application/pdf');
+});
+
+it('getMovementPdfData calculates bigbag_total_kg from cli when total_weight is null', function () {
+    $category = \App\Models\Category::first() ?? \App\Models\Category::create(['name' => 'Cat PDF 2 ' . uniqid()]);
+    $bigBag = Product::create([
+        'name'        => 'Producto Especial BIGBAG ' . rand(100, 999),
+        'unit'        => 'BigBags',
+        'sat_code'    => '10121500',
+        'sku'         => 'SKU-' . rand(1000, 9999),
+        'category_id' => $category->category_id,
+        'stock_min'   => 1,
+        'stock_max'   => 100,
+    ]);
+
+    $batch = 'LOTE-CLI-' . uniqid();
+    $inv = \App\Models\Inventory::create([
+        'product_id' => $bigBag->product_id,
+        'stock'      => 2,
+        'batch'      => $batch,
+    ]);
+
+    $location = \App\Models\Location::first();
+    $concept = \App\Models\Concept::first();
+
+    \App\Models\Cli::create([
+        'location_id'     => $location->location_id,
+        'inventory_id'    => $inv->inventory_id,
+        'concept_id'      => $concept->concept_id,
+        'quantity'        => 1,
+        'weight_per_unit' => 1015.5,
+        'net_weight'      => 1015.5,
+        'bag_number'      => uniqid('BAG-'),
+    ]);
+
+    \App\Models\Cli::create([
+        'location_id'     => $location->location_id,
+        'inventory_id'    => $inv->inventory_id,
+        'concept_id'      => $concept->concept_id,
+        'quantity'        => 1,
+        'weight_per_unit' => 1024.5,
+        'net_weight'      => 1024.5,
+        'bag_number'      => uniqid('BAG-'),
+    ]);
+
+    $supplier = Supplier::first();
+    $input = Input::create([
+        'operator'      => 'Operador Test',
+        'supplier_id'   => $supplier->supplier_id,
+        'security_seal' => 0,
+    ]);
+
+    DB::table('product_inputs')->insert([
+        'input_id'        => $input->input_id,
+        'product_id'      => $bigBag->product_id,
+        'quantity'        => 2.0,
+        'total_weight'    => null,
+        'warehouse_batch' => $batch,
+    ]);
+
+    $repo = app(PdfRepository::class);
+    $pdfData = $repo->getMovementPdfData('inputs', $input->input_id);
+
+    $productInPdf = $pdfData['data']['movement']->products->first();
+    expect((float) $productInPdf->bigbag_total_kg)->toEqual(2040.0);
+});

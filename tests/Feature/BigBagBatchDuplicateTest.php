@@ -23,6 +23,8 @@ beforeEach(function () {
     $this->bigBagProduct = Product::create([
         'name'        => 'Harina de Pescado BGBG ' . uniqid(),
         'unit'        => 'BigBags',
+        'sat_code'    => '10121500',
+        'sku'         => 'SKU-' . uniqid(),
         'category_id' => $this->category->category_id,
         'stock_min'   => 1,
         'stock_max'   => 100,
@@ -32,6 +34,8 @@ beforeEach(function () {
     $this->regularProduct = Product::create([
         'name'        => 'Levadura Estandar Saco ' . uniqid(),
         'unit'        => 'kg',
+        'sat_code'    => '10121500',
+        'sku'         => 'SKU-' . uniqid(),
         'category_id' => $this->category->category_id,
         'stock_min'   => 10,
         'stock_max'   => 500,
@@ -89,8 +93,8 @@ test('1. Permite distribuir BigBags con el mismo lote entre múltiples almacenes
         'weight_per_unit' => [1000, 1000],
         'packing_list'    => ['PL-999', 'PL-999'],
         'bag_number'      => [
-            ['BB-01', 'BB-02'],
-            ['BB-03', 'BB-04'],
+            [$b1 = uniqid('BB-'), $b2 = uniqid('BB-')],
+            [$b3 = uniqid('BB-'), $b4 = uniqid('BB-')],
         ],
         'bag_weight'      => [
             [1010, 1020],
@@ -115,13 +119,13 @@ test('1. Permite distribuir BigBags con el mismo lote entre múltiples almacenes
     // Deben haberse creado los registros de cli distribuidos por ubicación
     $this->assertDatabaseHas('cli', [
         'inventory_id' => $inv->first()->inventory_id,
-        'bag_number'   => 'BB-01',
+        'bag_number'   => $b1,
         'location_id'  => $this->location1->location_id,
         'packing_list' => 'PL-999',
     ]);
     $this->assertDatabaseHas('cli', [
         'inventory_id' => $inv->first()->inventory_id,
-        'bag_number'   => 'BB-03',
+        'bag_number'   => $b3,
         'location_id'  => $this->location2->location_id,
         'packing_list' => 'PL-999',
     ]);
@@ -156,7 +160,7 @@ test('2. Rechaza lote duplicado en el mismo formulario si el producto NO es BigB
     $response = $this->actingAs($this->user)->postJson('/makeTransaction', $payload);
 
     $response->assertStatus(422);
-    expect($response->json('errors.warehouse_batch.1'))->not->toBeNull();
+    expect($response->json('errors')['warehouse_batch.1'] ?? null)->not->toBeNull();
 });
 
 test('3. Rechaza reutilizar lote que ya existe en inventario para productos que NO son BigBag', function () {
@@ -184,7 +188,7 @@ test('3. Rechaza reutilizar lote que ya existe en inventario para productos que 
     $response = $this->actingAs($this->user)->postJson('/makeTransaction', $payload);
 
     $response->assertStatus(422);
-    expect($response->json('errors.warehouse_batch.0'))->not->toBeNull();
+    expect($response->json('errors')['warehouse_batch.0'] ?? null)->not->toBeNull();
 });
 
 test('4. Rechaza usar un lote de BigBag si ya pertenece a otro producto diferente', function () {
@@ -212,5 +216,5 @@ test('4. Rechaza usar un lote de BigBag si ya pertenece a otro producto diferent
     $response = $this->actingAs($this->user)->postJson('/makeTransaction', $payload);
 
     $response->assertStatus(422);
-    expect($response->json('errors.warehouse_batch.0'))->not->toBeNull();
+    expect($response->json('errors')['warehouse_batch.0'] ?? null)->not->toBeNull();
 });

@@ -25,7 +25,7 @@ class Product extends Model
 
     public function inputs()
     {
-        return $this->belongsToMany('App\Models\Input', 'product_inputs', 'product_id', 'input_id')->withPivot('quantity', 'warehouse_batch');
+        return $this->belongsToMany('App\Models\Input', 'product_inputs', 'product_id', 'input_id')->withPivot('quantity', 'total_weight', 'warehouse_batch', 'packing_list');
     }
 
     public function images()

@@ -428,6 +428,7 @@ class InventoryRepository
                     $packingList = !empty($data['packing_list'][$index]) ? trim((string) $data['packing_list'][$index]) : null;
                     $row['packing_list'] = $packingList;
 
+                    $lineTotalWeight = 0.0;
                     if (($locId || $hasBagLocation) && !empty($data['concept_id'][$index])) {
                         $conceptId = $data['concept_id'][$index];
                         $weight = $data['weight_per_unit'][$index] ?? 0;
@@ -438,6 +439,8 @@ class InventoryRepository
                                 $realWeight = (!is_null($rawBagWeight) && $rawBagWeight !== '' && is_numeric($rawBagWeight))
                                     ? (float) $rawBagWeight
                                     : (float) $weight;
+
+                                $lineTotalWeight += $realWeight;
 
                                 $rawProtein = $data['protein'][$index][$b_idx] ?? null;
                                 $proteinVal = (!is_null($rawProtein) && $rawProtein !== '' && is_numeric($rawProtein))
@@ -463,6 +466,7 @@ class InventoryRepository
                                 }
                             }
                         } else {
+                            $lineTotalWeight = (float) $qty * (float) $weight;
                             if ($locId) {
                                 Cli::create([
                                     'location_id'     => $locId,
@@ -475,7 +479,12 @@ class InventoryRepository
                                 ]);
                             }
                         }
+                    } else {
+                        $weight = $data['weight_per_unit'][$index] ?? 0;
+                        $lineTotalWeight = (float) $qty * (float) $weight;
                     }
+
+                    $row['total_weight'] = $lineTotalWeight > 0 ? $lineTotalWeight : null;
                 }
                 $details[] = $row;
             }

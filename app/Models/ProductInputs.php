@@ -11,7 +11,7 @@ class ProductInputs extends Model
 
     protected $table = 'product_inputs';
 
-    protected $fillable = ['product_id', 'input_id', 'quantity', 'warehouse_batch', 'packing_list'];
+    protected $fillable = ['product_id', 'input_id', 'quantity', 'total_weight', 'warehouse_batch', 'packing_list'];
 
     public $timestamps = false;
 }
