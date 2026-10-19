@@ -163,7 +163,11 @@
 
         // Alerta emergente de pagos pendientes
         @if(auth()->check() && auth()->user()->unreadNotifications->where('type', 'App\Notifications\PendingPaymentAlert')->count() > 0)
-            let pendingAlerts = @json(auth()->user()->unreadNotifications->where('type', 'App\Notifications\PendingPaymentAlert')->pluck('data.pending_sales')->first());
+            @php
+                $pendingNotif = auth()->user()->unreadNotifications->where('type', 'App\Notifications\PendingPaymentAlert')->first();
+            @endphp
+            let pendingAlerts = @json($pendingNotif ? ($pendingNotif->data['pending_sales'] ?? []) : []);
+            let pendingNotifId = @json($pendingNotif ? $pendingNotif->id : null);
             
             if (pendingAlerts && pendingAlerts.length > 0) {
                 let safeEscape = window.escapeHtml || function(str){ return (str ?? '').toString().replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s])); };
@@ -181,10 +185,14 @@
                     icon: 'warning',
                     title: '¡Atención! Pagos Atrasados',
                     html: '<strong>Existen ventas a crédito que han superado su fecha límite de pago:</strong><br><br>' + htmlContent,
-                    confirmButtonText: 'Entendido',
+                    confirmButtonText: 'Entendido / Leído',
                     confirmButtonColor: '#d33',
                     allowOutsideClick: false,
                     allowEscapeKey: false
+                }).then((result) => {
+                    if (result.isConfirmed && pendingNotifId && window.markNotificationDirectly) {
+                        window.markNotificationDirectly(pendingNotifId);
+                    }
                 });
             }
         @endif
