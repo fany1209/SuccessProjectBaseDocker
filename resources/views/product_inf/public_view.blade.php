@@ -20,8 +20,8 @@
 <body class="bg-gradient-to-br from-slate-100 via-gray-50 to-slate-200 min-h-screen text-slate-800 font-sans antialiased py-8 px-4 sm:px-6 lg:px-8">
 
     <div class="max-w-2xl mx-auto">
-        <!-- Header con Logo -->
-        <div class="flex items-center justify-between mb-6">
+        <!-- Header con Logo y Acciones -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div class="flex items-center space-x-3">
                 <img src="/images/logo.png" alt="Success Logo" class="h-10 w-auto object-contain">
                 <div>
@@ -29,8 +29,11 @@
                     <p class="text-sm font-semibold text-slate-700">Ficha Técnica de Identificación</p>
                 </div>
             </div>
-            <div class="no-print">
-                <button onclick="window.print()" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm transition">
+            <div class="no-print flex items-center space-x-2.5">
+                <button type="button" id="btn-realizar-salida-header" class="btn-trigger-salida inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all transform active:scale-95 cursor-pointer">
+                    <i class="ri-logout-box-r-line mr-1.5 text-sm"></i> Realizar Salida
+                </button>
+                <button onclick="window.print()" class="inline-flex items-center px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm transition cursor-pointer">
                     <i class="ri-printer-line mr-1 text-slate-500"></i> Imprimir
                 </button>
             </div>
@@ -129,6 +132,26 @@
                     </div>
                 </div>
 
+                <!-- Banner de Acción Rápida: Realizar Salida -->
+                <div class="no-print mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-green-500/10 border border-emerald-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-center space-x-3.5">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-600 to-green-500 text-white flex items-center justify-center font-bold shadow-md flex-shrink-0">
+                            <i class="ri-box-3-line text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-extrabold text-slate-800">
+                                Gestión de Salida de Almacén
+                            </h3>
+                            <p class="text-xs text-slate-600">
+                                Disminuye el inventario de este lote asociándolo a una venta pendiente o a consumo interno.
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-trigger-salida w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center flex-shrink-0 cursor-pointer">
+                        <i class="ri-logout-box-r-line mr-1.5 text-sm"></i> Realizar Salida
+                    </button>
+                </div>
+
                 <!-- Código QR Vectorial y URL Permanente -->
                 <div class="border-t border-slate-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-6">
                     <div class="flex items-center space-x-4">
@@ -162,5 +185,201 @@
         </div>
     </div>
 
+    <!-- Modal: Selección de Destino de Salida (Venta vs Producción) -->
+    <div id="modal-salida-tipo" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeSalidaModal()"></div>
+
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-100">
+                <!-- Header del Modal -->
+                <div class="bg-gradient-to-r from-emerald-600 to-green-700 px-6 py-5 text-white">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white text-xl">
+                                <i class="ri-logout-box-r-line"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold" id="modal-title">¿El tipo de salida es para Venta o Producción?</h3>
+                                <p class="text-xs text-emerald-100">Selecciona el tipo de salida a gestionar</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="closeSalidaModal()" class="text-emerald-100 hover:text-white transition rounded-lg p-1.5 hover:bg-white/10 cursor-pointer">
+                            <i class="ri-close-line text-2xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Resumen de Producto Escaneado -->
+                <div class="px-6 pt-5 pb-2">
+                    <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex items-center justify-between">
+                        <div>
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Producto Escaneado</span>
+                            <h4 class="text-sm font-extrabold text-slate-800 line-clamp-1">
+                                {{ $qr->product ? $qr->product->name : 'N/A' }}
+                            </h4>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Lote</span>
+                            <span class="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                {{ $qr->batch ?: 'N/A' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Opciones Venta / Producción -->
+                <div class="p-6 space-y-4">
+                    <!-- Opción 1: Salida para Venta -->
+                    <a href="{{ route('inventory.index', ['tab' => 'sales', 'product_id' => $qr->product_id ?? ($qr->product->product_id ?? 0), 'sale_status' => 'pending']) }}"
+                       class="group block p-4 rounded-xl border-2 border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/40 transition-all shadow-sm hover:shadow-md cursor-pointer">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 rounded-xl bg-emerald-100 group-hover:bg-emerald-600 group-hover:text-white text-emerald-700 flex items-center justify-center text-2xl transition-colors flex-shrink-0">
+                                <i class="ri-shopping-cart-2-fill"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-1">
+                                    <h4 class="text-base font-extrabold text-slate-800 group-hover:text-emerald-800 transition-colors">
+                                        Salida para Venta
+                                    </h4>
+                                    <span class="text-[11px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                        Recomendado
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-500 group-hover:text-slate-700 leading-relaxed">
+                                    Te llevará a la vista de ventas en inventario, filtrando automáticamente las ventas <strong>pendientes</strong> que incluyen este producto para continuar con la disminución de inventario habitual.
+                                </p>
+                            </div>
+                            <div class="self-center text-slate-400 group-hover:text-emerald-600 transition-transform group-hover:translate-x-1">
+                                <i class="ri-arrow-right-s-line text-2xl"></i>
+                            </div>
+                        </div>
+                    </a>
+
+                    <!-- Opción 2: Salida para Producción -->
+                    <a href="{{ route('inventory.index', ['tab' => 'inventory', 'open_tx' => 'InternalOutput', 'product_id' => $qr->product_id ?? ($qr->product->product_id ?? 0), 'batch' => $qr->batch]) }}"
+                       class="group block p-4 rounded-xl border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/40 transition-all shadow-sm hover:shadow-md cursor-pointer">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 rounded-xl bg-indigo-100 group-hover:bg-indigo-600 group-hover:text-white text-indigo-700 flex items-center justify-center text-2xl transition-colors flex-shrink-0">
+                                <i class="ri-settings-4-fill"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-1">
+                                    <h4 class="text-base font-extrabold text-slate-800 group-hover:text-indigo-800 transition-colors">
+                                        Salida para Producción
+                                    </h4>
+                                    <span class="text-[11px] font-bold uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-300">
+                                        Interno
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-500 group-hover:text-slate-700 leading-relaxed">
+                                    Registra una <strong>salida interna / traspaso</strong> a planta para procesos productivos o consumo de materia prima.
+                                </p>
+                            </div>
+                            <div class="self-center text-slate-400 group-hover:text-indigo-600 transition-transform group-hover:translate-x-1">
+                                <i class="ri-arrow-right-s-line text-2xl"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Footer del modal -->
+                <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 flex justify-end">
+                    <button type="button" onclick="closeSalidaModal()" class="px-4 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shadow-sm cursor-pointer">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Rol no autorizado -->
+    <div id="modal-unauthorized" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-unauth-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeUnauthorizedModal()"></div>
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-slate-100 p-6">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl flex-shrink-0">
+                        <i class="ri-shield-user-line"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800" id="modal-unauth-title">Acceso Restringido</h3>
+                        <p class="text-xs text-slate-500">Se requiere rol de Almacén</p>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-600 mb-6 leading-relaxed">
+                    Tu usuario actual (<strong>{{ $currentUser ? $currentUser->name : 'Usuario' }}</strong>) no tiene los permisos del área de <strong>Almacén</strong> o <strong>Administrador</strong> para autorizar salidas de inventario.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-2.5 justify-end">
+                    <button type="button" onclick="closeUnauthorizedModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition cursor-pointer">
+                        Cerrar
+                    </button>
+                    <a href="{{ route('login') }}" class="px-4 py-2 bg-[#198754] hover:bg-[#157347] text-white text-xs font-bold rounded-xl transition text-center shadow-sm cursor-pointer">
+                        Iniciar sesión con otra cuenta
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const isAuthenticated = @json(auth()->check());
+        const isWarehouseUser = @json($isWarehouseUser ?? false);
+        const salidaUrl = "{{ route('product-inf.salida', $qr->uuid) }}";
+
+        function openSalidaModal() {
+            const modal = document.getElementById('modal-salida-tipo');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeSalidaModal() {
+            const modal = document.getElementById('modal-salida-tipo');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function openUnauthorizedModal() {
+            const modal = document.getElementById('modal-unauthorized');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeUnauthorizedModal() {
+            const modal = document.getElementById('modal-unauthorized');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        document.querySelectorAll('.btn-trigger-salida').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (!isAuthenticated) {
+                    window.location.href = salidaUrl;
+                    return;
+                }
+                if (!isWarehouseUser) {
+                    openUnauthorizedModal();
+                    return;
+                }
+                openSalidaModal();
+            });
+        });
+
+        // Detectar si venimos de redirección tras autenticación exitosa o parámetros action / error
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+            const error = urlParams.get('error');
+
+            if (action === 'salida') {
+                if (!isAuthenticated) {
+                    window.location.href = salidaUrl;
+                } else if (isWarehouseUser) {
+                    openSalidaModal();
+                } else {
+                    openUnauthorizedModal();
+                }
+            } else if (error === 'unauthorized_role') {
+                openUnauthorizedModal();
+            }
+        });
+    </script>
 </body>
 </html>

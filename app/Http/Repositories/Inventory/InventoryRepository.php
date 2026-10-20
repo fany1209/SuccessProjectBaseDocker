@@ -132,10 +132,25 @@ class InventoryRepository
         $warehouses = Warehouse::select('warehouse_id', 'name')->get();
         $locations = Location::select('location_id', 'name', 'warehouse_id')->get();
 
-        $almacen_sales = Sale::with(['customer', 'prospect', 'user'])
+        $salesQuery = Sale::with(['customer', 'prospect', 'user', 'products'])
             ->whereNotNull('almacen_status')
-            ->orderBy('sale_id', 'desc')
-            ->get();
+            ->orderBy('sale_id', 'desc');
+
+        if (request()->filled('product_id')) {
+            $filterProdId = (int) request('product_id');
+            $salesQuery->whereHas('products', function ($q) use ($filterProdId) {
+                $q->where('products.product_id', $filterProdId);
+            });
+            if (request('sale_status') === 'pending' || !request()->filled('sale_status')) {
+                $salesQuery->where('almacen_status', 'pending');
+            } elseif (request()->filled('sale_status') && request('sale_status') !== 'all') {
+                $salesQuery->where('almacen_status', request('sale_status'));
+            }
+        } elseif (request()->filled('sale_status') && request('sale_status') !== 'all') {
+            $salesQuery->where('almacen_status', request('sale_status'));
+        }
+
+        $almacen_sales = $salesQuery->get();
 
         $product_locations = DB::table('cli')->select('inventory_id', 'location_id', 'bag_number', 'protein', 'weight_per_unit', 'quantity')->get();
 
@@ -254,7 +269,6 @@ class InventoryRepository
     public function makeTransaction(array $data, ?object $user = null): array
     {
         return DB::transaction(function () use ($data, $user) {
-            // Regla de negocio para almacenista
             if ($data['type'] === 'Output' && $user && method_exists($user, 'hasRole') && $user->hasRole('Warehouse')) {
                 $invalidProducts = DB::table('products')
                     ->leftJoin('categories', 'products.category_id', '=', 'categories.category_id')
@@ -529,14 +543,6 @@ class InventoryRepository
         });
     }
 
-    /**
-     * Actualiza los comentarios de una entrada o salida.
-     *
-     * @param string $type
-     * @param int $id
-     * @param string|null $comments
-     * @return bool
-     */
     public function updateComment(string $type, int $id, ?string $comments): bool
     {
         return DB::transaction(function () use ($type, $id, $comments) {
@@ -554,11 +560,6 @@ class InventoryRepository
         });
     }
 
-    /**
-     * Carga el conjunto de datos de tarimas pendientes y catálogos requeridos.
-     *
-     * @return array<string, mixed>
-     */
     public function getPendingPalletsData(): array
     {
         $pallets = Pallet::with('yeastProductions')
@@ -631,13 +632,6 @@ class InventoryRepository
         );
     }
 
-    /**
-     * Acepta e ingresa una tarima al almacén con registro completo de entrada, inventario y ubicación CLI.
-     *
-     * @param int|string $id
-     * @param array<string, mixed> $data
-     * @return array<string, mixed>
-     */
     public function acceptPallet($id, array $data): array
     {
         return DB::transaction(function () use ($id, $data) {
@@ -647,7 +641,6 @@ class InventoryRepository
                 throw new InvalidArgumentException('La tarima no está pendiente de ser recibida.');
             }
 
-            // Resolución de proveedor
             $supplierId = $data['supplier_id'] ?? null;
             if (!$supplierId) {
                 $supplier = Supplier::where('name', 'Producción Interna')
@@ -664,7 +657,6 @@ class InventoryRepository
                 $supplierId = $supplier->supplier_id;
             }
 
-            // Resolución de concepto
             $conceptId = $data['concept_id'] ?? null;
             if (!$conceptId) {
                 $concept = Concept::where('name', 'Producto Terminado')->first()
@@ -672,17 +664,14 @@ class InventoryRepository
                 $conceptId = $concept ? $concept->concept_id : 2;
             }
 
-            // Resolución de producto
             $defaultProd = Product::where('product_id', 623)->orWhere('name', 'like', '%Yeacali%')->first();
             $productId = !empty($data['product_id']) ? $data['product_id'] : ($defaultProd->product_id ?? 623);
 
-            // Cantidades y pesos
             $sacks = (float) (!empty($data['quantity']) ? $data['quantity'] : $pallet->current_sacks);
             $weightPerUnit = (float) (!empty($data['weight_per_unit']) ? $data['weight_per_unit'] : 25);
             $finalWeight = (float) (!empty($data['final_weight']) ? $data['final_weight'] : ($sacks * $weightPerUnit));
             $batch = !empty($data['warehouse_batch']) ? $data['warehouse_batch'] : $pallet->pallet_number;
 
-            // 1. Registro Input
             $input = Input::create([
                 'supplier_id'          => $supplierId,
                 'transport_line_id'    => $data['transport_line'] ?? null,
@@ -695,14 +684,12 @@ class InventoryRepository
                 'comments'             => $data['comments'] ?? null,
             ]);
 
-            // 2. Registro Inventory
             $inventory = $this->inventory->create([
                 'stock'      => $finalWeight,
                 'batch'      => $batch,
                 'product_id' => $productId,
             ]);
 
-            // 3. Registro ProductInputs
             ProductInputs::insert([
                 'product_id'      => $productId,
                 'input_id'        => $input->input_id,
@@ -710,7 +697,6 @@ class InventoryRepository
                 'warehouse_batch' => $batch,
             ]);
 
-            // 4. Registro CLI
             Cli::create([
                 'inventory_id'    => $inventory->inventory_id,
                 'concept_id'      => $conceptId,
@@ -720,7 +706,6 @@ class InventoryRepository
                 'net_weight'      => $finalWeight,
             ]);
 
-            // 5. Actualizar status de tarima
             $pallet->inventory_status = 'Ingresada';
             $pallet->save();
 

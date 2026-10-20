@@ -135,6 +135,7 @@ Route::middleware(RedirectIfClientUnauthenticated::class)->post('/portal/change-
 
 // Rutas Públicas de Escaneo de Códigos QR Permanentes
 Route::get('/rack/{uuid}', [ProductInfController::class, 'showPublic'])->name('product-inf.rack');
+Route::get('/rack/{uuid}/salida', [ProductInfController::class, 'handleSalidaAction'])->name('product-inf.salida');
 
 Route::middleware([
     'auth:sanctum',

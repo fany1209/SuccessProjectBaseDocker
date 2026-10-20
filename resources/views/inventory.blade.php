@@ -185,6 +185,23 @@ $(function () {
                                 });
                             }
                         });
+                    } else {
+                        const prodId = initialParams.get('product_id');
+                        const batchVal = initialParams.get('batch');
+                        if (prodId) {
+                            setTimeout(() => {
+                                const rows = modal.find('#products .wrapper');
+                                if (rows.length) {
+                                    const firstRow = $(rows[0]);
+                                    firstRow.find('.product_id').val(prodId).trigger('change');
+                                    if (batchVal) {
+                                        setTimeout(() => {
+                                            firstRow.find('.batch').val(batchVal).trigger('change');
+                                        }, 250);
+                                    }
+                                }
+                            }, 350);
+                        }
                     }
                 }, 300);
             }

@@ -323,32 +323,6 @@
                         </tr>
                     @endforeach
                 </tbody>
-                @if ($hasBigBags)
-                    @php
-                        $totalBigBagPzas = $movement->products->filter(fn($p) => method_exists($p, 'isBigBag') && $p->isBigBag())->sum(fn($p) => $p->pivot->quantity);
-                        $totalBigBagKg = $movement->products->filter(fn($p) => method_exists($p, 'isBigBag') && $p->isBigBag())->sum(fn($p) => (float) ($p->bigbag_total_kg ?? ($p->pivot->total_weight ?? 0)));
-                    @endphp
-                    <tfoot>
-                        <tr style="background-color: #f3f4f6;">
-                            <td colspan="{{ $flag ? 5 : 4 }}" class="cells-1" style="text-align: right; font-weight: bold; padding-right: 8px;">
-                                <p class="text-sm-black" style="font-weight: bold;">Total BigBags:</p>
-                            </td>
-                            <td class="cells-1">
-                                <p class="text-sm-black" style="font-weight: bold;">
-                                    {{ $totalBigBagPzas }}
-                                </p>
-                            </td>
-                            <td class="cells-1">
-                                <p class="text-sm-black">Pzas</p>
-                            </td>
-                            <td class="cells-1">
-                                <p class="text-sm-black" style="font-weight: bold;">
-                                    {{ number_format((float) $totalBigBagKg, 2) }} kg
-                                </p>
-                            </td>
-                        </tr>
-                    </tfoot>
-                @endif
             </table>
         </div>
     </div>

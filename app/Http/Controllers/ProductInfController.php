@@ -8,6 +8,7 @@ use App\Http\Resources\ProductInf\ProductQrResource;
 use App\Traits\UtilResponse;
 use F9WebLtd\QrCode\Facades\QrCode;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
@@ -173,6 +174,10 @@ class ProductInfController extends Controller
             $scanUrl = url('/rack/' . $cleanUuid);
             $qrSvg = (string) QrCode::size(220)->generate($scanUrl);
 
+            /** @var \App\Models\User|null $user */
+            $user = auth()->user();
+            $isWarehouseUser = $user && method_exists($user, 'hasAnyRole') && $user->hasAnyRole(['Warehouse', 'Admin']);
+
             return view('product_inf.public_view', [
                 'qr'               => $qrRecord,
                 'qrSvg'            => $qrSvg,
@@ -183,6 +188,8 @@ class ProductInfController extends Controller
                 'currentLocation'  => $currentLocation,
                 'warehouseName'    => $warehouseName,
                 'isActive'         => !is_null($liveCli),
+                'isWarehouseUser'  => $isWarehouseUser,
+                'currentUser'      => $user,
             ]);
         } catch (\Throwable $e) {
             Log::error('Error al mostrar vista pública de QR', [
@@ -194,6 +201,49 @@ class ProductInfController extends Controller
             return view('product_inf.not_found', [
                 'uuid' => $uuid,
             ]);
+        }
+    }
+
+    public function handleSalidaAction(Request $request, string $uuid): RedirectResponse|View
+    {
+        try {
+            $cleanUuid = strip_tags(trim($uuid));
+            $qrRecord = $this->productInfRepository->findByUuid($cleanUuid);
+
+            if (!$qrRecord) {
+                return view('product_inf.not_found', [
+                    'uuid' => $cleanUuid,
+                ]);
+            }
+
+            $targetUrl = route('product-inf.rack', ['uuid' => $cleanUuid, 'action' => 'salida']);
+
+            if (!auth()->check()) {
+                session(['url.intended' => $targetUrl]);
+                return redirect()->route('login');
+            }
+
+            /** @var \App\Models\User $user */
+            $user = auth()->user();
+            $isWarehouse = $user && method_exists($user, 'hasAnyRole') && $user->hasAnyRole(['Warehouse', 'Admin']);
+
+            if (!$isWarehouse) {
+                return redirect()->route('product-inf.rack', [
+                    'uuid'  => $cleanUuid,
+                    'error' => 'unauthorized_role',
+                ]);
+            }
+
+            return redirect()->to($targetUrl);
+        } catch (\Throwable $e) {
+            Log::error('Error en redirección de acción de salida QR', [
+                'action'    => 'ProductInfController@handleSalidaAction',
+                'uuid'      => $uuid,
+                'user_id'   => auth()->id(),
+                'exception' => $e->getMessage(),
+            ]);
+
+            return redirect()->route('product-inf.rack', ['uuid' => $uuid]);
         }
     }
 
