@@ -239,7 +239,15 @@ class XlsRepository
         $activeSheet->setTitle('Reporte de Proteína');
 
         $data = DB::table('cli')
-            ->select('cli.bag_number', 'cli.protein', 'products.name as pName', 'inventory.batch as batch')
+            ->select(
+                'cli.bag_number',
+                'cli.packing_list',
+                'cli.net_weight',
+                'cli.weight_per_unit',
+                'cli.protein',
+                'products.name as pName',
+                'inventory.batch as batch'
+            )
             ->join('inventory', 'inventory.inventory_id', '=', 'cli.inventory_id')
             ->join('products', 'products.product_id', '=', 'inventory.product_id')
             ->whereNotNull('cli.protein')
@@ -262,6 +270,32 @@ class XlsRepository
                     'color'       => ['argb' => Color::COLOR_WHITE],
                 ],
             ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical'   => Alignment::VERTICAL_CENTER,
+            ],
+        ];
+
+        $estilosTotal = [
+            'font' => [
+                'bold'  => true,
+                'color' => ['argb' => '004D20'],
+                'size'  => 11,
+            ],
+            'fill' => [
+                'fillType'   => Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'E8F5E9'],
+            ],
+            'borders' => [
+                'top'    => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color'       => ['argb' => '008000'],
+                ],
+                'bottom' => [
+                    'borderStyle' => Border::BORDER_DOUBLE,
+                    'color'       => ['argb' => '008000'],
+                ],
+            ],
         ];
 
         $fechaConsulta = now()->toDateTimeString();
@@ -269,10 +303,12 @@ class XlsRepository
         $activeSheet->setCellValue('A3', 'Producto');
         $activeSheet->setCellValue('B3', 'Lote');
         $activeSheet->setCellValue('C3', 'Barcina');
-        $activeSheet->setCellValue('D3', 'Proteína (%)');
-        $activeSheet->setCellValue('E3', 'Rango');
+        $activeSheet->setCellValue('D3', 'Packing List');
+        $activeSheet->setCellValue('E3', 'Peso Real (kg)');
+        $activeSheet->setCellValue('F3', 'Proteína (%)');
+        $activeSheet->setCellValue('G3', 'Rango');
 
-        foreach (['A3', 'B3', 'C3', 'D3', 'E3'] as $col) {
+        foreach (['A3', 'B3', 'C3', 'D3', 'E3', 'F3', 'G3'] as $col) {
             $activeSheet->getStyle($col)->applyFromArray($estilosEncabezados);
         }
 
@@ -285,6 +321,7 @@ class XlsRepository
             '>= 40'     => 0,
         ];
 
+        $totalPesoReal = 0;
         $filaInicial = 4;
         foreach ($data as $item) {
             $rango = 'N/A';
@@ -305,42 +342,84 @@ class XlsRepository
                 }
             }
 
+            $pesoReal = (float) ($item->net_weight ?: $item->weight_per_unit);
+            $totalPesoReal += $pesoReal;
+            $packingList = ($item->packing_list !== null && $item->packing_list !== '') ? $item->packing_list : '-';
+
             $activeSheet->setCellValue('A' . $filaInicial, $item->pName);
             $activeSheet->setCellValue('B' . $filaInicial, $item->batch);
             $activeSheet->setCellValue('C' . $filaInicial, $item->bag_number);
-            $activeSheet->setCellValue('D' . $filaInicial, $item->protein);
-            $activeSheet->setCellValue('E' . $filaInicial, $rango);
+            $activeSheet->setCellValue('D' . $filaInicial, $packingList);
+            $activeSheet->setCellValue('E' . $filaInicial, round($pesoReal, 2));
+            $activeSheet->setCellValue('F' . $filaInicial, $item->protein);
+            $activeSheet->setCellValue('G' . $filaInicial, $rango);
             $filaInicial++;
         }
 
-        foreach (['A', 'B', 'C', 'D', 'E'] as $col) {
+        $filaTotal = $filaInicial;
+        $activeSheet->setCellValue('D' . $filaTotal, 'Total Peso Real:');
+        if ($data->isNotEmpty()) {
+            $activeSheet->setCellValue('E' . $filaTotal, '=SUM(E4:E' . ($filaTotal - 1) . ')');
+        } else {
+            $activeSheet->setCellValue('E' . $filaTotal, 0);
+        }
+
+        foreach (['A', 'B', 'C', 'D', 'E', 'F', 'G'] as $col) {
+            $activeSheet->getStyle($col . $filaTotal)->applyFromArray($estilosTotal);
+        }
+        $activeSheet->getStyle('D' . $filaTotal)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $activeSheet->getStyle('E' . $filaTotal)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $activeSheet->getStyle('E' . $filaTotal)->getNumberFormat()->setFormatCode('#,##0.00');
+
+        foreach (['A', 'B', 'C', 'D', 'E', 'F', 'G'] as $col) {
             $activeSheet->getColumnDimension($col)->setAutoSize(true);
         }
 
-        $activeSheet->getStyle('D')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        if ($filaTotal > 4) {
+            $activeSheet->getStyle('D4:D' . ($filaTotal - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $activeSheet->getStyle('E4:E' . ($filaTotal - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $activeSheet->getStyle('E4:E' . ($filaTotal - 1))->getNumberFormat()->setFormatCode('#,##0.00');
+            $activeSheet->getStyle('F4:F' . ($filaTotal - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+            $activeSheet->getStyle('G4:G' . ($filaTotal - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        }
 
-        $activeSheet->setCellValue('G3', 'Rango');
-        $activeSheet->setCellValue('H3', 'Cantidad');
-        $activeSheet->getStyle('G3:H3')->applyFromArray($estilosEncabezados);
+        $activeSheet->setCellValue('I3', 'Rango');
+        $activeSheet->setCellValue('J3', 'Cantidad');
+        $activeSheet->getStyle('I3:J3')->applyFromArray($estilosEncabezados);
 
-        $activeSheet->setCellValue('G4', '< 30');
-        $activeSheet->setCellValue('H4', $counts['< 30']);
-        $activeSheet->setCellValue('G5', '30 a 34.9');
-        $activeSheet->setCellValue('H5', $counts['30 a 34.9']);
-        $activeSheet->setCellValue('G6', '35 a 39.9');
-        $activeSheet->setCellValue('H6', $counts['35 a 39.9']);
-        $activeSheet->setCellValue('G7', '>= 40');
-        $activeSheet->setCellValue('H7', $counts['>= 40']);
+        $activeSheet->setCellValue('I4', '< 30');
+        $activeSheet->setCellValue('J4', $counts['< 30']);
+        $activeSheet->setCellValue('I5', '30 a 34.9');
+        $activeSheet->setCellValue('J5', $counts['30 a 34.9']);
+        $activeSheet->setCellValue('I6', '35 a 39.9');
+        $activeSheet->setCellValue('J6', $counts['35 a 39.9']);
+        $activeSheet->setCellValue('I7', '>= 40');
+        $activeSheet->setCellValue('J7', $counts['>= 40']);
+
+        $activeSheet->setCellValue('I8', 'Total Barcinas');
+        $activeSheet->setCellValue('J8', '=SUM(J4:J7)');
+        $activeSheet->getStyle('I8:J8')->applyFromArray($estilosTotal);
+
+        $activeSheet->setCellValue('I10', 'Total Peso Real (kg)');
+        $activeSheet->setCellValue('J10', round($totalPesoReal, 2));
+        $activeSheet->getStyle('I10:J10')->applyFromArray($estilosTotal);
+        $activeSheet->getStyle('J10')->getNumberFormat()->setFormatCode('#,##0.00');
+
+        foreach (['I', 'J'] as $col) {
+            $activeSheet->getColumnDimension($col)->setAutoSize(true);
+        }
+        $activeSheet->getStyle('J4:J8')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $activeSheet->getStyle('J10')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
         $sheetTitle = "'Reporte de Proteína'";
         $dataSeriesLabels = [
-            new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_STRING, $sheetTitle . '!$H$3', null, 1),
+            new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_STRING, $sheetTitle . '!$J$3', null, 1),
         ];
         $xAxisTickValues = [
-            new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_STRING, $sheetTitle . '!$G$4:$G$7', null, 4),
+            new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_STRING, $sheetTitle . '!$I$4:$I$7', null, 4),
         ];
         $dataSeriesValues = [
-            new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_NUMBER, $sheetTitle . '!$H$4:$H$7', null, 4),
+            new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_NUMBER, $sheetTitle . '!$J$4:$J$7', null, 4),
         ];
 
         $series = new DataSeries(
@@ -366,8 +445,8 @@ class XlsRepository
             null
         );
 
-        $chart->setTopLeftPosition('J3');
-        $chart->setBottomRightPosition('R18');
+        $chart->setTopLeftPosition('L3');
+        $chart->setBottomRightPosition('T18');
         $activeSheet->addChart($chart);
 
         return [

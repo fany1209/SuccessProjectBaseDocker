@@ -321,120 +321,133 @@ $(function(){
     const warehouse_2 = `
         <div class="flex justify-center items-center w-full px-2 py-3 border-2 border-dashed border-gray-500 rounded-md">
             <div class="grid grid-cols-8 gap-2 bg-gray-200 rounded-lg w-full f-full p-1">
-                <!--Columna 1-->
-                <div class="col-span-2 w-[100px] flex flex-col items-center p-1">
-                    <div class="flex justify-center items-center w-full border-4 border-[tan] bg-gray-300">
-                        <div class="w-full h-[60px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="Zone 8">Zone 8</div>
-                    </div>
-                    <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AM6">AM6</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AM5">AM5</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AM4">AM4</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AM3">AM3</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AM2">AM2</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AM1">AM1</div>
-                    </div>
-                    <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AL6">AL6</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AL5">AL5</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AL4">AL4</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AL3">AL3</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AL2">AL2</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AL1">AL1</div>
-                    </div>
-                    <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AK6">AK6</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AK5">AK5</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AK4">AK4</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AK3">AK3</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AK2">AK2</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AK1">AK1</div>
-                    </div>
-                    <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AJ6">AJ6</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AJ5">AJ5</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AJ4">AJ4</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AJ3">AJ3</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AJ2">AJ2</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AJ1">AJ1</div>
-                    </div>
-                    <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AI6">AI6</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AI5">AI5</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AI4">AI4</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AI3">AI3</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AI2">AI2</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AI1">AI1</div>
-                    </div>
-                    <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AH6">AH6</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AH5">AH5</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AH4">AH4</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AH3">AH3</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AH2">AH2</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AH1">AH1</div>
-                    </div>
-                    <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AG6">AG6</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AG5">AG5</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AG4">AG4</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AG3">AG3</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AG2">AG2</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AG1">AG1</div>
-                    </div>
-                    <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AF6">AF6</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AF5">AF5</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AF4">AF4</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AF3">AF3</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AF2">AF2</div>
-                        <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AF1">AF1</div>
-                    </div>
-                </div>
-                <!--Columna 2-->
-                <div class="col-span-2 flex flex-col items-center p-1 relative">
-                    <div class="flex flex-col items-center w-full border-4 border-[tan] bg-gray-300 lg:absolute left-[15px]">
-                        <div class="w-full h-[60px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="Zone 7">Zone 7</div>
-                        <div class="w-full h-[60px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="Zone 7">Zone 7</div>
-                    </div>
-                    <div class="grid grid-cols-3 grid-rows-2 w-full h-[120px]"></div>
-                    <div class="flex flex-col items-center w-full border-4 border-[tan] bg-gray-300 lg:absolute -left-[145px] top-[200px]">
-                        <div class="w-full h-[60px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="Zone 9">Zone 9</div>
-                        <div class="w-full h-[60px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="Zone 10">Zone 10</div>
-                        <div class="w-full h-[60px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="Zone 11">Zone 11</div>
-                        <div class="w-full h-[60px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="Zone 12">Zone 12</div>
-                    </div>
-                </div>
-                <!--Columna 3-->
-                <div class="col-span-2 flex flex-col items-center p-1 relative">
-                    <div class="flex justify-center items-center w-full">
-                        <div class="grid grid-cols-2 grid-rows-3 w-full border-4 border-[tan] bg-gray-300">
-                            <div class="w-full h-[30px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AN1">AN1</div>
-                            <div class="w-full h-[30px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AN4">AN4</div>
-                            <div class="w-full h-[30px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AN2">AN2</div>
-                            <div class="w-full h-[30px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AN5">AN5</div>
-                            <div class="w-full h-[30px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AN3">AN3</div>
-                            <div class="w-full h-[30px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AN6">AN6</div>
+                <!--Secciones 1, 2 y 3 (Zona P + Racks inferiores)-->
+                <div class="col-span-6 flex flex-col p-1">
+                    <!--Fila superior: Zona P + Rack ZA (ZA13 a ZA18)-->
+                    <div class="flex items-center w-full gap-2">
+                        <!--Zone P: Rectángulo desde antigua Zona 8 / AK3 hasta AO4 / Zona 4-->
+                        <div class="flex justify-center items-center w-[calc(100%-104px)] h-[192px] border-4 border-[tan] bg-gray-300">
+                            <div class="w-full h-full font-bold text-lg bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="Zone P">Zone P</div>
                         </div>
-                        <div class="grid grid-cols-2 grid-rows-3 w-full border-4 border-[tan] bg-gray-300">
-                            <div class="w-full h-[30px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AO1">AO1</div>
-                            <div class="w-full h-[30px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AO4">AO4</div>
-                            <div class="w-full h-[30px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AO2">AO2</div>
-                            <div class="w-full h-[30px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AO5">AO5</div>
-                            <div class="w-full h-[30px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AO3">AO3</div>
-                            <div class="w-full h-[30px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AO6">AO6</div>
+                        <!--Rack ZA: 2 columnas x 3 filas (ZA13 a ZA18)-->
+                        <div class="w-[96px] h-[192px] border-4 border-[tan] bg-gray-300">
+                            <div class="grid grid-cols-2 grid-rows-3 w-full h-full">
+                                <!-- Fila 1: ZA13, ZA16 -->
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA13">ZA13</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA16">ZA16</div>
+                                <!-- Fila 2: ZA14, ZA17 -->
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA14">ZA14</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA17">ZA17</div>
+                                <!-- Fila 3: ZA15, ZA18 -->
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA15">ZA15</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA18">ZA18</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="flex justify-center items-center w-full border-4 border-[tan] bg-gray-300">
-                        <div class="w-full h-[60px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="Zone 6">Zone 6</div>
-                        <div class="w-full h-[60px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="Zone 3">Zone 3</div>
+                    <!--Zona ZA: 4 columnas x 3 filas desde donde estaba ZA4 (25%) hasta el final de Zona P-->
+                    <div class="flex justify-end w-[calc(100%-104px)] my-[12px]">
+                        <div class="w-3/4 h-[80px] border-4 border-[tan] bg-gray-300">
+                            <div class="grid grid-cols-4 grid-rows-3 w-full h-full">
+                                <!-- Fila 1: ZA1, ZA4, ZA7, ZA10 -->
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA1">ZA1</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA4">ZA4</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA7">ZA7</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA10">ZA10</div>
+                                <!-- Fila 2: ZA2, ZA5, ZA8, ZA11 -->
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA2">ZA2</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA5">ZA5</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA8">ZA8</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA11">ZA11</div>
+                                <!-- Fila 3: ZA3, ZA6, ZA9, ZA12 -->
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA3">ZA3</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA6">ZA6</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA9">ZA9</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZA12">ZA12</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex justify-center items-center w-full border-4 border-[tan] bg-gray-300">
-                        <div class="w-full h-[60px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="Zone 5">Zone 5</div>
-                        <div class="w-full h-[60px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="Zone 4">Zone 4</div>
-                    </div>
-                    <div class="flex flex-col items-center w-full lg:w-[300px] border-4 border-[tan] bg-gray-300 lg:absolute left-[-100px] bottom-[10px]">
-                        <div class="w-full h-[250px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="Inspection">Inspection</div>
+                    <!--Fila inferior: Columnas 1, 2 y 3 debajo de Zona P-->
+                    <div class="grid grid-cols-6 gap-2 w-full relative">
+                        <!--Sub-columna 1: AJ, AI, AH, AG, AF-->
+                        <div class="col-span-2 w-[100px] flex flex-col items-center">
+                            <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AJ6">AJ6</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AJ5">AJ5</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AJ4">AJ4</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AJ3">AJ3</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AJ2">AJ2</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AJ1">AJ1</div>
+                            </div>
+                            <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AI6">AI6</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AI5">AI5</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AI4">AI4</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AI3">AI3</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AI2">AI2</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AI1">AI1</div>
+                            </div>
+                            <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AH6">AH6</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AH5">AH5</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AH4">AH4</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AH3">AH3</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AH2">AH2</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AH1">AH1</div>
+                            </div>
+                            <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AG6">AG6</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AG5">AG5</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AG4">AG4</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AG3">AG3</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AG2">AG2</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AG1">AG1</div>
+                            </div>
+                            <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AF6">AF6</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AF5">AF5</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AF4">AF4</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AF3">AF3</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AF2">AF2</div>
+                                <div class="w-full h-[32px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AF1">AF1</div>
+                            </div>
+                        </div>
+
+                        <!--Sub-columna 2: ZB (ZB1 a ZB18, 3 columnas x 6 filas)-->
+                        <div class="col-span-2 flex flex-col items-center relative">
+                            <div class="grid grid-cols-3 grid-rows-6 w-full h-[216px] border-4 border-[tan] bg-gray-300 lg:absolute -left-[112px] top-[144px]">
+                                <!-- Fila 1 -->
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB16">ZB16</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB17">ZB17</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB18">ZB18</div>
+                                <!-- Fila 2 -->
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB13">ZB13</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB14">ZB14</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB15">ZB15</div>
+                                <!-- Fila 3 -->
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB10">ZB10</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB11">ZB11</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB12">ZB12</div>
+                                <!-- Fila 4 -->
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB7">ZB7</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB8">ZB8</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB9">ZB9</div>
+                                <!-- Fila 5 -->
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB4">ZB4</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB5">ZB5</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB6">ZB6</div>
+                                <!-- Fila 6 -->
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB1">ZB1</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB2">ZB2</div>
+                                <div class="w-full h-full font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZB3">ZB3</div>
+                            </div>
+                        </div>
+
+                        <!--Sub-columna 3: Inspection-->
+                        <div class="col-span-2 flex flex-col items-center relative">
+                            <div class="flex flex-col items-center w-[calc(100%+104px)] h-[216px] border-4 border-[tan] bg-gray-300 lg:absolute -left-[104px] top-[144px]">
+                                <div class="w-full h-full font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="Inspection">Inspection</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <!--Columna 4-->
@@ -455,30 +468,42 @@ $(function(){
                         <div class="w-full h-[60px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AD2">AD2</div>
                         <div class="w-full h-[60px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AD1">AD1</div>
                     </div>
-                    <div class="grid grid-cols-3 grid-rows-2 w-full h-[120px]"></div>
+                    <div class="grid grid-cols-3 grid-rows-2 w-full h-[40px]"></div>
+                    <!-- Bloque 1: ZC1 a ZC6 -->
                     <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AC6">AC6</div>
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AC5">AC5</div>
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AC4">AC4</div>
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AC3">AC3</div>
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AC2">AC2</div>
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AC1">AC1</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC3">ZC3</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC2">ZC2</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC1">ZC1</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC6">ZC6</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC5">ZC5</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC4">ZC4</div>
                     </div>
+                    <!-- Bloque 2: ZC7 a ZC12 -->
                     <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AB6">AB6</div>
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AB5">AB5</div>
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AB4">AB4</div>
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AB3">AB3</div>
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AB2">AB2</div>
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AB1">AB1</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC9">ZC9</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC8">ZC8</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC7">ZC7</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC12">ZC12</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC11">ZC11</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC10">ZC10</div>
                     </div>
+                    <!-- Bloque 3: ZC13 a ZC18 -->
                     <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AA6">AA6</div>
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AA5">AA5</div>
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AA4">AA4</div>
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AA3">AA3</div>
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AA2">AA2</div>
-                        <div class="w-full h-[40px] font-bold text-sm bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="AA1">AA1</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC15">ZC15</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC14">ZC14</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC13">ZC13</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC18">ZC18</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC17">ZC17</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC16">ZC16</div>
+                    </div>
+                    <!-- Bloque 4: ZC19 a ZC24 -->
+                    <div class="grid grid-cols-3 grid-rows-2 w-full border-4 border-[tan] bg-gray-300">
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC21">ZC21</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC20">ZC20</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC19">ZC19</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC24">ZC24</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC23">ZC23</div>
+                        <div class="w-full h-[40px] font-bold text-xs bg-gray-700 text-white hover:bg-blue-500 hover:text-white border-1 border-gray-50 flex items-center justify-center cursor-pointer close-modal location-map" data-target="ZC22">ZC22</div>
                     </div>
                 </div>
             </div>

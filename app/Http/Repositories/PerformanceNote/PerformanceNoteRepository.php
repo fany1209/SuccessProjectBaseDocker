@@ -36,7 +36,17 @@ class PerformanceNoteRepository
 
     public function getAllUsers(): Collection|BaseCollection
     {
-        return User::all();
+        return User::where(function ($query) {
+                $query->where('status', 'Activo')
+                    ->orWhereNull('status');
+            })
+            ->where(function ($query) {
+                $query->whereIn('tipo_empleado', ['Trabajador', 'Practicante'])
+                    ->orWhereNull('tipo_empleado');
+            })
+            ->orderByRaw("CASE WHEN tipo_empleado = 'Trabajador' THEN 1 WHEN tipo_empleado = 'Practicante' THEN 2 ELSE 3 END")
+            ->orderBy('name', 'asc')
+            ->get();
     }
 
     public function createNote(array $data, int $adminId): PerformanceNote
