@@ -51,6 +51,40 @@ class PdfRepository
                 ->with(['products', 'supplier', 'transportLine'])
                 ->findOrFail($movId);
 
+            foreach ($movement->products as $product) {
+                if (method_exists($product, 'isBigBag') && $product->isBigBag()) {
+                    $totalKg = 0.0;
+                    if (isset($product->pivot->total_weight) && (float) $product->pivot->total_weight > 0) {
+                        $totalKg = (float) $product->pivot->total_weight;
+                    } else {
+                        $inv = DB::table('inventory')
+                            ->where('product_id', $product->product_id)
+                            ->where('batch', $product->pivot->warehouse_batch)
+                            ->first();
+
+                        if ($inv) {
+                            $cliQuery = DB::table('cli')
+                                ->where('inventory_id', $inv->inventory_id);
+
+                            if (!empty($product->pivot->packing_list)) {
+                                $cliQuery->where('packing_list', $product->pivot->packing_list);
+                            }
+
+                            $cliKilos = (float) $cliQuery->sum('net_weight');
+                            if ($cliKilos > 0) {
+                                $totalKg = $cliKilos;
+                            }
+                        }
+                    }
+
+                    if ($totalKg <= 0 && isset($product->pivot->quantity)) {
+                        $totalKg = (float) $product->pivot->quantity * 1000.0;
+                    }
+
+                    $product->bigbag_total_kg = $totalKg;
+                }
+            }
+
             $title = 'RECEPCIÓN DE PRODUCTO';
             $dateStr = $movement->created_at ? $movement->created_at->format('d-m-Y') : now()->format('d-m-Y');
             $fileName = 'Recepcion de Producto - ' . $dateStr . '.pdf';

@@ -135,6 +135,7 @@ Route::middleware(RedirectIfClientUnauthenticated::class)->post('/portal/change-
 
 // Rutas Públicas de Escaneo de Códigos QR Permanentes
 Route::get('/rack/{uuid}', [ProductInfController::class, 'showPublic'])->name('product-inf.rack');
+Route::get('/rack/{uuid}/salida', [ProductInfController::class, 'handleSalidaAction'])->name('product-inf.salida');
 
 Route::middleware([
     'auth:sanctum',
@@ -685,12 +686,27 @@ Route::prefix('laboratory/equipments')->group(function () {
         Route::post('/performance-notes-notifications/mark-read/{id}', [App\Http\Controllers\PerformanceNoteController::class, 'markNotificationAsRead'])->name('performance_notes.notifications.mark_read');
     });
 
-    // Ruta para marcar todas las notificaciones como leídas
+    // Ruta para marcar todas las notificaciones como leídas o una individual
     Route::middleware(['auth'])->group(function () {
         Route::post('/notifications/mark-all-read', function () {
             auth()->user()->unreadNotifications->markAsRead();
             return response()->json(['success' => true]);
         })->name('notifications.markRead');
+
+        Route::post('/notifications/mark-read/{id}', function ($id) {
+            $user = auth()->user();
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+            }
+
+            $notification = $user->unreadNotifications->where('id', $id)->first();
+            if ($notification) {
+                $notification->markAsRead();
+                return response()->json(['success' => true]);
+            }
+
+            return response()->json(['success' => false, 'message' => 'Notificación no encontrada o ya leída'], 404);
+        })->name('notifications.markOneRead');
     });
 
     // rh

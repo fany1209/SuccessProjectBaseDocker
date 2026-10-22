@@ -39,7 +39,11 @@ $(function(){
 
     // Alerta emergente de retención de clientes
     @if(auth()->check() && auth()->user()->unreadNotifications->where('type', 'App\Notifications\CustomerRetentionAlert')->count() > 0)
-        let retentionAlerts = @json(auth()->user()->unreadNotifications->where('type', 'App\Notifications\CustomerRetentionAlert')->pluck('data.message'));
+        @php
+            $retentionNotifs = auth()->user()->unreadNotifications->where('type', 'App\Notifications\CustomerRetentionAlert');
+        @endphp
+        let retentionAlerts = @json($retentionNotifs->pluck('data.message'));
+        let retentionNotifIds = @json($retentionNotifs->pluck('id'));
         let safeEscape = window.escapeHtml || function(str){ return (str ?? '').toString().replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s])); };
         let htmlContent = '<div style="text-align: left; font-size: 14px; max-height: 200px; overflow-y: auto;">';
         retentionAlerts.forEach(function(msg) {
@@ -51,10 +55,16 @@ $(function(){
             icon: 'warning',
             title: '¡Atención Equipo de Ventas!',
             html: '<strong>Tienes clientes frecuentes que no han comprado recientemente:</strong><br><br>' + htmlContent,
-            confirmButtonText: 'Entendido',
+            confirmButtonText: 'Entendido / Leído',
             confirmButtonColor: '#d33',
             allowOutsideClick: false,
             allowEscapeKey: false
+        }).then((result) => {
+            if (result.isConfirmed && retentionNotifIds && retentionNotifIds.length > 0 && window.markNotificationDirectly) {
+                retentionNotifIds.forEach(function(id) {
+                    window.markNotificationDirectly(id);
+                });
+            }
         });
     @endif
 });

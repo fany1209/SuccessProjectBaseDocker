@@ -208,7 +208,7 @@
                                 $isEdit = ($nType === 'sale_edited' || $nType === 'order_edited');
                                 $borderCol = $isEdit ? 'border-amber-500' : 'border-green-500';
                             @endphp
-                            <div class="p-2 {{ $notification->read_at ? 'opacity-60 bg-gray-50' : 'bg-white border-l-4 ' . $borderCol }}">
+                            <div id="notif-item-{{ $notification->id }}" class="p-2 {{ $notification->read_at ? 'opacity-60 bg-gray-50' : 'bg-white border-l-4 ' . $borderCol }}">
                                 <div class="flex justify-between">
                                     <span class="text-sm font-bold">{{ $notification->data['title'] ?? 'Notificación' }}</span>
                                     <small class="text-gray-400">{{ $notification->created_at->diffForHumans() }}</small>
@@ -226,13 +226,19 @@
                                     </div>
                                 @endif
 
-                                @if(isset($notification->data['url']))
-                                    <a href="{{ $notification->data['url'] }}" class="text-[10px] text-indigo-600 hover:underline mt-1 inline-block">Ver detalles</a>
-                                @endif
+                                <div class="flex items-center space-x-2 mt-1">
+                                    @if(isset($notification->data['url']))
+                                        <a href="{{ $notification->data['url'] }}" class="text-[10px] text-indigo-600 hover:underline inline-block">Ver detalles</a>
+                                    @endif
 
-                                @if($notification->read_at)
-                                    <span class="text-[10px] text-gray-400 italic block mt-1">Leída</span>
-                                @endif
+                                    @if(!$notification->read_at)
+                                        <button type="button" onclick="window.markNotificationDirectly('{{ $notification->id }}', this)" class="btn-mark-read text-[10px] text-gray-500 hover:text-indigo-600 hover:underline inline-block">
+                                            • Marcar como leída
+                                        </button>
+                                    @else
+                                        <span class="text-[10px] text-gray-400 italic">Leída</span>
+                                    @endif
+                                </div>
                             </div>
                         @endforeach
                     </div>

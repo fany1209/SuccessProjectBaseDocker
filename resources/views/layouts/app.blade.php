@@ -92,6 +92,48 @@
                     }
                 });
 
+                // Global helper to mark individual notification as read
+                window.markNotificationDirectly = function(id, btnElement, callback) {
+                    if (!id) return;
+                    $.ajax({
+                        url: '{{ url("/notifications/mark-read") }}/' + id,
+                        type: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function() {
+                            let badge = $('#notification-count');
+                            if (badge.length > 0) {
+                                let current = parseInt(badge.text()) || 0;
+                                let newCount = Math.max(0, current - 1);
+                                if (newCount <= 0) {
+                                    badge.text('0').addClass('hidden').hide();
+                                } else {
+                                    badge.text(newCount);
+                                }
+                            }
+
+                            let item = $('#notif-item-' + id + ', #dropdown-notif-' + id);
+                            if (item.length > 0) {
+                                item.removeClass('border-l-4 border-amber-500 border-green-500 bg-white')
+                                    .addClass('opacity-60 bg-gray-50');
+                                item.find('.btn-mark-read').replaceWith('<span class="text-[10px] text-gray-400 italic">Leída</span>');
+                            } else if (btnElement) {
+                                $(btnElement).replaceWith('<span class="text-[10px] text-gray-400 italic">Leída</span>');
+                            }
+
+                            if (typeof callback === 'function') {
+                                callback();
+                            }
+                        },
+                        error: function() {
+                            if (typeof callback === 'function') {
+                                callback();
+                            }
+                        }
+                    });
+                };
+
                 // Polling for Performance Notifications
                 let shownPerformanceNotifications = [];
                 function fetchPerformanceNotifications() {
@@ -128,16 +170,22 @@
                                         showConfirmButton: true,
                                         confirmButtonText: 'Ver detalles',
                                         showCancelButton: true,
-                                        cancelButtonText: 'Cerrar',
+                                        cancelButtonText: 'Leído',
+                                        confirmButtonColor: '#4f46e5',
+                                        cancelButtonColor: '#6b7280',
                                         timer: 10000,
-                                        timerProgressBar: true
+                                        timerProgressBar: true,
+                                        didOpen: (toast) => {
+                                            toast.addEventListener('mouseenter', Swal.stopTimer);
+                                            toast.addEventListener('mouseleave', Swal.resumeTimer);
+                                        }
                                     }).then((result) => {
                                         if (result.isConfirmed) {
-                                            $.post('{{ url("/performance-notes-notifications/mark-read") }}/' + n.id, function() {
+                                            window.markNotificationDirectly(n.id, null, function() {
                                                 window.location.href = url;
                                             });
-                                        } else {
-                                            $.post('{{ url("/performance-notes-notifications/mark-read") }}/' + n.id);
+                                        } else if (result.dismiss === Swal.DismissReason.cancel || result.dismiss === Swal.DismissReason.close) {
+                                            window.markNotificationDirectly(n.id);
                                         }
                                     });
 
@@ -192,30 +240,43 @@
                                         showConfirmButton: true,
                                         confirmButtonText: 'Ver detalles',
                                         showCancelButton: true,
-                                        cancelButtonText: 'Cerrar',
+                                        cancelButtonText: 'Leído',
+                                        confirmButtonColor: '#4f46e5',
+                                        cancelButtonColor: '#6b7280',
                                         timer: isEdited ? 15000 : 10000,
-                                        timerProgressBar: true
+                                        timerProgressBar: true,
+                                        didOpen: (toast) => {
+                                            toast.addEventListener('mouseenter', Swal.stopTimer);
+                                            toast.addEventListener('mouseleave', Swal.resumeTimer);
+                                        }
                                     }).then((result) => {
                                         if (result.isConfirmed && n.data.url) {
-                                            $.post('{{ url("/almacen-notifications/mark-read") }}/' + n.id, function() {
+                                            window.markNotificationDirectly(n.id, null, function() {
                                                 window.location.href = n.data.url;
                                             });
+                                        } else if (result.dismiss === Swal.DismissReason.cancel || result.dismiss === Swal.DismissReason.close) {
+                                            window.markNotificationDirectly(n.id);
                                         }
                                     });
 
                                     let dropdown = $('#notifications-dropdown-list');
                                     if(dropdown.length > 0) {
-                                        let urlLink = n.data.url ? `<a href="${n.data.url}" class="text-[10px] text-indigo-600 hover:underline mt-1 inline-block">Ver detalles</a>` : '';
+                                        let urlLink = n.data.url ? `<a href="${n.data.url}" class="text-[10px] text-indigo-600 hover:underline inline-block">Ver detalles</a>` : '';
                                         let borderClass = isEdited ? 'border-amber-500' : 'border-green-500';
                                         let html = `
-                                            <div class="p-2 bg-white border-l-4 ${borderClass}">
+                                            <div id="dropdown-notif-${n.id}" class="p-2 bg-white border-l-4 ${borderClass}">
                                                 <div class="flex justify-between">
                                                     <span class="text-sm font-bold">${escapeHtml(notifTitle)}</span>
                                                     <small class="text-gray-400">Ahora mismo</small>
                                                 </div>
                                                 <p class="text-xs">${escapeHtml(msg)}</p>
                                                 ${changesHtml}
-                                                ${urlLink}
+                                                <div class="flex items-center space-x-2 mt-1">
+                                                    ${urlLink}
+                                                    <button type="button" onclick="window.markNotificationDirectly('${n.id}', this)" class="btn-mark-read text-[10px] text-gray-500 hover:text-indigo-600 hover:underline inline-block">
+                                                        • Marcar como leída
+                                                    </button>
+                                                </div>
                                             </div>
                                         `;
                                         dropdown.children().first().after(html);
@@ -235,13 +296,14 @@
                 fetchUnreadNotifications();
                 setInterval(fetchUnreadNotifications, 30000); 
                 
-                let shownReminders = [];
+                let shownReminders = JSON.parse(sessionStorage.getItem('shown_postponed_reminders') || '[]');
                 function fetchPostponedReminders() {
                     $.get('{{ route("almacen.postponed_reminders") }}', function(res) {
                         if(res.reminders && res.reminders.length > 0) {
                             res.reminders.forEach(sale => {
                                 if (shownReminders.includes(sale.sale_id)) return;
                                 shownReminders.push(sale.sale_id);
+                                sessionStorage.setItem('shown_postponed_reminders', JSON.stringify(shownReminders));
 
                                 Swal.fire({
                                     icon: 'warning',

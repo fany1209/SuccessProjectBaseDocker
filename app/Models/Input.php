@@ -15,7 +15,7 @@ class Input extends Model
 
     public function products()
     {
-        return $this->belongsToMany('App\Models\Product', 'product_inputs', 'input_id', 'product_id')->withPivot('id', 'quantity', 'warehouse_batch');
+        return $this->belongsToMany('App\Models\Product', 'product_inputs', 'input_id', 'product_id')->withPivot('id', 'quantity', 'total_weight', 'warehouse_batch', 'packing_list');
     }
 
     public function supplier()
