@@ -51,7 +51,14 @@
                                 {{ strtoupper(substr($groupUser->name ?? '?', 0, 1)) }}
                             </div>
                             <div>
-                                <h3 class="text-xl font-bold text-gray-800 {{ $isAdmin ? 'group-hover:text-indigo-600 transition-colors' : '' }}">{{ $groupUser->name ?? 'Usuario Desconocido' }}</h3>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="text-xl font-bold text-gray-800 {{ $isAdmin ? 'group-hover:text-indigo-600 transition-colors' : '' }}">{{ $groupUser->name ?? 'Usuario Desconocido' }}</h3>
+                                    @if(!empty($groupUser?->tipo_empleado))
+                                        <span class="text-xs px-2.5 py-0.5 rounded-full font-semibold {{ $groupUser->tipo_empleado === 'Practicante' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-blue-100 text-blue-800 border border-blue-200' }}">
+                                            {{ $groupUser->tipo_empleado }}
+                                        </span>
+                                    @endif
+                                </div>
                                 <p class="text-sm font-medium text-gray-500">{{ $groupNotes->count() }} registro(s) de desempeño</p>
                             </div>
                         </div>
@@ -156,9 +163,35 @@
                 <x-label for="user_id">Usuario / Empleado</x-label>
                 <x-select-1 id="user_id" name="user_id" required>
                     <option value="" disabled selected>Seleccione un usuario...</option>
-                    @foreach($users as $user)
-                        <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
-                    @endforeach
+                    @php
+                        $trabajadores = $users->filter(fn($u) => ($u->tipo_empleado ?? 'Trabajador') === 'Trabajador');
+                        $practicantes = $users->filter(fn($u) => $u->tipo_empleado === 'Practicante');
+                        $otros = $users->reject(fn($u) => in_array($u->tipo_empleado ?? 'Trabajador', ['Trabajador', 'Practicante']));
+                    @endphp
+
+                    @if($trabajadores->isNotEmpty())
+                        <optgroup label="Trabajadores Activos">
+                            @foreach($trabajadores as $user)
+                                <option value="{{ $user->id }}">{{ $user->name }}</option>
+                            @endforeach
+                        </optgroup>
+                    @endif
+
+                    @if($practicantes->isNotEmpty())
+                        <optgroup label="Practicantes Activos">
+                            @foreach($practicantes as $user)
+                                <option value="{{ $user->id }}">{{ $user->name }}</option>
+                            @endforeach
+                        </optgroup>
+                    @endif
+
+                    @if($otros->isNotEmpty())
+                        <optgroup label="Otros Empleados Activos">
+                            @foreach($otros as $user)
+                                <option value="{{ $user->id }}">{{ $user->name }}</option>
+                            @endforeach
+                        </optgroup>
+                    @endif
                 </x-select-1>
             </x-wrapper-form-2>
         </x-wrapper-form-1>
