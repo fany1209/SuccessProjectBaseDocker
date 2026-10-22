@@ -52,7 +52,7 @@ class PdfRepository
                 ->findOrFail($movId);
 
             foreach ($movement->products as $product) {
-                if (method_exists($product, 'isBigBag') && $product->isBigBag()) {
+                if ((int) $product->product_id === 623 || (method_exists($product, 'isBigBag') && $product->isBigBag())) {
                     $totalKg = 0.0;
                     if (isset($product->pivot->total_weight) && (float) $product->pivot->total_weight > 0) {
                         $totalKg = (float) $product->pivot->total_weight;

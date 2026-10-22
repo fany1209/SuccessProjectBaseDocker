@@ -22,41 +22,26 @@ class WarehouseRepository
         $this->warehouse = $warehouse;
     }
 
-    /**
-     * Obtiene el listado completo de almacenes.
-     */
     public function all(): Collection
     {
         return $this->warehouse->all();
     }
 
-    /**
-     * Busca un almacén por su ID.
-     */
     public function find(int $id): ?Warehouse
     {
         return $this->warehouse->find($id);
     }
 
-    /**
-     * Obtiene todos los conceptos.
-     */
     public function getAllConcepts(): Collection
     {
         return Concept::all();
     }
 
-    /**
-     * Obtiene todas las ubicaciones.
-     */
     public function getAllLocations(): Collection
     {
         return Location::all();
     }
 
-    /**
-     * Obtiene el catálogo de productos con inventario activo de manera única.
-     */
     public function getProductsInventory(): Collection
     {
         return Inventory::select('products.product_id', 'products.name', 'products.unit')
@@ -65,9 +50,6 @@ class WarehouseRepository
             ->get();
     }
 
-    /**
-     * Resumen de stock agrupado por producto y almacén en ubicaciones CLI.
-     */
     public function getInventorySummary(): Collection
     {
         return DB::table('inventory')
@@ -79,9 +61,6 @@ class WarehouseRepository
             ->get();
     }
 
-    /**
-     * Ubicaciones que actualmente cuentan con existencias.
-     */
     public function getAvailableLocations(): Collection
     {
         return DB::table('inventory')
@@ -93,9 +72,6 @@ class WarehouseRepository
             ->get();
     }
 
-    /**
-     * Detalle de lotes de inventario calculando el remanente en almacén (stock_wh).
-     */
     public function getInventoryStockWH(): Collection
     {
         return DB::table('inventory')
@@ -119,14 +95,6 @@ class WarehouseRepository
             ->get();
     }
 
-    /**
-     * Evalúa el estatus de registro para las horas de control de temperatura del día actual.
-     *
-     * @param int|null $warehouseId
-     * @param array<int, string> $hours
-     * @param string $timezone
-     * @return array<int, bool>
-     */
     public function getFeedback(?int $warehouseId, array $hours, string $timezone): array
     {
         $feedback = array_fill(0, count($hours), false);
@@ -149,14 +117,6 @@ class WarehouseRepository
         return $feedback;
     }
 
-    /**
-     * Almacena mediciones de temperatura y humedad dentro de una transacción ACID.
-     *
-     * @param int $warehouseId
-     * @param array<int, array<string, mixed>> $measurements
-     * @param array<string, mixed> $meta
-     * @return Collection
-     */
     public function storeTemperatureMeasurements(int $warehouseId, array $measurements, array $meta): Collection
     {
         return DB::transaction(function () use ($warehouseId, $measurements, $meta) {
@@ -180,9 +140,6 @@ class WarehouseRepository
         });
     }
 
-    /**
-     * Consulta el detalle de productos y peso ubicados en una locación específica.
-     */
     public function getInfoLocation(string $location): Collection
     {
         return DB::table('inventory')
@@ -204,9 +161,6 @@ class WarehouseRepository
             ->get();
     }
 
-    /**
-     * Consulta dinámica de existencias con filtros de búsqueda y concepto.
-     */
     public function getWarehouseStock(?string $concept = null, ?string $search = null): Collection
     {
         $query = DB::table('inventory')
@@ -243,9 +197,6 @@ class WarehouseRepository
         return $query->get();
     }
 
-    /**
-     * Obtiene el listado de solicitudes de material para producción con sus partidas.
-     */
     public function getProductionRequests(): Collection
     {
         return ProductionMaterialRequest::with('items')
@@ -253,9 +204,6 @@ class WarehouseRepository
             ->get();
     }
 
-    /**
-     * Marca una solicitud de material como 'Surtido' aplicando bloqueo pesimista contra TOCTOU.
-     */
     public function attendProductionRequest(int $id): ProductionMaterialRequest
     {
         return DB::transaction(function () use ($id) {
@@ -270,9 +218,6 @@ class WarehouseRepository
         });
     }
 
-    /**
-     * Obtiene las partidas de una solicitud de material vinculando el product_id si existe coincidencia.
-     */
     public function getRequestItems(int $id): Collection
     {
         $request = ProductionMaterialRequest::with('items')->findOrFail($id);
@@ -287,12 +232,6 @@ class WarehouseRepository
         });
     }
 
-    /**
-     * Obtiene el resumen detallado de BigBags agrupado por producto y totales consolidados.
-     *
-     * @param int|null $warehouseId
-     * @return array<string, mixed>
-     */
     public function getBigBagsSummary(?int $warehouseId = null): array
     {
         $query = DB::table('cli')
@@ -302,7 +241,9 @@ class WarehouseRepository
             ->leftJoin('warehouses', 'warehouses.warehouse_id', '=', 'locations.warehouse_id')
             ->where(function ($q) {
                 $q->whereNotNull('cli.bag_number')
+                  ->orWhere('products.product_id', 623)
                   ->orWhere('products.name', 'like', '%BGBG%')
+                  ->orWhere('products.name', 'like', '%BIGBAG%')
                   ->orWhere('products.unit', 'BigBags');
             })
             ->where('cli.quantity', '>', 0);
@@ -377,13 +318,6 @@ class WarehouseRepository
         ];
     }
 
-    /**
-     * Actualiza la información de un BigBag individual aplicando bloqueo pesimista y ACID.
-     *
-     * @param int $cliId
-     * @param array<string, mixed> $data
-     * @return Cli|null
-     */
     public function updateBigBag(int $cliId, array $data): ?Cli
     {
         return DB::transaction(function () use ($cliId, $data) {

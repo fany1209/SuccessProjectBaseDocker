@@ -188,7 +188,7 @@
                 $hasBigBags = false;
                 if ($type === 'inputs') {
                     foreach ($movement->products as $p) {
-                        if (method_exists($p, 'isBigBag') && $p->isBigBag()) {
+                        if ((int) $p->product_id === 623 || (method_exists($p, 'isBigBag') && $p->isBigBag())) {
                             $hasBigBags = true;
                             break;
                         }
@@ -261,7 +261,10 @@
                 <tbody>
                     @foreach ($movement->products as $product)
                         @php
-                            $isBgbg = ($type === 'inputs') && method_exists($product, 'isBigBag') && $product->isBigBag();
+                            $isBgbg = ($type === 'inputs') && (
+                                (int) $product->product_id === 623 ||
+                                (method_exists($product, 'isBigBag') && $product->isBigBag())
+                            );
                             $bgbgKg = $isBgbg ? ($product->bigbag_total_kg ?? ($product->pivot->total_weight ?? null)) : null;
                         @endphp
                         <tr>

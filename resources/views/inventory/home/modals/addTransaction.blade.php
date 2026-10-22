@@ -622,7 +622,9 @@ $(function(){
 
             let prodName = (product && product.name ? product.name : '') || wrapper.find('.product-name').text() || '';
             let prodUnit = (product && product.unit ? product.unit : '') || wrapper.find('.unit').text() || '';
-            let isBigBag = prodName.toUpperCase().includes('BGBG') || 
+            let isBigBag = (idNum === 623) ||
+                           (product && product.product_id == 623) ||
+                           prodName.toUpperCase().includes('BGBG') || 
                            prodName.toUpperCase().includes('BIGBAG') || 
                            prodUnit.toUpperCase().includes('BIGBAG');
             
@@ -988,7 +990,8 @@ $(function(){
                                     let locGroups = {};
                                     locs.forEach(pl => {
                                         if(!locGroups[pl.location_id]) locGroups[pl.location_id] = 0;
-                                        if (response.product.name.includes('BGBG')) {
+                                        let isProdBigBag = (id == 623) || (response.product && response.product.product_id == 623) || (response.product && response.product.name && (response.product.name.includes('BGBG') || response.product.name.toUpperCase().includes('BIGBAG')));
+                                        if (isProdBigBag) {
                                             locGroups[pl.location_id]++;
                                         } else {
                                             let qty = parseFloat(pl.quantity);

@@ -351,3 +351,53 @@ it('getMovementPdfData calculates bigbag_total_kg from cli when total_weight is 
     $productInPdf = $pdfData['data']['movement']->products->first();
     expect((float) $productInPdf->bigbag_total_kg)->toEqual(2040.0);
 });
+
+it('getMovementPdfData and downloadPDF support product ID 623 as BigBag without BGBG in name', function () {
+    $prod623 = Product::find(623);
+    if (!$prod623) {
+        $category = \App\Models\Category::first();
+        $prod623 = Product::create([
+            'product_id'  => 623,
+            'name'        => 'Yeacali Harina',
+            'unit'        => 'Pieza',
+            'sat_code'    => '10121500',
+            'sku'         => 'SKU-623',
+            'category_id' => $category->category_id,
+            'stock_min'   => 1,
+            'stock_max'   => 100,
+        ]);
+    }
+
+    $supplier = Supplier::first() ?? Supplier::create([
+        'name'          => 'Proveedor 623 ' . uniqid(),
+        'supplier_code' => 'SUP-623-' . rand(100, 999),
+    ]);
+
+    $input = Input::create([
+        'operator'      => 'Operador 623',
+        'supplier_id'   => $supplier->supplier_id,
+        'comments'      => 'Entrada BigBag ID 623',
+        'security_seal' => 0,
+    ]);
+
+    DB::table('product_inputs')->insert([
+        'input_id'        => $input->input_id,
+        'product_id'      => 623,
+        'quantity'        => 5.0,
+        'total_weight'    => 5150.25,
+        'warehouse_batch' => 'LOTE-623-' . uniqid(),
+    ]);
+
+    $repo = app(PdfRepository::class);
+    $pdfData = $repo->getMovementPdfData('inputs', $input->input_id);
+
+    $productInPdf = $pdfData['data']['movement']->products->first();
+    expect((int) $productInPdf->product_id)->toBe(623);
+    expect((float) $productInPdf->bigbag_total_kg)->toEqual(5150.25);
+
+    $response = $this->actingAs($this->user)
+        ->get(route('makePDF', ['movType' => 'inputs', 'movId' => $input->input_id]));
+
+    $response->assertOk();
+    expect($response->headers->get('content-type'))->toContain('application/pdf');
+});

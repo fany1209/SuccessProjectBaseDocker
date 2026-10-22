@@ -48,11 +48,12 @@ class Product extends Model
         return $this->belongsToMany('App\Models\Sale', 'sale_detail', 'product_id', 'sale_id');
     }
 
-    /**
-     * Determina si el producto corresponde a presentación BigBag / Barcina.
-     */
     public function isBigBag(): bool
     {
+        if ((int) $this->product_id === 623) {
+            return true;
+        }
+
         $name = strtoupper($this->name ?? '');
         $unit = strtoupper($this->unit ?? '');
         $pres = strtoupper($this->presentation ?? '');

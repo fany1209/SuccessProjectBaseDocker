@@ -218,3 +218,55 @@ test('4. Rechaza usar un lote de BigBag si ya pertenece a otro producto diferent
     $response->assertStatus(422);
     expect($response->json('errors')['warehouse_batch.0'] ?? null)->not->toBeNull();
 });
+
+test('5. Reconoce producto con ID 623 como BigBag aunque su nombre no contenga BGBG', function () {
+    $prod623 = Product::find(623);
+    if (!$prod623) {
+        $prod623 = new Product();
+        $prod623->product_id = 623;
+        $prod623->name = 'Yeacali';
+        $prod623->unit = 'Pieza';
+        $prod623->presentation = 'Polvo';
+    } else {
+        $prod623->name = 'Yeacali ®';
+        $prod623->unit = 'Pieza';
+    }
+
+    expect($prod623->isBigBag())->toBeTrue();
+
+    // Verificación en transacción de entrada permitiendo lote duplicado
+    $batch = 'LOT-ID623-' . uniqid();
+    $b1 = 'B623-' . rand(100, 999);
+    $b2 = 'B623-' . rand(100, 999);
+
+    $payload = [
+        'type'            => 'Input',
+        'security_seal'   => 0,
+        'supplier'        => $this->supplier->supplier_id,
+        'operator'        => 'Chofer 623',
+        'comments'        => 'Entrada de producto ID 623 sin etiqueta BGBG',
+        'product_id'      => [623, 623],
+        'quantity'        => [1, 1],
+        'warehouse_batch' => [$batch, $batch],
+        'location_id'     => [$this->location1->location_id, $this->location2->location_id],
+        'concept_id'      => [$this->concept->concept_id, $this->concept->concept_id],
+        'weight_per_unit' => [1000, 1000],
+        'packing_list'    => ['PL-623', 'PL-623'],
+        'bag_number'      => [[$b1], [$b2]],
+        'protein'         => [[45.5], [46.0]],
+        'bag_weight'      => [[1000], [1000]],
+        'bag_location_id' => [
+            [$this->location1->location_id],
+            [$this->location2->location_id],
+        ],
+    ];
+
+    $response = $this->actingAs($this->user)->postJson('/makeTransaction', $payload);
+
+    $response->assertStatus(201);
+    expect($response->json('success'))->toBeTrue();
+
+    $inv = Inventory::where('batch', $batch)->where('product_id', 623)->first();
+    expect($inv)->not->toBeNull();
+    expect((float) $inv->stock)->toEqual(2.0);
+});

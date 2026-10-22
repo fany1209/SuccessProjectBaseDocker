@@ -393,7 +393,7 @@ class InventoryRepository
 
                     $product = Product::find($productId);
                     $isBigBag = false;
-                    if ($product && method_exists($product, 'isBigBag') && $product->isBigBag()) {
+                    if ((int) $productId === 623 || ($product && method_exists($product, 'isBigBag') && $product->isBigBag())) {
                         $isBigBag = true;
                     }
                     if (!$isBigBag && isset($data['bag_number'][$index]) && is_array($data['bag_number'][$index]) && count($data['bag_number'][$index]) > 0) {

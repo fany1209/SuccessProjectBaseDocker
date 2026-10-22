@@ -1,11 +1,3 @@
-{{--
-Warehouse
-Warehouse (WH maps)
-Fecha de creación: 29-07-2025
-Creado por: Jacob
-Actualizado por: Jacob
-Fecha de actualización: 29-08-25
---}}
 <x-modal id='infoLocation'>
     <div class="flex justify-center items-center w-full p-2 bg-green-400 rounded-md">
         <p class="location-tag text-white font-bold bg-green-400"></p>
@@ -67,7 +59,7 @@ $(document).ready(function(){
                                             ${product.batch}
                                         </p>
                                     </div>
-                                    ${(product.pName.includes('BGBG') && product.bag_number) ? `
+                                    ${(((product.product_id == 623) || (product.pName && (product.pName.includes('BGBG') || product.pName.toUpperCase().includes('BIGBAG')))) && product.bag_number) ? `
                                     <div class="flex flex-col items-start gap-1 w-full">
                                         <label class="block mb-1 text-sm font-medium text-gray-700">Barcina #</label>
                                         <p class="w-full border border-gray-300 text-gray-400 focus:text-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-green-500 px-2 py-2">

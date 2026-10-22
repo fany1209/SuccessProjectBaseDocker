@@ -21,13 +21,16 @@ beforeEach(function () {
     Permission::findOrCreate('inventory.show', 'web');
     $this->user->givePermissionTo('inventory.show');
 
-    $this->category = Category::first() ?? Category::create([
-        'name' => 'Insumos Generales ' . uniqid(),
-    ]);
+    $this->category = Category::where('name', 'like', '%insumo%')->first()
+        ?? Category::create([
+            'name' => 'Insumos Generales ' . uniqid(),
+        ]);
 
-    $this->product = Product::first() ?? Product::create([
+    $this->product = Product::create([
         'name'        => 'Levadura Seca Calidad ' . uniqid(),
         'unit'        => 'kg',
+        'sat_code'    => '10121500',
+        'sku'         => 'SKU-' . uniqid(),
         'category_id' => $this->category->category_id,
         'stock_min'   => 10,
         'stock_max'   => 500,

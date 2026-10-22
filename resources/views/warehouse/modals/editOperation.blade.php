@@ -1,11 +1,3 @@
-{{--
-Warehouse
-Edit Cli
-Fecha de creación: 28-10-2025
-Creado por: Jacob
-Actualizado por: fany
-Fecha de actualización: 09/03/2026
---}}
 <x-modal id="edit-cli">
     <form class="flex flex-col items-center w-full gap-2" id="edit-cli-form">
         @csrf
@@ -169,7 +161,8 @@ $(function(){
                 }
                 
                 let product = products_inventory.find(i => i.product_id === product_id);
-                if (product && product.name.includes('BGBG')) {
+                let isBigBag = (product_id === 623) || (product && (product.product_id === 623 || product.name.includes('BGBG') || product.name.toUpperCase().includes('BIGBAG')));
+                if (isBigBag) {
                     father.find('.bag_numbers_wrapper').removeClass('hidden');
                 } else {
                     father.find('.bag_numbers_wrapper').addClass('hidden');

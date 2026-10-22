@@ -114,12 +114,6 @@ class InventoryTransactionRequest extends FormRequest
         ];
     }
 
-    /**
-     * Valida reglas de negocio para lotes:
-     * - Se permite la duplicación de lote solo para productos tipo BigBag.
-     * - Para productos regulares no BigBag, el lote no puede repetirse en el formulario ni existir previamente.
-     * - Un lote de BigBag no puede pertenecer a un producto diferente en inventario.
-     */
     public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator) {
@@ -152,7 +146,7 @@ class InventoryTransactionRequest extends FormRequest
                 $product = $productId ? ($products[$productId] ?? null) : null;
 
                 $isBigBag = false;
-                if ($product && method_exists($product, 'isBigBag') && $product->isBigBag()) {
+                if ((int) $productId === 623 || ($product && method_exists($product, 'isBigBag') && $product->isBigBag())) {
                     $isBigBag = true;
                 }
                 if (!$isBigBag && isset($bagNumbers[$index]) && is_array($bagNumbers[$index]) && count($bagNumbers[$index]) > 0) {

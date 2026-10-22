@@ -241,7 +241,9 @@ $(function(){
 
             let prodName = (product && product.name ? product.name : '') || wrapper.find('.product-name').text() || '';
             let prodUnit = (product && product.unit ? product.unit : '') || wrapper.find('.unit').text() || '';
-            let isBigBag = prodName.toUpperCase().includes('BGBG') || 
+            let isBigBag = (idNum === 623) ||
+                           (product && product.product_id == 623) ||
+                           prodName.toUpperCase().includes('BGBG') || 
                            prodName.toUpperCase().includes('BIGBAG') || 
                            prodUnit.toUpperCase().includes('BIGBAG');
             

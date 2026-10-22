@@ -1,10 +1,3 @@
-{{--
-Warehouse
-Fecha de creación: 21-07-2025
-Creado por: Jacob
-Actualizado por: Stefany
-Fecha de actualización: 17-12-25
---}}
 <x-application.section-1>
   <div class="flex flex-col justify-center items-center w-full">
     <div class="flex justify-center items-center gap-2 w-full my-1">
@@ -195,7 +188,8 @@ $(document).ready(function () {
             .text(`Total: ${response.cli.net_weight}`);
 
           let product = products_inventory.find(i => i.product_id === response.cli.product_id);
-          if (product && product.name.includes('BGBG')) {
+          let isBigBag = (response.cli.product_id == 623) || (product && (product.product_id == 623 || product.name.includes('BGBG') || product.name.toUpperCase().includes('BIGBAG')));
+          if (isBigBag) {
               $('#edit-cli .bag_numbers_wrapper').removeClass('hidden');
               $('#edit-cli #bag_number').val(response.cli.bag_number);
               $('#edit-cli #protein').val(response.cli.protein);
