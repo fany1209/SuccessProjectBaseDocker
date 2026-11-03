@@ -23,7 +23,6 @@
 @section('content')
     @include('home.hero')
     @include('home.sectors')
-    @include('home.information')
     @include('home.cards')
 @endsection
 
