@@ -288,7 +288,7 @@
 
                             <td class="cells-1">
                                 <p class="text-sm-black">
-                                    {{ $product->pivot->warehouse_batch }}
+                                    {{ (method_exists($product, 'isShippingService') && $product->isShippingService()) ? 'N/A (Paquetería)' : $product->pivot->warehouse_batch }}
                                 </p>
                             </td>
 

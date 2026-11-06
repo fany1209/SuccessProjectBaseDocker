@@ -48,6 +48,7 @@ use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\idController;
 use App\Http\Controllers\FertilController;
 use App\Http\Controllers\VitayelaController;
+use App\Http\Controllers\UnifiedProductionController;
 use App\Http\Controllers\ComparativeController;
 use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\SupplierPriceController; 
@@ -585,8 +586,27 @@ Route::prefix('laboratory/equipments')->group(function () {
     Route::get('/production', [ProductionController::class, 'index'])->name('production.index');
     Route::get('/i+d', [idController::class, 'index'])->name('i+d.index');
 
+    Route::prefix('production/records')->name('production.records.')->group(function () {
+        Route::get('/', [UnifiedProductionController::class, 'index'])->name('index');
+
+        Route::post('/request-materials', [UnifiedProductionController::class, 'storeMaterialRequest'])->name('storeMaterialRequest');
+
+        Route::post('/productions', [UnifiedProductionController::class, 'storeProduction'])->name('storeProduction');
+        Route::put('/productions/{id}', [UnifiedProductionController::class, 'updateProduction'])->name('updateProduction');
+        Route::delete('/productions/{id}', [UnifiedProductionController::class, 'destroyProduction'])->name('destroyProduction');
+
+        Route::post('/inventories', [UnifiedProductionController::class, 'storeInventory'])->name('storeInventory');
+        Route::put('/inventories/{id}', [UnifiedProductionController::class, 'updateInventory'])->name('updateInventory');
+        Route::delete('/inventories/{id}', [UnifiedProductionController::class, 'destroyInventory'])->name('destroyInventory');
+        Route::post('/inventories/{id}/output', [UnifiedProductionController::class, 'outputInventory'])->name('outputInventory');
+        Route::post('/inventories/{id}/transfer-to-warehouse', [UnifiedProductionController::class, 'transferToWarehouse'])->name('transferToWarehouse');
+        Route::get('/inventories/{id}/movements', [UnifiedProductionController::class, 'getMovements'])->name('getMovements');
+    });
+
     Route::prefix('production/fertil')->name('production.fertil.')->group(function () {
-        Route::get('/', [FertilController::class, 'index'])->name('index');
+        Route::get('/', function () {
+            return redirect()->route('production.records.index', ['area' => 'fertil']);
+        })->name('index');
         
         Route::post('/request-materials', [FertilController::class, 'storeMaterialRequest'])->name('storeMaterialRequest');
 
@@ -603,7 +623,9 @@ Route::prefix('laboratory/equipments')->group(function () {
     });
 
     Route::prefix('production/vitayela')->name('production.vitayela.')->group(function () {
-        Route::get('/', [VitayelaController::class, 'index'])->name('index');
+        Route::get('/', function () {
+            return redirect()->route('production.records.index', ['area' => 'vitayela']);
+        })->name('index');
         
         Route::post('/productions', [VitayelaController::class, 'storeProduction'])->name('storeProduction');
         Route::put('/productions/{id}', [VitayelaController::class, 'updateProduction'])->name('updateProduction');

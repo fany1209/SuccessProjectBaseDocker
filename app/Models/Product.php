@@ -48,6 +48,18 @@ class Product extends Model
         return $this->belongsToMany('App\Models\Sale', 'sale_detail', 'product_id', 'sale_id');
     }
 
+    public const SHIPPING_SERVICE_IDS = [603, 627, 634, 635, 672];
+
+    public function isShippingService(): bool
+    {
+        return in_array((int) $this->product_id, self::SHIPPING_SERVICE_IDS, true);
+    }
+
+    public static function isShippingServiceId(int|string|null $productId): bool
+    {
+        return in_array((int) $productId, self::SHIPPING_SERVICE_IDS, true);
+    }
+
     public function isBigBag(): bool
     {
         if ((int) $this->product_id === 623) {
