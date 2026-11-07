@@ -20,7 +20,7 @@
 
             <x-wrapper-form-2>
                 <x-label>Tipo de Insumo</x-label>
-                <select name="insumo" required class="w-full border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500 text-sm py-2 px-3 bg-white">
+                <select name="insumo" id="edit-insumo" required class="w-full border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500 text-sm py-2 px-3 bg-white">
                     <option value="directo">Directo</option>
                     <option value="indirecto">Indirecto</option>
                 </select>

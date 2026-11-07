@@ -214,7 +214,7 @@ class FacturaRepository
                 'fecha_factura'   => $data['fecha_factura'],
                 'moneda'          => $data['moneda'] ?? 'MXN',
                 'tipo_cambio'     => $tipoCambio,
-                'departamento'    => $data['departamento'] ?? null,
+                'departamento'    => $data['departamento'] ?? $factura->departamento,
                 'descripcion'     => $data['descripcion'] ?? null,
                 'subtotal'        => $calc['subtotal'],
                 'descuento_total' => $calc['descuento_total'],

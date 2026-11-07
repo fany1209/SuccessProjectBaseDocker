@@ -44,7 +44,7 @@ class Factura extends Model
         'retencion_total' => 'float',
         'total'           => 'float',
         'tipo_cambio'     => 'float',
-        'fecha_factura'   => 'date',
+        'fecha_factura'   => 'date:Y-m-d',
     ];
 
     public function detalles(): HasMany

@@ -211,7 +211,7 @@ Modificado:
 
                 $('#show-empresa').text(f.empresa);
                 $('#show-folio').text(f.folio_factura);
-                $('#show-fecha').text(f.fecha_factura ? f.fecha_factura : 'Sin fecha');
+                $('#show-fecha').text(f.fecha_factura ? String(f.fecha_factura).slice(0, 10) : 'Sin fecha');
 
                 const monedaBadge = $('#show-moneda');
                 monedaBadge.text(moneda);
@@ -319,7 +319,7 @@ Modificado:
                 $('#edit-insumo').val(res.factura.insumo); 
                 $('#edit-empresa').val(res.factura.empresa);
                 $('#edit-folio_factura').val(res.factura.folio_factura);
-                $('#edit-fecha_factura').val(res.factura.fecha_factura || '');
+                $('#edit-fecha_factura').val(res.factura.fecha_factura ? String(res.factura.fecha_factura).slice(0, 10) : '');
                 $('#edit-descripcion').val(res.factura.descripcion || '');
                 $('#edit-moneda').val(res.factura.moneda || 'MXN');
                 $('#edit-moneda').trigger('change');
@@ -479,13 +479,13 @@ Modificado:
                                     }
                                 });
                             } else {
-                                Swal.fire(
-                                    'Atención',
+                            Swal.fire(
+                                'Atención',
                                     msg,
                                     xhr.status === 422 ? 'warning' : 'error'
                                 );
                             }
-                        }
+                        }   
                     });
                 }
             });
