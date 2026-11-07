@@ -821,8 +821,14 @@ class SaleRepository
 
             if ($action === 'confirm') {
                 $lotAssignments = $data['lot_assignments'] ?? [];
-                if (empty($lotAssignments)) {
-                    throw new DomainException('Debes seleccionar un lote para cada producto.');
+
+                $shippingProductIds = Product::SHIPPING_SERVICE_IDS;
+                $physicalProducts = $sale->products->reject(function ($product) use ($shippingProductIds) {
+                    return in_array((int) $product->product_id, $shippingProductIds, true);
+                });
+
+                if ($physicalProducts->isNotEmpty() && empty($lotAssignments)) {
+                    throw new DomainException('Debes seleccionar un lote para cada producto que requiere inventario.');
                 }
 
                 $sale->almacen_status = 'confirmed';
@@ -869,6 +875,19 @@ class SaleRepository
                             'product_id'      => $inventory->product_id,
                             'quantity'        => $quantity,
                             'warehouse_batch' => $inventory->batch,
+                            'label_batch'     => '',
+                        ]);
+                    }
+                }
+
+                // Registrar salida para productos de paquetería/flete sin descontar inventario de almacén
+                foreach ($sale->products as $saleProduct) {
+                    if (in_array((int) $saleProduct->product_id, $shippingProductIds, true)) {
+                        DB::table('product_outputs')->insert([
+                            'output_id'       => $output->output_id,
+                            'product_id'      => $saleProduct->product_id,
+                            'quantity'        => (float) ($saleProduct->pivot->quantity ?? 1),
+                            'warehouse_batch' => 'PAQUETERIA',
                             'label_batch'     => '',
                         ]);
                     }
@@ -976,28 +995,35 @@ class SaleRepository
                 $productName = $product ? $product->name : 'Producto ID: ' . $detail->product_id;
             }
 
-            $cliRecords = DB::table('cli')
-                ->join('inventory', 'inventory.inventory_id', '=', 'cli.inventory_id')
-                ->join('locations', 'locations.location_id', '=', 'cli.location_id')
-                ->where('inventory.product_id', $detail->product_id)
-                ->where('cli.net_weight', '>', 0)
-                ->select(
-                    'cli.cli_id',
-                    'inventory.inventory_id',
-                    'inventory.batch',
-                    'locations.name as location_name',
-                    'cli.location_id',
-                    'cli.net_weight',
-                    'cli.quantity',
-                    'cli.weight_per_unit'
-                )
-                ->get();
+            $isShipping = Product::isShippingServiceId($detail->product_id);
+
+            $cliRecords = collect([]);
+            if (!$isShipping) {
+                $cliRecords = DB::table('cli')
+                    ->join('inventory', 'inventory.inventory_id', '=', 'cli.inventory_id')
+                    ->join('locations', 'locations.location_id', '=', 'cli.location_id')
+                    ->where('inventory.product_id', $detail->product_id)
+                    ->where('cli.net_weight', '>', 0)
+                    ->select(
+                        'cli.cli_id',
+                        'inventory.inventory_id',
+                        'inventory.batch',
+                        'locations.name as location_name',
+                        'cli.location_id',
+                        'cli.net_weight',
+                        'cli.quantity',
+                        'cli.weight_per_unit',
+                        'cli.bag_number'
+                    )
+                    ->get();
+            }
 
             $result[] = [
                 'detail_id'         => $detail->sale_detail_id,
                 'product_id'        => $detail->product_id,
                 'product_name'      => $productName,
                 'quantity_required' => $detail->quantity,
+                'is_shipping'       => $isShipping,
                 'lots'              => $cliRecords,
             ];
         }

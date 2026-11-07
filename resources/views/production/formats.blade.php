@@ -56,15 +56,9 @@
         <span>Producción de Levadura</span>
     </a>
     
-    <a href="{{ route('production.fertil.index') }}" class="{{ $btnBase }} {{ $btnCard }}">
-        <img src="{{ asset('images/formats/agro.png') }}" alt="Fertil" class="{{ $imgCls }}">
-        <span>Producción de Fertil</span>
-    </a>
-
-    <a href="{{ route('production.vitayela.index') }}" class="{{ $btnBase }} {{ $btnCard }}">
-        <img src="{{ asset('images/deli.png') }}" alt="Vitayela" class="{{ $imgCls }}">
-        <span>Producción de Vitayela</span>
-        
+    <a href="{{ route('production.records.index') }}" class="{{ $btnBase }} {{ $btnCard }}">
+        <img src="{{ asset('images/formats/agro.png') }}" alt="Fertil y Vitayela" class="{{ $imgCls }}">
+        <span>Producción (Fertil y Vitayela)</span>
     </a>
 </div>
 </section>

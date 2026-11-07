@@ -221,32 +221,54 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @foreach($sale->products as $product)
-                            <tr class="hover:bg-slate-50/80 transition">
+                            @php
+                                $isShipping = $product->isShippingService();
+                            @endphp
+                            <tr class="hover:bg-slate-50/80 transition {{ $isShipping ? 'bg-sky-50/20' : '' }}">
                                 <td class="px-5 py-4">
-                                    <div class="font-bold text-slate-800">
-                                        {{ $product->pivot->public_product_name ?: $product->name }}
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-slate-800">
+                                            {{ $product->pivot->public_product_name ?: $product->name }}
+                                        </span>
+                                        @if($isShipping)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-100 text-sky-800 border border-sky-300 shadow-2xs">
+                                                <i class="ri-truck-line mr-1"></i> Paquetería / Envío
+                                            </span>
+                                        @endif
                                     </div>
                                     @if($product->sku)
                                     <span class="text-xs text-slate-400 font-mono">SKU: {{ $product->sku }}</span>
                                     @endif
                                 </td>
                                 <td class="px-5 py-4 font-mono font-medium text-slate-700">
-                                    <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs">
-                                        {{ $product->pivot->public_batch ?: 'Sin Lote Asignado' }}
-                                    </span>
+                                    @if($isShipping)
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold">
+                                            <i class="ri-information-line mr-1.5 text-sky-600"></i> No requiere lote (Servicio de Paquetería)
+                                        </span>
+                                    @else
+                                        <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs">
+                                            {{ $product->pivot->public_batch ?: 'Sin Lote Asignado' }}
+                                        </span>
+                                    @endif
                                 </td>
                                 @if(isset($output) && $output)
                                     <td class="px-5 py-4">
-                                        @php
-                                            $outProd = $output->products->where('product_id', $product->product_id)->first();
-                                        @endphp
-                                        <span class="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 font-mono text-xs font-semibold">
-                                            {{ $outProd ? ($outProd->pivot->warehouse_batch ?: 'N/A') : 'N/A' }}
-                                        </span>
+                                        @if($isShipping)
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 font-mono text-xs font-semibold">
+                                                <i class="ri-truck-line mr-1 text-emerald-600"></i> Despachado (Paquetería)
+                                            </span>
+                                        @else
+                                            @php
+                                                $outProd = $output->products->where('product_id', $product->product_id)->first();
+                                            @endphp
+                                            <span class="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 font-mono text-xs font-semibold">
+                                                {{ $outProd ? ($outProd->pivot->warehouse_batch ?: 'N/A') : 'N/A' }}
+                                            </span>
+                                        @endif
                                     </td>
                                 @endif
                                 <td class="px-5 py-4 text-right">
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold {{ $isShipping ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200' }}">
                                         {{ number_format((float) $product->pivot->quantity, 2) }} {{ $product->unit ?: 'uds' }}
                                     </span>
                                 </td>
@@ -259,17 +281,25 @@
                 <!-- Vista de Tarjetas para Dispositivos Móviles (Celulares) -->
                 <div class="block sm:hidden space-y-3">
                     @foreach($sale->products as $product)
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 shadow-xs">
+                    @php
+                        $isShipping = $product->isShippingService();
+                    @endphp
+                    <div class="{{ $isShipping ? 'bg-sky-50/30 border-sky-200' : 'bg-slate-50 border-slate-200' }} border rounded-xl p-4 shadow-xs">
                         <div class="flex items-start justify-between gap-2 mb-2">
                             <div>
-                                <h4 class="font-bold text-slate-900 text-sm">
+                                <h4 class="font-bold text-slate-900 text-sm flex items-center flex-wrap gap-1">
                                     {{ $product->pivot->public_product_name ?: $product->name }}
+                                    @if($isShipping)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-300">
+                                            <i class="ri-truck-line mr-1"></i> Paquetería
+                                        </span>
+                                    @endif
                                 </h4>
                                 @if($product->sku)
                                     <span class="text-[11px] text-slate-400 font-mono block">SKU: {{ $product->sku }}</span>
                                 @endif
                             </div>
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 flex-shrink-0">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-extrabold {{ $isShipping ? 'bg-sky-100 text-sky-800 border border-sky-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300' }} flex-shrink-0">
                                 {{ number_format((float) $product->pivot->quantity, 2) }} {{ $product->unit ?: 'uds' }}
                             </span>
                         </div>
@@ -277,19 +307,31 @@
                         <div class="pt-2 border-t border-slate-200/80 flex flex-col gap-1.5 text-xs">
                             <div class="flex justify-between items-center">
                                 <span class="text-slate-500 font-medium">Lote Pedido:</span>
-                                <span class="font-mono font-bold text-slate-700 px-2 py-0.5 rounded bg-white border border-slate-200">
-                                    {{ $product->pivot->public_batch ?: 'N/A' }}
-                                </span>
+                                @if($isShipping)
+                                    <span class="font-semibold text-sky-800 px-2 py-0.5 rounded bg-sky-50 border border-sky-200 text-[11px]">
+                                        <i class="ri-information-line mr-1"></i> No requiere lote
+                                    </span>
+                                @else
+                                    <span class="font-mono font-bold text-slate-700 px-2 py-0.5 rounded bg-white border border-slate-200">
+                                        {{ $product->pivot->public_batch ?: 'N/A' }}
+                                    </span>
+                                @endif
                             </div>
                             @if(isset($output) && $output)
-                                @php
-                                    $outProd = $output->products->where('product_id', $product->product_id)->first();
-                                @endphp
                                 <div class="flex justify-between items-center">
                                     <span class="text-slate-500 font-medium">Lote Despachado:</span>
-                                    <span class="font-mono font-bold text-emerald-700 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200">
-                                        {{ $outProd ? ($outProd->pivot->warehouse_batch ?: 'N/A') : 'N/A' }}
-                                    </span>
+                                    @if($isShipping)
+                                        <span class="font-semibold text-emerald-800 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[11px]">
+                                            <i class="ri-truck-line mr-1"></i> Despachado (Paquetería)
+                                        </span>
+                                    @else
+                                        @php
+                                            $outProd = $output->products->where('product_id', $product->product_id)->first();
+                                        @endphp
+                                        <span class="font-mono font-bold text-emerald-700 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200">
+                                            {{ $outProd ? ($outProd->pivot->warehouse_batch ?: 'N/A') : 'N/A' }}
+                                        </span>
+                                    @endif
                                 </div>
                             @endif
                         </div>
@@ -517,61 +559,98 @@ $(document).ready(function() {
             let html = '';
             res.products.forEach((product, index) => {
                 let lotsHtml = '';
-                const hasLots = product.lots && product.lots.length > 0;
+                const isShipping = !!product.is_shipping;
 
-                if (!hasLots) {
+                if (isShipping) {
                     lotsHtml = `
-                        <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center space-x-2">
-                            <i class="ri-alert-line text-base text-rose-600 flex-shrink-0"></i>
-                            <span>No hay barcinas/lotes con stock disponible en ubicaciones de almacén para este producto.</span>
+                        <div class="p-3 bg-sky-50 border border-sky-200 rounded-xl text-sky-800 text-xs flex items-center space-x-2.5">
+                            <i class="ri-truck-line text-lg text-sky-600 flex-shrink-0"></i>
+                            <div class="leading-relaxed">
+                                <span class="font-bold text-sky-900 block">Servicio de Paquetería / Destino:</span>
+                                <span>Este concepto indica la logística de entrega y no requiere lote ni descuenta inventario físico de almacén.</span>
+                            </div>
+                        </div>
+                    `;
+
+                    html += `
+                        <div class="product-item p-3.5 sm:p-4 rounded-xl border-2 bg-sky-50/40 border-sky-200 transition-all shadow-xs" data-is-shipping="1" data-product-id="${product.product_id}">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5 pb-2 border-b border-sky-200/80">
+                                <div class="flex items-center space-x-2.5">
+                                    <div class="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-base flex-shrink-0">
+                                        <i class="ri-truck-line"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-slate-800 text-xs sm:text-sm leading-snug">
+                                            ${window.escapeHtml ? window.escapeHtml(product.product_name) : product.product_name}
+                                        </h4>
+                                        <span class="inline-flex items-center text-[11px] font-semibold text-sky-700">
+                                            <i class="ri-information-fill mr-1"></i> Paquetería (Exenta de lote)
+                                        </span>
+                                    </div>
+                                </div>
+                                <span class="inline-flex items-center self-start sm:self-auto px-2.5 py-1 rounded-full text-xs font-extrabold bg-sky-100 text-sky-800 border border-sky-300 flex-shrink-0">
+                                    Cantidad: ${parseFloat(product.quantity_required).toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                </span>
+                            </div>
+                            
+                            ${lotsHtml}
                         </div>
                     `;
                 } else {
-                    lotsHtml = `
-                        <div class="relative">
-                            <select name="lot_${index}" class="lot-select block w-full rounded-xl border border-slate-300 bg-white text-slate-800 shadow-xs focus:border-emerald-500 focus:ring-emerald-500 text-xs sm:text-sm p-3 transition appearance-none cursor-pointer pr-10" data-product-id="${product.product_id}" data-quantity="${product.quantity_required}">
-                                <option value="">-- Selecciona lote y ubicación física --</option>
-                    `;
-                    product.lots.forEach(lot => {
-                        const netWeight = parseFloat(lot.net_weight) || 0;
-                        const qty = parseFloat(lot.quantity) || 0;
-                        const wpu = parseFloat(lot.weight_per_unit) || 0;
-                        const bagText = lot.bag_number ? `Barcina #${lot.bag_number} | ` : '';
-                        lotsHtml += `<option value="${lot.cli_id}" data-stock="${netWeight}">
-                            ${bagText}Lote: ${lot.batch} → ${lot.location_name} (Disp: ${netWeight.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})} kg)
-                        </option>`;
-                    });
-                    lotsHtml += `
-                            </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                                <i class="ri-arrow-down-s-line text-lg"></i>
+                    const hasLots = product.lots && product.lots.length > 0;
+
+                    if (!hasLots) {
+                        lotsHtml = `
+                            <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center space-x-2">
+                                <i class="ri-alert-line text-base text-rose-600 flex-shrink-0"></i>
+                                <span>No hay barcinas/lotes con stock disponible en ubicaciones de almacén para este producto.</span>
                             </div>
+                        `;
+                    } else {
+                        lotsHtml = `
+                            <div class="relative">
+                                <select name="lot_${index}" class="lot-select block w-full rounded-xl border border-slate-300 bg-white text-slate-800 shadow-xs focus:border-emerald-500 focus:ring-emerald-500 text-xs sm:text-sm p-3 transition appearance-none cursor-pointer pr-10" data-product-id="${product.product_id}" data-quantity="${product.quantity_required}">
+                                    <option value="">-- Selecciona lote y ubicación física --</option>
+                        `;
+                        product.lots.forEach(lot => {
+                            const netWeight = parseFloat(lot.net_weight) || 0;
+                            const bagText = lot.bag_number ? `Barcina #${lot.bag_number} | ` : '';
+                            lotsHtml += `<option value="${lot.cli_id}" data-stock="${netWeight}">
+                                ${bagText}Lote: ${lot.batch} → ${lot.location_name} (Disp: ${netWeight.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})} kg)
+                            </option>`;
+                        });
+                        lotsHtml += `
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                                    <i class="ri-arrow-down-s-line text-lg"></i>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    html += `
+                        <div class="product-item p-3.5 sm:p-4 rounded-xl border-2 ${!hasLots ? 'bg-rose-50/50 border-rose-200 has-no-stock' : 'bg-slate-50 border-slate-200/90'} transition-all shadow-xs" data-is-shipping="0" data-product-id="${product.product_id}">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-2.5 border-b border-slate-200/80">
+                                <div class="flex items-center space-x-2.5">
+                                    <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-base flex-shrink-0">
+                                        <i class="ri-box-3-line"></i>
+                                    </div>
+                                    <h4 class="font-bold text-slate-800 text-xs sm:text-sm leading-snug">
+                                        ${window.escapeHtml ? window.escapeHtml(product.product_name) : product.product_name}
+                                    </h4>
+                                </div>
+                                <span class="inline-flex items-center self-start sm:self-auto px-2.5 py-1 rounded-full text-xs font-extrabold bg-blue-100 text-blue-800 border border-blue-200 flex-shrink-0">
+                                    <i class="ri-scales-3-line mr-1 text-blue-600"></i> Requerido: ${parseFloat(product.quantity_required).toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                </span>
+                            </div>
+                            
+                            ${lotsHtml}
+
+                            <!-- Mensajes de feedback visual de stock -->
+                            <div class="lot-stock-feedback mt-2 hidden"></div>
                         </div>
                     `;
                 }
-
-                html += `
-                    <div class="p-3.5 sm:p-4 rounded-xl border-2 ${!hasLots ? 'bg-rose-50/50 border-rose-200' : 'bg-slate-50 border-slate-200/90'} transition-all shadow-xs">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-2.5 border-b border-slate-200/80">
-                            <div class="flex items-center space-x-2.5">
-                                <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-base flex-shrink-0">
-                                    <i class="ri-box-3-line"></i>
-                                </div>
-                                <h4 class="font-bold text-slate-800 text-xs sm:text-sm leading-snug">
-                                    ${window.escapeHtml ? window.escapeHtml(product.product_name) : product.product_name}
-                                </h4>
-                            </div>
-                            <span class="inline-flex items-center self-start sm:self-auto px-2.5 py-1 rounded-full text-xs font-extrabold bg-blue-100 text-blue-800 border border-blue-200 flex-shrink-0">
-                                <i class="ri-scales-3-line mr-1 text-blue-600"></i> Requerido: ${parseFloat(product.quantity_required).toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                            </span>
-                        </div>
-                        
-                        ${lotsHtml}
-
-                        <!-- Mensajes de feedback visual de stock -->
-                        <div class="lot-stock-feedback mt-2 hidden"></div>
-                    </div>
-                `;
             });
 
             $('#lotSelectionBody').html(html);
@@ -619,7 +698,20 @@ $(document).ready(function() {
         let lotAssignments = [];
         let valid = true;
 
-        if ($('.lot-select').length === 0) {
+        const physicalItems = $('.product-item[data-is-shipping="0"]');
+        const hasMissingStock = $('.has-no-stock').length > 0;
+
+        if (hasMissingStock) {
+            Swal.fire({
+                title: 'Existencias Insuficientes',
+                text: 'Uno o más productos que requieren inventario no tienen lotes con stock disponible en almacén.',
+                icon: 'warning',
+                confirmButtonColor: '#198754'
+            });
+            return;
+        }
+
+        if (physicalItems.length > 0 && $('.lot-select').length === 0) {
             Swal.fire({
                 title: 'Sin Existencias',
                 text: 'No hay productos con lotes disponibles para procesar esta venta.',
@@ -639,7 +731,7 @@ $(document).ready(function() {
                 valid = false;
                 Swal.fire({
                     title: 'Selección Incompleta',
-                    text: 'Debes seleccionar un lote y ubicación física para cada producto de la venta.',
+                    text: 'Debes seleccionar un lote y ubicación física para cada producto de la venta que requiere inventario.',
                     icon: 'warning',
                     confirmButtonColor: '#198754'
                 });
@@ -650,7 +742,7 @@ $(document).ready(function() {
                 valid = false;
                 Swal.fire({
                     title: 'Stock Insuficiente',
-                    text: `El lote seleccionado tiene disponible ${stock} kg, lo cual es menor a los ${quantity} kg requeridos.`,
+                    text: `El lote seleccionado tiene disponible ${stock.toLocaleString('es-MX')} kg, lo cual es menor a los ${parseFloat(quantity).toLocaleString('es-MX')} kg requeridos.`,
                     icon: 'error',
                     confirmButtonColor: '#198754'
                 });
@@ -665,14 +757,21 @@ $(document).ready(function() {
 
         if (!valid) return;
 
+        let confirmMsg = "Se descontará el inventario del lote y ubicación física seleccionados.";
+        if (physicalItems.length === 0) {
+            confirmMsg = "Esta venta contiene únicamente servicios de paquetería. Se confirmará la salida sin afectar el inventario físico.";
+        } else if ($('.product-item[data-is-shipping="1"]').length > 0) {
+            confirmMsg = "Se descontará el inventario físico seleccionado. Los conceptos de paquetería quedarán marcados como salida sin descontar existencias.";
+        }
+
         Swal.fire({
             title: '¿Confirmar salida de almacén?',
-            text: "Se descontará el inventario del lote y ubicación física seleccionados.",
+            text: confirmMsg,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#198754',
             cancelButtonColor: '#64748b',
-            confirmButtonText: 'Sí, confirmar y descontar',
+            confirmButtonText: 'Sí, confirmar salida',
             cancelButtonText: 'Revisar'
         }).then((result) => {
             if (result.isConfirmed) {
