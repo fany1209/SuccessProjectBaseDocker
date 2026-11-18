@@ -33,17 +33,109 @@ class RecursosHumanosRepository
         });
     }
 
+    /**
+     * Procesa y redimensiona una imagen subida al tamaño infantil (ratio 2.5 x 3.2 cm -> 300 x 384 px)
+     * con recorte centrado (center crop) para evitar distorsión y sobrecarga de memoria en DomPDF.
+     */
+    protected function processFotoInfantil(?UploadedFile $foto, int $targetWidth = 300, int $targetHeight = 384): ?string
+    {
+        if (!$foto || !$foto->isValid()) {
+            return null;
+        }
+
+        $path = $foto->getRealPath();
+        if (!$path || !file_exists($path)) {
+            return null;
+        }
+
+        $rawContent = @file_get_contents($path);
+        if ($rawContent === false) {
+            return null;
+        }
+
+        if (function_exists('imagecreatefromstring')) {
+            $srcImg = @imagecreatefromstring($rawContent);
+            if ($srcImg !== false) {
+                // Corregir orientación EXIF si es JPEG de cámara/celular
+                if (function_exists('exif_read_data')) {
+                    $exif = @exif_read_data($path);
+                    if (!empty($exif['Orientation'])) {
+                        $srcImg = match ((int) $exif['Orientation']) {
+                            3 => imagerotate($srcImg, 180, 0) ?: $srcImg,
+                            6 => imagerotate($srcImg, -90, 0) ?: $srcImg,
+                            8 => imagerotate($srcImg, 90, 0) ?: $srcImg,
+                            default => $srcImg,
+                        };
+                    }
+                }
+
+                $srcW = imagesx($srcImg);
+                $srcH = imagesy($srcImg);
+
+                if ($srcW > 0 && $srcH > 0) {
+                    $targetRatio = $targetWidth / $targetHeight;
+                    $srcRatio = $srcW / $srcH;
+
+                    if ($srcRatio > $targetRatio) {
+                        // Imagen más ancha que el formato infantil: recortar laterales
+                        $cropH = $srcH;
+                        $cropW = (int) round($srcH * $targetRatio);
+                        $srcX = (int) round(($srcW - $cropW) / 2);
+                        $srcY = 0;
+                    } else {
+                        // Imagen más alta que el formato infantil: recortar arriba/abajo
+                        $cropW = $srcW;
+                        $cropH = (int) round($srcW / $targetRatio);
+                        $srcX = 0;
+                        $srcY = (int) round(($srcH - $cropH) / 2);
+                    }
+
+                    $dstImg = imagecreatetruecolor($targetWidth, $targetHeight);
+                    if ($dstImg !== false) {
+                        // Fondo blanco por si la imagen original es PNG/WEBP con transparencia
+                        $white = imagecolorallocate($dstImg, 255, 255, 255);
+                        imagefilledrectangle($dstImg, 0, 0, $targetWidth, $targetHeight, $white);
+
+                        imagecopyresampled(
+                            $dstImg,
+                            $srcImg,
+                            0,
+                            0,
+                            $srcX,
+                            $srcY,
+                            $targetWidth,
+                            $targetHeight,
+                            $cropW,
+                            $cropH
+                        );
+
+                        ob_start();
+                        imagejpeg($dstImg, null, 85);
+                        $jpegData = ob_get_clean();
+
+                        imagedestroy($dstImg);
+                        imagedestroy($srcImg);
+
+                        if ($jpegData) {
+                            return 'data:image/jpeg;base64,' . base64_encode($jpegData);
+                        }
+                    }
+                }
+
+                imagedestroy($srcImg);
+            }
+        }
+
+        // Fallback si GD no pudo procesarla
+        $tipo = $foto->getMimeType() ?: $foto->getClientMimeType() ?: 'image/jpeg';
+        return 'data:' . $tipo . ';base64,' . base64_encode($rawContent);
+    }
+
     public function generateExpedientePdf(array $data, ?UploadedFile $foto = null)
     {
         $fmt = fn($d) => $d ? Carbon::parse($d)->format('d/m/Y') : null;
 
-        $fotoBase64 = null;
-        if ($foto && $foto->isValid()) {
-            $path = $foto->getRealPath();
-            $imagen = base64_encode(file_get_contents($path));
-            $tipo = $foto->getClientMimeType();
-            $fotoBase64 = 'data:' . $tipo . ';base64,' . $imagen;
-        }
+        $fotoBase64 = $this->processFotoInfantil($foto, 300, 384);
 
         $viewData = [
             'nombre'               => $data['nombre'] ?? '',
@@ -304,13 +396,7 @@ class RecursosHumanosRepository
     public function generatePracticantePdf(array $data, ?UploadedFile $foto = null)
     {
         $practicante = (object) $data;
-        $practicante->foto_base64 = null;
-
-        if ($foto && $foto->isValid()) {
-            $imageData = file_get_contents($foto->getRealPath());
-            $mimeType = $foto->getClientMimeType();
-            $practicante->foto_base64 = 'data:' . $mimeType . ';base64,' . base64_encode($imageData);
-        }
+        $practicante->foto_base64 = $this->processFotoInfantil($foto, 300, 375);
 
         $reqData = [];
         $nombresRequisitos = [

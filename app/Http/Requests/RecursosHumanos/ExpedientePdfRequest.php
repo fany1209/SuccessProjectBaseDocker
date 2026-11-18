@@ -24,7 +24,7 @@ class ExpedientePdfRequest extends FormRequest
     {
         return [
             'nombre' => ['required', 'string', 'max:255'],
-            'foto'   => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+            'foto'   => ['nullable', 'file', 'image', 'mimes:jpeg,png,jpg,webp', 'max:20480'],
         ];
     }
 
@@ -34,9 +34,10 @@ class ExpedientePdfRequest extends FormRequest
             'nombre.required' => 'El nombre del empleado es obligatorio.',
             'nombre.string'   => 'El nombre debe ser una cadena de texto.',
             'nombre.max'      => 'El nombre no puede exceder 255 caracteres.',
+            'foto.file'       => 'El archivo de la fotografía no se pudo subir correctamente.',
             'foto.image'      => 'El archivo de la fotografía debe ser una imagen válida.',
-            'foto.mimes'      => 'La fotografía debe estar en formato JPEG, JPG o PNG.',
-            'foto.max'        => 'La fotografía no debe superar los 2 MB.',
+            'foto.mimes'      => 'La fotografía debe estar en formato JPEG, JPG, PNG o WEBP.',
+            'foto.max'        => 'La fotografía no debe superar los 20 MB.',
         ];
     }
 }

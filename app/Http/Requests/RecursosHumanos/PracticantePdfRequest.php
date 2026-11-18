@@ -11,10 +11,19 @@ class PracticantePdfRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('nombre')) {
+            $this->merge([
+                'nombre' => strip_tags(trim((string) $this->input('nombre'))),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [
-            'foto_infantil' => ['nullable', 'file', 'image', 'mimes:jpeg,jpg,png,webp', 'max:3072'],
+            'foto_infantil' => ['nullable', 'file', 'image', 'mimes:jpeg,jpg,png,webp', 'max:20480'],
         ];
     }
 
@@ -24,7 +33,7 @@ class PracticantePdfRequest extends FormRequest
             'foto_infantil.file'  => 'El archivo de la fotografía infantil no es válido.',
             'foto_infantil.image' => 'El archivo adjunto debe ser una imagen.',
             'foto_infantil.mimes' => 'La imagen debe ser de formato JPEG, JPG, PNG o WEBP.',
-            'foto_infantil.max'   => 'La fotografía no debe exceder 3 MB.',
+            'foto_infantil.max'   => 'La fotografía no debe exceder 20 MB.',
         ];
     }
 }

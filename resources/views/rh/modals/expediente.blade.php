@@ -14,9 +14,9 @@
 
             <div>
                 <label class="block text-sm font-medium mb-1">Fotografía Infantil</label>
-                <input type="file" name="foto" accept="image/jpeg, image/png, image/jpg"
+                <input type="file" name="foto" accept="image/jpeg, image/png, image/jpg, image/webp"
                         class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 border border-gray-300 rounded-md py-1 px-2">
-                <p class="text-xs text-gray-400 mt-1">Formatos permitidos: JPG, PNG.</p>
+                <p class="text-xs text-gray-400 mt-1">Formatos permitidos: JPG, PNG, WEBP (se ajustará automáticamente al tamaño infantil).</p>
             </div>
         </div>
 

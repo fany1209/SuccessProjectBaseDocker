@@ -142,13 +142,25 @@
     @include('rh.modals.cursos')
 
     @if(session('success'))
-        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 Swal.fire({
                     icon: 'success',
                     title: '¡Éxito!',
-                    text: '{{ session('success') }}',
+                    text: @json(session('success')),
+                    confirmButtonColor: '#198754'
+                });
+            });
+        </script>
+    @endif
+
+    @if($errors->any())
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de validación',
+                    html: `{!! implode('<br>', array_map('e', $errors->all())) !!}`,
                     confirmButtonColor: '#198754'
                 });
             });
